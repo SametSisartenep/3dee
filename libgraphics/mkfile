@@ -1,0 +1,11 @@
+</$objtype/mkfile
+
+LIB=../libgraphics.a$O
+OFILES=\
+	triangle.$O\
+	camera.$O\
+	render.$O\
+
+HFILES=../graphics.h
+
+</sys/src/cmd/mklib

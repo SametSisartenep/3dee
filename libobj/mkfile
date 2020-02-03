@@ -1,0 +1,9 @@
+</$objtype/mkfile
+
+LIB=../libobj.a$O
+OFILES=\
+	obj.$O\
+
+HFILES=../obj.h
+
+</sys/src/cmd/mklib

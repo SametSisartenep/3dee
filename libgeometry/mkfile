@@ -1,0 +1,13 @@
+</$objtype/mkfile
+
+LIB=../libgeometry.a$O
+OFILES=\
+	point.$O\
+	matrix.$O\
+	quaternion.$O\
+	rframe.$O\
+	triangle.$O\
+
+HFILES=../geometry.h
+
+</sys/src/cmd/mklib

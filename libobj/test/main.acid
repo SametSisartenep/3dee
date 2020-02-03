@@ -1,0 +1,525 @@
+sizeof_1_ = 8;
+aggr _1_
+{
+	'U' 0 lo;
+	'U' 4 hi;
+};
+
+defn
+_1_(addr) {
+	complex _1_ addr;
+	print("	lo	", addr.lo, "\n");
+	print("	hi	", addr.hi, "\n");
+};
+
+sizeofFPdbleword = 8;
+aggr FPdbleword
+{
+	'F' 0 x;
+	{
+	'U' 0 lo;
+	'U' 4 hi;
+	};
+};
+
+defn
+FPdbleword(addr) {
+	complex FPdbleword addr;
+	print("	x	", addr.x, "\n");
+	print("_1_ {\n");
+		_1_(addr+0);
+	print("}\n");
+};
+
+UTFmax = 4;
+Runesync = 128;
+Runeself = 128;
+Runeerror = 65533;
+Runemax = 1114111;
+Runemask = 2097151;
+sizeofFmt = 80;
+aggr Fmt
+{
+	'b' 0 runes;
+	'Y' 8 start;
+	'Y' 16 to;
+	'Y' 24 stop;
+	'Y' 32 flush;
+	'Y' 40 farg;
+	'D' 48 nfmt;
+	'Y' 56 args;
+	'D' 64 r;
+	'D' 68 width;
+	'D' 72 prec;
+	'U' 76 flags;
+};
+
+defn
+Fmt(addr) {
+	complex Fmt addr;
+	print("	runes	", addr.runes, "\n");
+	print("	start	", addr.start\Y, "\n");
+	print("	to	", addr.to\Y, "\n");
+	print("	stop	", addr.stop\Y, "\n");
+	print("	flush	", addr.flush\Y, "\n");
+	print("	farg	", addr.farg\Y, "\n");
+	print("	nfmt	", addr.nfmt, "\n");
+	print("	args	", addr.args\Y, "\n");
+	print("	r	", addr.r, "\n");
+	print("	width	", addr.width, "\n");
+	print("	prec	", addr.prec, "\n");
+	print("	flags	", addr.flags, "\n");
+};
+
+FmtWidth = 1;
+FmtLeft = 2;
+FmtPrec = 4;
+FmtSharp = 8;
+FmtSpace = 16;
+FmtSign = 32;
+FmtZero = 64;
+FmtUnsigned = 128;
+FmtShort = 256;
+FmtLong = 512;
+FmtVLong = 1024;
+FmtComma = 2048;
+FmtByte = 4096;
+FmtFlag = 8192;
+sizeofTm = 40;
+aggr Tm
+{
+	'D' 0 sec;
+	'D' 4 min;
+	'D' 8 hour;
+	'D' 12 mday;
+	'D' 16 mon;
+	'D' 20 year;
+	'D' 24 wday;
+	'D' 28 yday;
+	'a' 32 zone;
+	'D' 36 tzoff;
+};
+
+defn
+Tm(addr) {
+	complex Tm addr;
+	print("	sec	", addr.sec, "\n");
+	print("	min	", addr.min, "\n");
+	print("	hour	", addr.hour, "\n");
+	print("	mday	", addr.mday, "\n");
+	print("	mon	", addr.mon, "\n");
+	print("	year	", addr.year, "\n");
+	print("	wday	", addr.wday, "\n");
+	print("	yday	", addr.yday, "\n");
+	print("	zone	", addr.zone, "\n");
+	print("	tzoff	", addr.tzoff, "\n");
+};
+
+PNPROC = 1;
+PNGROUP = 2;
+Profoff = 0;
+Profuser = 1;
+Profkernel = 2;
+Proftime = 3;
+Profsample = 4;
+sizeofLock = 8;
+aggr Lock
+{
+	'D' 0 val;
+};
+
+defn
+Lock(addr) {
+	complex Lock addr;
+	print("	val	", addr.val, "\n");
+};
+
+sizeofQLp = 16;
+aggr QLp
+{
+	'D' 0 inuse;
+	'D' 4 state;
+	'A' QLp 8 next;
+};
+
+defn
+QLp(addr) {
+	complex QLp addr;
+	print("	inuse	", addr.inuse, "\n");
+	print("	state	", addr.state, "\n");
+	print("	next	", addr.next\Y, "\n");
+};
+
+sizeofQLock = 32;
+aggr QLock
+{
+	Lock 0 lock;
+	'D' 8 locked;
+	'A' QLp 16 $head;
+	'A' QLp 24 $tail;
+};
+
+defn
+QLock(addr) {
+	complex QLock addr;
+	print("Lock lock {\n");
+	Lock(addr.lock);
+	print("}\n");
+	print("	locked	", addr.locked, "\n");
+	print("	$head	", addr.$head\Y, "\n");
+	print("	$tail	", addr.$tail\Y, "\n");
+};
+
+sizeofRWLock = 32;
+aggr RWLock
+{
+	Lock 0 lock;
+	'D' 8 readers;
+	'D' 12 writer;
+	'A' QLp 16 $head;
+	'A' QLp 24 $tail;
+};
+
+defn
+RWLock(addr) {
+	complex RWLock addr;
+	print("Lock lock {\n");
+	Lock(addr.lock);
+	print("}\n");
+	print("	readers	", addr.readers, "\n");
+	print("	writer	", addr.writer, "\n");
+	print("	$head	", addr.$head\Y, "\n");
+	print("	$tail	", addr.$tail\Y, "\n");
+};
+
+sizeofRendez = 24;
+aggr Rendez
+{
+	'A' QLock 0 l;
+	'A' QLp 8 $head;
+	'A' QLp 16 $tail;
+};
+
+defn
+Rendez(addr) {
+	complex Rendez addr;
+	print("	l	", addr.l\Y, "\n");
+	print("	$head	", addr.$head\Y, "\n");
+	print("	$tail	", addr.$tail\Y, "\n");
+};
+
+sizeofNetConnInfo = 72;
+aggr NetConnInfo
+{
+	'Y' 0 dir;
+	'Y' 8 root;
+	'Y' 16 spec;
+	'Y' 24 lsys;
+	'Y' 32 lserv;
+	'Y' 40 rsys;
+	'Y' 48 rserv;
+	'Y' 56 laddr;
+	'Y' 64 raddr;
+};
+
+defn
+NetConnInfo(addr) {
+	complex NetConnInfo addr;
+	print("	dir	", addr.dir\Y, "\n");
+	print("	root	", addr.root\Y, "\n");
+	print("	spec	", addr.spec\Y, "\n");
+	print("	lsys	", addr.lsys\Y, "\n");
+	print("	lserv	", addr.lserv\Y, "\n");
+	print("	rsys	", addr.rsys\Y, "\n");
+	print("	rserv	", addr.rserv\Y, "\n");
+	print("	laddr	", addr.laddr\Y, "\n");
+	print("	raddr	", addr.raddr\Y, "\n");
+};
+
+RFNAMEG = 1;
+RFENVG = 2;
+RFFDG = 4;
+RFNOTEG = 8;
+RFPROC = 16;
+RFMEM = 32;
+RFNOWAIT = 64;
+RFCNAMEG = 1024;
+RFCENVG = 2048;
+RFCFDG = 4096;
+RFREND = 8192;
+RFNOMNT = 16384;
+sizeofQid = 16;
+aggr Qid
+{
+	'W' 0 path;
+	'U' 8 vers;
+	'b' 12 type;
+};
+
+defn
+Qid(addr) {
+	complex Qid addr;
+	print("	path	", addr.path, "\n");
+	print("	vers	", addr.vers, "\n");
+	print("	type	", addr.type, "\n");
+};
+
+sizeofDir = 80;
+aggr Dir
+{
+	'u' 0 type;
+	'U' 4 dev;
+	Qid 8 qid;
+	'U' 24 mode;
+	'U' 28 atime;
+	'U' 32 mtime;
+	'V' 40 length;
+	'Y' 48 name;
+	'Y' 56 uid;
+	'Y' 64 gid;
+	'Y' 72 muid;
+};
+
+defn
+Dir(addr) {
+	complex Dir addr;
+	print("	type	", addr.type, "\n");
+	print("	dev	", addr.dev, "\n");
+	print("Qid qid {\n");
+	Qid(addr.qid);
+	print("}\n");
+	print("	mode	", addr.mode, "\n");
+	print("	atime	", addr.atime, "\n");
+	print("	mtime	", addr.mtime, "\n");
+	print("	length	", addr.length, "\n");
+	print("	name	", addr.name\Y, "\n");
+	print("	uid	", addr.uid\Y, "\n");
+	print("	gid	", addr.gid\Y, "\n");
+	print("	muid	", addr.muid\Y, "\n");
+};
+
+sizeofWaitmsg = 24;
+aggr Waitmsg
+{
+	'D' 0 pid;
+	'a' 4 time;
+	'Y' 16 msg;
+};
+
+defn
+Waitmsg(addr) {
+	complex Waitmsg addr;
+	print("	pid	", addr.pid, "\n");
+	print("	time	", addr.time, "\n");
+	print("	msg	", addr.msg\Y, "\n");
+};
+
+sizeofIOchunk = 16;
+aggr IOchunk
+{
+	'Y' 0 addr;
+	'U' 8 len;
+};
+
+defn
+IOchunk(addr) {
+	complex IOchunk addr;
+	print("	addr	", addr.addr\Y, "\n");
+	print("	len	", addr.len, "\n");
+};
+
+OBJVGeometric = 0;
+OBJVTexture = 1;
+OBJVNormal = 2;
+OBJVParametric = 3;
+OBJNVERT = 4;
+OBJEPoint = 0;
+OBJELine = 1;
+OBJEFace = 2;
+OBJECurve = 3;
+OBJECurve2 = 4;
+OBJESurface = 5;
+OBJGGlobal = 0;
+OBJGSmoothing = 1;
+OBJGMerging = 2;
+OBJGObject = 3;
+OBJHTSIZE = 16;
+sizeof_2_ = 32;
+aggr _2_
+{
+	'F' 0 x;
+	'F' 8 y;
+	'F' 16 z;
+	'F' 24 w;
+};
+
+defn
+_2_(addr) {
+	complex _2_ addr;
+	print("	x	", addr.x, "\n");
+	print("	y	", addr.y, "\n");
+	print("	z	", addr.z, "\n");
+	print("	w	", addr.w, "\n");
+};
+
+sizeof_3_ = 24;
+aggr _3_
+{
+	'F' 0 u;
+	'F' 8 v;
+	'F' 16 vv;
+};
+
+defn
+_3_(addr) {
+	complex _3_ addr;
+	print("	u	", addr.u, "\n");
+	print("	v	", addr.v, "\n");
+	print("	vv	", addr.vv, "\n");
+};
+
+sizeof_4_ = 24;
+aggr _4_
+{
+	'F' 0 i;
+	'F' 8 j;
+	'F' 16 k;
+};
+
+defn
+_4_(addr) {
+	complex _4_ addr;
+	print("	i	", addr.i, "\n");
+	print("	j	", addr.j, "\n");
+	print("	k	", addr.k, "\n");
+};
+
+sizeof_5_ = 32;
+aggr _5_
+{
+	{
+	'F' 0 x;
+	'F' 8 y;
+	'F' 16 z;
+	'F' 24 w;
+	};
+	{
+	'F' 0 u;
+	'F' 8 v;
+	'F' 16 vv;
+	};
+	{
+	'F' 0 i;
+	'F' 8 j;
+	'F' 16 k;
+	};
+};
+
+defn
+_5_(addr) {
+	complex _5_ addr;
+	print("_2_ {\n");
+		_2_(addr+0);
+	print("}\n");
+	print("_3_ {\n");
+		_3_(addr+0);
+	print("}\n");
+	print("_4_ {\n");
+		_4_(addr+0);
+	print("}\n");
+};
+
+sizeofOBJVertex = 32;
+aggr OBJVertex
+{
+	{
+	{
+	'F' 0 x;
+	'F' 8 y;
+	'F' 16 z;
+	'F' 24 w;
+	};
+	{
+	'F' 0 u;
+	'F' 8 v;
+	'F' 16 vv;
+	};
+	{
+	'F' 0 i;
+	'F' 8 j;
+	'F' 16 k;
+	};
+	};
+};
+
+defn
+OBJVertex(addr) {
+	complex OBJVertex addr;
+	print("_5_ {\n");
+		_5_(addr+0);
+	print("}\n");
+};
+
+sizeofOBJVertexArray = 16;
+aggr OBJVertexArray
+{
+	'A' OBJVertex 0 verts;
+	'D' 8 nvert;
+};
+
+defn
+OBJVertexArray(addr) {
+	complex OBJVertexArray addr;
+	print("	verts	", addr.verts\Y, "\n");
+	print("	nvert	", addr.nvert, "\n");
+};
+
+sizeofOBJElem = 24;
+aggr OBJElem
+{
+	'Y' 0 indices;
+	'D' 8 nindex;
+	'D' 12 type;
+	'A' OBJElem 16 next;
+};
+
+defn
+OBJElem(addr) {
+	complex OBJElem addr;
+	print("	indices	", addr.indices\Y, "\n");
+	print("	nindex	", addr.nindex, "\n");
+	print("	type	", addr.type, "\n");
+	print("	next	", addr.next\Y, "\n");
+};
+
+sizeofOBJObject = 24;
+aggr OBJObject
+{
+	'Y' 0 name;
+	'A' OBJElem 8 child;
+	'A' OBJObject 16 next;
+};
+
+defn
+OBJObject(addr) {
+	complex OBJObject addr;
+	print("	name	", addr.name\Y, "\n");
+	print("	child	", addr.child\Y, "\n");
+	print("	next	", addr.next\Y, "\n");
+};
+
+sizeofOBJ = 192;
+aggr OBJ
+{
+	'a' 0 vertdata;
+	'a' 64 objtab;
+};
+
+defn
+OBJ(addr) {
+	complex OBJ addr;
+	print("	vertdata	", addr.vertdata, "\n");
+	print("	objtab	", addr.objtab, "\n");
+};
+
+complex OBJ main:obj;

@@ -1,0 +1,15 @@
+FONTS='.FP lucidasans'
+DOCNAME=libgeometry
+
+all:VQ: $DOCNAME.ps $DOCNAME.pdf
+
+clean:VQ:
+	rm -f $DOCNAME.ps $DOCNAME.pdf
+
+$DOCNAME.ps:V: $DOCNAME.ms
+	{echo $FONTS; cat $prereq}> _$prereq
+	eval `{doctype _$prereq} | lp -dstdout > $target && rm -f _$prereq
+
+$DOCNAME.pdf:V: $DOCNAME.ps
+	cat /sys/doc/docfonts $prereq > _$prereq
+	ps2pdf _$prereq $target && rm -f _$prereq

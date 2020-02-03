@@ -1,0 +1,2799 @@
+%!PS-Adobe-2.0
+%%Version: 0.1
+%%Creator: troff, Plan 9 edition
+%%DocumentFonts: (atend)
+%%Pages: (atend)
+%%EndComments
+%
+% Version 3.3.2 prologue for troff files.
+%
+
+/#copies 1 store
+/aspectratio 1 def
+/formsperpage 1 def
+/landscape false def
+/linewidth .3 def
+/magnification 1 def
+/margin 0 def
+/orientation 0 def
+/resolution 720 def
+/rotation 1 def
+/xoffset 0 def
+/yoffset 0 def
+
+/roundpage true def
+/useclippath true def
+/pagebbox [0 0 612 792] def
+
+/R  /Times-Roman def
+/I  /Times-Italic def
+/B  /Times-Bold def
+/BI /Times-BoldItalic def
+/H  /Helvetica def
+/HI /Helvetica-Oblique def
+/HB /Helvetica-Bold def
+/HX /Helvetica-BoldOblique def
+/CW /Courier def
+/CO /Courier def
+/CI /Courier-Oblique def
+/CB /Courier-Bold def
+/CX /Courier-BoldOblique def
+/PA /Palatino-Roman def
+/PI /Palatino-Italic def
+/PB /Palatino-Bold def
+/PX /Palatino-BoldItalic def
+/Hr /Helvetica-Narrow def
+/Hi /Helvetica-Narrow-Oblique def
+/Hb /Helvetica-Narrow-Bold def
+/Hx /Helvetica-Narrow-BoldOblique def
+/KR /Bookman-Light def
+/KI /Bookman-LightItalic def
+/KB /Bookman-Demi def
+/KX /Bookman-DemiItalic def
+/AR /AvantGarde-Book def
+/AI /AvantGarde-BookOblique def
+/AB /AvantGarde-Demi def
+/AX /AvantGarde-DemiOblique def
+/NR /NewCenturySchlbk-Roman def
+/NI /NewCenturySchlbk-Italic def
+/NB /NewCenturySchlbk-Bold def
+/NX /NewCenturySchlbk-BoldItalic def
+/ZD /ZapfDingbats def
+/ZI /ZapfChancery-MediumItalic def
+/S  /S def
+/S1 /S1 def
+/GR /Symbol def
+
+/inch {72 mul} bind def
+/min {2 copy gt {exch} if pop} bind def
+
+/setup {
+	counttomark 2 idiv {def} repeat pop
+
+	landscape {/orientation 90 orientation add def} if
+	/scaling 72 resolution div def
+	linewidth setlinewidth
+	1 setlinecap
+
+	pagedimensions
+	xcenter ycenter translate
+	orientation rotation mul rotate
+	width 2 div neg height 2 div translate
+	xoffset inch yoffset inch neg translate
+	margin 2 div dup neg translate
+	magnification dup aspectratio mul scale
+	scaling scaling scale
+
+	addmetrics
+	0 0 moveto
+} def
+
+/pagedimensions {
+	useclippath userdict /gotpagebbox known not and {
+		/pagebbox [clippath pathbbox newpath] def
+		roundpage currentdict /roundpagebbox known and {roundpagebbox} if
+	} if
+	pagebbox aload pop
+	4 -1 roll exch 4 1 roll 4 copy
+	landscape {4 2 roll} if
+	sub /width exch def
+	sub /height exch def
+	add 2 div /xcenter exch def
+	add 2 div /ycenter exch def
+	userdict /gotpagebbox true put
+} def
+
+/addmetrics {
+	/Symbol /S null Sdefs cf
+	/Times-Roman /S1 StandardEncoding dup length array copy S1defs cf
+} def
+
+/pagesetup {
+	/page exch def
+	currentdict /pagedict known currentdict page known and {
+		page load pagedict exch get cvx exec
+	} if
+} def
+
+/decodingdefs [
+	{counttomark 2 idiv {y moveto show} repeat}
+	{neg /y exch def counttomark 2 idiv {y moveto show} repeat}
+	{neg moveto {2 index stringwidth pop sub exch div 0 32 4 -1 roll widthshow} repeat}
+	{neg moveto {spacewidth sub 0.0 32 4 -1 roll widthshow} repeat}
+	{counttomark 2 idiv {y moveto show} repeat}
+	{neg setfunnytext}
+] def
+
+/setdecoding {/t decodingdefs 3 -1 roll get bind def} bind def
+
+/w {neg moveto show} bind def
+/m {neg dup /y exch def moveto} bind def
+/done {/lastpage where {pop lastpage} if} def
+
+/f {
+	dup /font exch def findfont exch
+	dup /ptsize exch def scaling div dup /size exch def scalefont setfont
+	linewidth ptsize mul scaling 10 mul div setlinewidth
+	/spacewidth ( ) stringwidth pop def
+} bind def
+
+/changefont {
+	/fontheight exch def
+	/fontslant exch def
+	currentfont [
+		1 0
+		fontheight ptsize div fontslant sin mul fontslant cos div
+		fontheight ptsize div
+		0 0
+	] makefont setfont
+} bind def
+
+/sf {f} bind def
+
+/cf {
+	dup length 2 idiv
+	/entries exch def
+	/chtab exch def
+	/newencoding exch def
+	/newfont exch def
+
+	findfont dup length 1 add dict
+	/newdict exch def
+	{1 index /FID ne {newdict 3 1 roll put}{pop pop} ifelse} forall
+
+	newencoding type /arraytype eq {newdict /Encoding newencoding put} if
+
+	newdict /Metrics entries dict put
+	newdict /Metrics get
+	begin
+		chtab aload pop
+		1 1 entries {pop def} for
+		newfont newdict definefont pop
+	end
+} bind def
+
+%
+% A few arrays used to adjust reference points and character widths in some
+% of the printer resident fonts. If square roots are too high try changing
+% the lines describing /radical and /radicalex to,
+%
+%	/radical	[0 -75 550 0]
+%	/radicalex	[-50 -75 500 0]
+%
+% Move braceleftbt a bit - default PostScript character is off a bit.
+%
+
+/Sdefs [
+	/bracketlefttp		[201 500]
+	/bracketleftbt		[201 500]
+	/bracketrighttp		[-81 380]
+	/bracketrightbt		[-83 380]
+	/braceleftbt		[203 490]
+	/bracketrightex		[220 -125 500 0]
+	/radical		[0 0 550 0]
+	/radicalex		[-50 0 500 0]
+	/parenleftex		[-20 -170 0 0]
+	/integral		[100 -50 500 0]
+	/infinity		[10 -75 730 0]
+] def
+
+/S1defs [
+	/underscore		[0 80 500 0]
+	/endash			[7 90 650 0]
+] def
+%
+% Tries to round clipping path dimensions, as stored in array pagebbox, so they
+% match one of the known sizes in the papersizes array. Lower left coordinates
+% are always set to 0.
+%
+
+/roundpagebbox {
+    7 dict begin
+	/papersizes [8.5 inch 11 inch 14 inch 17 inch] def
+
+	/mappapersize {
+		/val exch def
+		/slop .5 inch def
+		/diff slop def
+		/j 0 def
+		0 1 papersizes length 1 sub {
+			/i exch def
+			papersizes i get val sub abs
+			dup diff le {/diff exch def /j i def} {pop} ifelse
+		} for
+		diff slop lt {papersizes j get} {val} ifelse
+	} def
+
+	pagebbox 0 0 put
+	pagebbox 1 0 put
+	pagebbox dup 2 get mappapersize 2 exch put
+	pagebbox dup 3 get mappapersize 3 exch put
+    end
+} bind def
+
+%%EndProlog
+%%BeginSetup
+mark
+%
+% Encoding vector and redefinition of findfont for the ISO Latin1 standard.
+% The 18 characters missing from ROM based fonts on older printers are noted
+% below.
+%
+
+/ISOLatin1Encoding [
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/space
+	/exclam
+	/quotedbl
+	/numbersign
+	/dollar
+	/percent
+	/ampersand
+	/quoteright
+	/parenleft
+	/parenright
+	/asterisk
+	/plus
+	/comma
+	/minus
+	/period
+	/slash
+	/zero
+	/one
+	/two
+	/three
+	/four
+	/five
+	/six
+	/seven
+	/eight
+	/nine
+	/colon
+	/semicolon
+	/less
+	/equal
+	/greater
+	/question
+	/at
+	/A
+	/B
+	/C
+	/D
+	/E
+	/F
+	/G
+	/H
+	/I
+	/J
+	/K
+	/L
+	/M
+	/N
+	/O
+	/P
+	/Q
+	/R
+	/S
+	/T
+	/U
+	/V
+	/W
+	/X
+	/Y
+	/Z
+	/bracketleft
+	/backslash
+	/bracketright
+	/asciicircum
+	/underscore
+	/quoteleft
+	/a
+	/b
+	/c
+	/d
+	/e
+	/f
+	/g
+	/h
+	/i
+	/j
+	/k
+	/l
+	/m
+	/n
+	/o
+	/p
+	/q
+	/r
+	/s
+	/t
+	/u
+	/v
+	/w
+	/x
+	/y
+	/z
+	/braceleft
+	/bar
+	/braceright
+	/asciitilde
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/.notdef
+	/dotlessi
+	/grave
+	/acute
+	/circumflex
+	/tilde
+	/macron
+	/breve
+	/dotaccent
+	/dieresis
+	/.notdef
+	/ring
+	/cedilla
+	/.notdef
+	/hungarumlaut
+	/ogonek
+	/caron
+	/space
+	/exclamdown
+	/cent
+	/sterling
+	/currency
+	/yen
+	/brokenbar		% missing
+	/section
+	/dieresis
+	/copyright
+	/ordfeminine
+	/guillemotleft
+	/logicalnot
+	/hyphen
+	/registered
+	/macron
+	/degree			% missing
+	/plusminus		% missing
+	/twosuperior		% missing
+	/threesuperior		% missing
+	/acute
+	/mu			% missing
+	/paragraph
+	/periodcentered
+	/cedilla
+	/onesuperior		% missing
+	/ordmasculine
+	/guillemotright
+	/onequarter		% missing
+	/onehalf		% missing
+	/threequarters		% missing
+	/questiondown
+	/Agrave
+	/Aacute
+	/Acircumflex
+	/Atilde
+	/Adieresis
+	/Aring
+	/AE
+	/Ccedilla
+	/Egrave
+	/Eacute
+	/Ecircumflex
+	/Edieresis
+	/Igrave
+	/Iacute
+	/Icircumflex
+	/Idieresis
+	/Eth			% missing
+	/Ntilde
+	/Ograve
+	/Oacute
+	/Ocircumflex
+	/Otilde
+	/Odieresis
+	/multiply		% missing
+	/Oslash
+	/Ugrave
+	/Uacute
+	/Ucircumflex
+	/Udieresis
+	/Yacute			% missing
+	/Thorn			% missing
+	/germandbls
+	/agrave
+	/aacute
+	/acircumflex
+	/atilde
+	/adieresis
+	/aring
+	/ae
+	/ccedilla
+	/egrave
+	/eacute
+	/ecircumflex
+	/edieresis
+	/igrave
+	/iacute
+	/icircumflex
+	/idieresis
+	/eth			% missing
+	/ntilde
+	/ograve
+	/oacute
+	/ocircumflex
+	/otilde
+	/odieresis
+	/divide			% missing
+	/oslash
+	/ugrave
+	/uacute
+	/ucircumflex
+	/udieresis
+	/yacute			% missing
+	/thorn			% missing
+	/ydieresis
+] def
+
+/NewFontDirectory FontDirectory maxlength dict def
+
+%
+% Apparently no guarantee findfont is defined in systemdict so the obvious
+%
+%	systemdict /findfont get exec
+%
+% can generate an error. So far the only exception is a VT600 (version 48.0).
+%
+
+userdict /@RealFindfont known not {
+	userdict begin
+		/@RealFindfont systemdict begin /findfont load end def
+	end
+} if
+
+/findfont {
+	dup NewFontDirectory exch known not {
+		dup
+		%dup systemdict /findfont get exec	% not always in systemdict
+		dup userdict /@RealFindfont get exec
+		dup /Encoding get StandardEncoding eq {
+			dup length dict begin
+				{1 index /FID ne {def}{pop pop} ifelse} forall
+				/Encoding ISOLatin1Encoding def
+				currentdict
+			end
+			/DummyFontName exch definefont
+		} if
+		NewFontDirectory 3 1 roll put
+	} if
+	NewFontDirectory exch get
+} bind def
+
+%%Patch from lp
+%%EndPatch from lp
+
+setup
+%%EndSetup
+%%Page: 1 1
+/saveobj save def
+mark
+1 pagesetup
+12 /LucidaSans-Demi f
+(libgeometry) 2507 1220 w
+10 /LucidaSans-Italic f
+(Rodrigo G. L\363pez) 2469 1480 w
+(rgl@antares-labs.eu) 2377 1760 w
+10 /LucidaSansUnicode00 f
+(Antares Telecom Laboratories) 2156 1960 w
+(Albatera, Alicante) 2451 2100 w
+10 /LucidaSans-Demi f
+(1.) 720 2700 w
+(Data Structures) 873 2700 w
+(1.1.) 720 2940 w
+(Point2) 962 2940 w
+9 /LucidaTypewriter f
+(struct) 920 3110 w
+(Point2) 1375 3110 w
+({) 1830 3110 w
+(double) 1440 3220 w
+(x,) 1895 3220 w
+(y,) 2090 3220 w
+(w;) 2285 3220 w
+(};) 920 3330 w
+10 /LucidaSans-Italic f
+(Point2) 970 3546 w
+10 /LucidaSansUnicode00 f
+(represents) 1324 3546 w
+(a) 1886 3546 w
+(point) 1989 3546 w
+(in) 2289 3546 w
+(two-dimensional) 2428 3546 w
+(projective) 3299 3546 w
+(space,) 3823 3546 w
+(which) 4179 3546 w
+(itself) 4508 3546 w
+(is) 4795 3546 w
+(an) 4923 3546 w
+(extension) 720 3666 w
+(of) 1240 3666 w
+(the) 1383 3666 w
+(two-dimensional) 1583 3666 w
+(euclidean) 2451 3666 w
+(space) 2959 3666 w
+(that) 3280 3666 w
+(allows) 3516 3666 w
+(us) 3862 3666 w
+(to) 4019 3666 w
+(work) 4161 3666 w
+(with) 4442 3666 w
+(vectors) 4691 3666 w
+(and compose affine transformations in a friendly manner.) 720 3786 w
+(A point) 3589 3786 w
+(\() 2696 3966 w
+(x) 2737 3966 w
+(,) 2806 3966 w
+(y) 2846 3966 w
+(,) 2906 3966 w
+(w) 2946 3966 w
+(\)) 3031 3966 w
+(made) 720 4146 w
+(out) 1027 4146 w
+(of) 1227 4146 w
+(homogenous) 1365 4146 w
+(coordinates) 2036 4146 w
+10 /LucidaSans-Italic f
+(x) 2643 4146 w
+10 /LucidaSansUnicode00 f
+(,) 2697 4146 w
+10 /LucidaSans-Italic f
+(y) 2769 4146 w
+10 /LucidaSansUnicode00 f
+(,) 2824 4146 w
+(and) 2896 4146 w
+10 /LucidaSans-Italic f
+(w) 3116 4146 w
+10 /LucidaSansUnicode00 f
+(,) 3194 4146 w
+(yields) 3267 4146 w
+(a) 3588 4146 w
+(point) 3684 4146 w
+(with) 3977 4146 w
+(cartesian) 4223 4146 w
+(coordi\255) 4701 4146 w
+(nates) 720 4266 w
+(\() 2588 4446 w
+(x) 2629 4446 w
+(/) 2698 4446 w
+(w) 2759 4446 w
+(,) 2844 4446 w
+(y) 2884 4446 w
+(/) 2944 4446 w
+(w) 3005 4446 w
+(\)) 3090 4446 w
+(.) 3139 4446 w
+10 /LucidaSans-Demi f
+(1.2.) 720 4746 w
+(Point3) 962 4746 w
+9 /LucidaTypewriter f
+(struct) 920 4916 w
+(Point3) 1375 4916 w
+({) 1830 4916 w
+(double) 1440 5026 w
+(x,) 1895 5026 w
+(y,) 2090 5026 w
+(z,) 2285 5026 w
+(w;) 2480 5026 w
+(};) 920 5136 w
+10 /LucidaSans-Italic f
+(Point3) 970 5352 w
+10 /LucidaSansUnicode00 f
+(is a point in three-dimensional projective space.) 1309 5352 w
+10 /LucidaSans-Demi f
+(1.3.) 720 5592 w
+(Matrix) 962 5592 w
+9 /LucidaTypewriter f
+(typedef) 920 5762 w
+(double) 1440 5762 w
+(Matrix[3][3];) 1895 5762 w
+10 /LucidaSans-Italic f
+(Matrix) 970 5978 w
+10 /LucidaSansUnicode00 f
+(represents) 1341 5978 w
+(a) 1914 5978 w
+(3x3) 2028 5978 w
+(matrix,) 2274 5978 w
+(thought) 2681 5978 w
+(to) 3123 5978 w
+(compose) 3280 5978 w
+(affine) 3775 5978 w
+(transformations) 4110 5978 w
+(to) 4942 5978 w
+(apply to homogeneous 2D points.) 720 6098 w
+10 /LucidaSans-Demi f
+(1.4.) 720 6338 w
+(Matrix3) 962 6338 w
+9 /LucidaTypewriter f
+(typedef) 920 6508 w
+(double) 1440 6508 w
+(Matrix3[4][4];) 1895 6508 w
+10 /LucidaSans-Italic f
+(Matrix3) 970 6724 w
+10 /LucidaSansUnicode00 f
+(represents) 1398 6724 w
+(a) 1964 6724 w
+(4x4) 2071 6724 w
+(matrix,) 2310 6724 w
+(thought) 2711 6724 w
+(to) 3147 6724 w
+(compose) 3298 6724 w
+(affine) 3787 6724 w
+(transformations) 4116 6724 w
+(to) 4942 6724 w
+(apply to homogeneous 3D points.) 720 6844 w
+8 /S1 f
+(__________________) 720 6980 w
+8 /LucidaSansUnicode00 f
+(ACHTUNG!) 720 7080 w
+(this) 1163 7080 w
+(is) 1333 7080 w
+(a) 1423 7080 w
+8 /LucidaSans-Demi f
+(WORK) 1493 7080 w
+(IN) 1769 7080 w
+(PROGRESS) 1883 7080 w
+cleartomark
+showpage
+saveobj restore
+%%EndPage: 1 1
+%%Page: 2 2
+/saveobj save def
+mark
+2 pagesetup
+10 /LucidaSansUnicode00 f
+(\255 2 \255) 2783 480 w
+10 /LucidaSans-Demi f
+(1.5.) 720 840 w
+(Quaternion) 962 840 w
+9 /LucidaTypewriter f
+(struct) 920 1010 w
+(Quaternion) 1375 1010 w
+({) 2090 1010 w
+(double) 1440 1120 w
+(r,) 1895 1120 w
+(i,) 2090 1120 w
+(j,) 2285 1120 w
+(k;) 2480 1120 w
+(};) 920 1230 w
+10 /LucidaSans-Italic f
+(Quaternions) 970 1446 w
+10 /LucidaSansUnicode00 f
+(are) 1623 1446 w
+(a) 1829 1446 w
+(numbering) 1938 1446 w
+(system) 2522 1446 w
+(that) 2916 1446 w
+(extends) 3161 1446 w
+(the) 3601 1446 w
+(complex) 3810 1446 w
+(numbers) 4279 1446 w
+(up) 4762 1446 w
+(to) 4942 1446 w
+(four-dimensional) 720 1566 w
+(space,) 1607 1566 w
+(and) 1953 1566 w
+(are) 2171 1566 w
+(used) 2361 1566 w
+(to) 2631 1566 w
+(apply) 2767 1566 w
+(rotations) 3067 1566 w
+(and) 3539 1566 w
+(model) 3757 1566 w
+(mechanical) 4096 1566 w
+(interac\255) 4676 1566 w
+(tions) 720 1686 w
+(in) 1015 1686 w
+(3D) 1161 1686 w
+(space.) 1354 1686 w
+(Their) 1749 1686 w
+(main) 2055 1686 w
+(advantages) 2349 1686 w
+(with) 2952 1686 w
+(respect) 3212 1686 w
+(to) 3622 1686 w
+(their) 3775 1686 w
+(matrix) 4055 1686 w
+(relatives) 4426 1686 w
+(are) 4888 1686 w
+(increased computational and storage performance and gimbal lock avoidance.) 720 1806 w
+10 /LucidaSans-Demi f
+(2.) 720 2046 w
+(Algorithms) 873 2046 w
+(2.1.) 720 2286 w
+(Point2) 962 2286 w
+(Addition) 720 2526 w
+9 /LucidaTypewriter f
+(Point2) 920 2696 w
+(addpt2\(Point2) 1375 2696 w
+(a,) 2285 2696 w
+(Point2) 2480 2696 w
+(b\)) 2935 2696 w
+10 /LucidaSansUnicode00 f
+(a) 2051 2971 w
+10 /S f
+(+) 2122 2971 w
+10 /LucidaSansUnicode00 f
+(b) 2193 2971 w
+10 /S f
+(=) 2312 2971 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2431 2934 w
+(\356) 2431 3034 w
+10 /LucidaSansUnicode00 f
+(x) 2480 2971 w
+7 /LucidaSansUnicode00 f
+(a) 2552 2991 w
+10 /S f
+(+) 2615 2971 w
+10 /LucidaSansUnicode00 f
+(x) 2686 2971 w
+7 /LucidaSansUnicode00 f
+(b) 2758 2991 w
+10 /LucidaSansUnicode00 f
+(,) 2818 2971 w
+(y) 2898 2971 w
+7 /LucidaSansUnicode00 f
+(a) 2961 2991 w
+10 /S f
+(+) 3024 2971 w
+10 /LucidaSansUnicode00 f
+(y) 3095 2971 w
+7 /LucidaSansUnicode00 f
+(b) 3158 2991 w
+10 /LucidaSansUnicode00 f
+(,) 3218 2971 w
+(w) 3298 2971 w
+7 /LucidaSansUnicode00 f
+(a) 3386 2991 w
+10 /S f
+(+) 3449 2971 w
+10 /LucidaSansUnicode00 f
+(w) 3520 2971 w
+7 /LucidaSansUnicode00 f
+(b) 3608 2991 w
+10 /S f
+(\374) 3660 2934 w
+(\376) 3660 3034 w
+10 /LucidaSans-Demi f
+(Substraction) 720 3326 w
+9 /LucidaTypewriter f
+(Point2) 920 3496 w
+(subpt2\(Point2) 1375 3496 w
+(a,) 2285 3496 w
+(Point2) 2480 3496 w
+(b\)) 2935 3496 w
+10 /LucidaSansUnicode00 f
+(a) 2051 3771 w
+10 /S f
+(-) 2122 3771 w
+10 /LucidaSansUnicode00 f
+(b) 2193 3771 w
+10 /S f
+(=) 2312 3771 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2431 3734 w
+(\356) 2431 3834 w
+10 /LucidaSansUnicode00 f
+(x) 2480 3771 w
+7 /LucidaSansUnicode00 f
+(a) 2552 3791 w
+10 /S f
+(-) 2615 3771 w
+10 /LucidaSansUnicode00 f
+(x) 2686 3771 w
+7 /LucidaSansUnicode00 f
+(b) 2758 3791 w
+10 /LucidaSansUnicode00 f
+(,) 2818 3771 w
+(y) 2898 3771 w
+7 /LucidaSansUnicode00 f
+(a) 2961 3791 w
+10 /S f
+(-) 3024 3771 w
+10 /LucidaSansUnicode00 f
+(y) 3095 3771 w
+7 /LucidaSansUnicode00 f
+(b) 3158 3791 w
+10 /LucidaSansUnicode00 f
+(,) 3218 3771 w
+(w) 3298 3771 w
+7 /LucidaSansUnicode00 f
+(a) 3386 3791 w
+10 /S f
+(-) 3449 3771 w
+10 /LucidaSansUnicode00 f
+(w) 3520 3771 w
+7 /LucidaSansUnicode00 f
+(b) 3608 3791 w
+10 /S f
+(\374) 3660 3734 w
+(\376) 3660 3834 w
+10 /LucidaSans-Demi f
+(Multiplication) 720 4126 w
+9 /LucidaTypewriter f
+(Point2) 920 4296 w
+(mulpt2\(Point2) 1375 4296 w
+(p,) 2285 4296 w
+(double) 2480 4296 w
+(s\)) 2935 4296 w
+10 /LucidaSansUnicode00 f
+(p) 2395 4536 w
+(*) 2466 4536 w
+(s) 2522 4536 w
+10 /S f
+(=) 2629 4536 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2748 4499 w
+(\356) 2748 4599 w
+10 /LucidaSansUnicode00 f
+(xs) 2797 4546 w
+(,) 2917 4546 w
+(ys) 2997 4546 w
+(,) 3108 4546 w
+(ws) 3188 4546 w
+10 /S f
+(\374) 3316 4499 w
+(\376) 3316 4599 w
+10 /LucidaSans-Demi f
+(Division) 720 4841 w
+9 /LucidaTypewriter f
+(Point2) 920 5011 w
+(divpt2\(Point2) 1375 5011 w
+(p,) 2285 5011 w
+(double) 2480 5011 w
+(s\)) 2935 5011 w
+10 /LucidaSansUnicode00 f
+(p) 2394 5336 w
+(/) 2465 5336 w
+(s) 2526 5336 w
+10 /S f
+(=) 2633 5336 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2752 5249 w
+(\357) 2752 5349 w
+(\356) 2752 5449 w
+10 /LucidaSansUnicode00 f
+(s) 2831 5406 w
+(x) 2826 5276 w
+10 /S1 f
+(_) 2811 5306 w
+(_) 2852 5306 w
+10 /LucidaSansUnicode00 f
+(,) 2920 5336 w
+(s) 3025 5406 w
+(y) 3025 5276 w
+10 /S1 f
+(_) 3010 5306 w
+(_) 3042 5306 w
+10 /LucidaSansUnicode00 f
+(,) 3110 5336 w
+(s) 3228 5406 w
+(w) 3215 5276 w
+10 /S1 f
+(_) 3200 5306 w
+(__) 3207 5306 w
+10 /S f
+(\374) 3317 5249 w
+(\357) 3317 5349 w
+(\376) 3317 5449 w
+10 /LucidaSans-Demi f
+(Vector Dot Product) 720 5741 w
+9 /LucidaTypewriter f
+(double) 920 5911 w
+(dotvec2\(Point2) 1375 5911 w
+(a,) 2350 5911 w
+(Point2) 2545 5911 w
+(b\)) 3000 5911 w
+10 /LucidaSansUnicode00 f
+(a) 2375 6156 w
+7 /LucidaSansUnicode21 f
+(\222) 2370 6106 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSansUnicode20 f
+(") 2479 6156 w
+10 /LucidaSansUnicode00 f
+(b) 2583 6156 w
+7 /LucidaSansUnicode21 f
+(\222) 2582 6081 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2703 6156 w
+10 /LucidaSansUnicode00 f
+(x) 2814 6156 w
+7 /LucidaSansUnicode00 f
+(a) 2886 6176 w
+10 /LucidaSansUnicode00 f
+(x) 2941 6156 w
+7 /LucidaSansUnicode00 f
+(b) 3013 6176 w
+10 /S f
+(+) 3081 6156 w
+10 /LucidaSansUnicode00 f
+(y) 3152 6156 w
+7 /LucidaSansUnicode00 f
+(a) 3215 6176 w
+10 /LucidaSansUnicode00 f
+(y) 3270 6156 w
+7 /LucidaSansUnicode00 f
+(b) 3333 6176 w
+10 /LucidaSans-Demi f
+(Vector Magnitude/Length) 720 6456 w
+9 /LucidaTypewriter f
+(double) 920 6626 w
+(vec2len\(Point2) 1375 6626 w
+(v\)) 2350 6626 w
+10 /LucidaSansUnicode00 f
+(|) 2509 6901 w
+(v) 2557 6884 w
+7 /LucidaSansUnicode21 f
+(\222) 2550 6834 w
+10 /LucidaSansUnicode00 f
+(|) 2609 6901 w
+10 /S f
+(=) 2705 6884 w
+10 /LucidaSansUnicode00 f
+12 /LucidaSansUnicode22 f
+(\032) 2816 6884 w
+12 /S f
+(`) 2913 6884 w
+(`````) 2943 6884 w
+10 /LucidaSansUnicode00 f
+(x) 2921 6884 w
+7 /LucidaSansUnicode00 f
+(2) 2987 6844 w
+10 /S f
+(+) 3055 6884 w
+10 /LucidaSansUnicode00 f
+(y) 3126 6884 w
+7 /LucidaSansUnicode00 f
+(2) 3183 6844 w
+cleartomark
+showpage
+saveobj restore
+%%EndPage: 2 2
+%%Page: 3 3
+/saveobj save def
+mark
+3 pagesetup
+10 /LucidaSansUnicode00 f
+(\255 3 \255) 2783 480 w
+10 /LucidaSans-Demi f
+(Vector Normalization) 720 840 w
+9 /LucidaTypewriter f
+(Point2) 920 1010 w
+(normvec2\(Point2) 1375 1010 w
+(v\)) 2415 1010 w
+10 /LucidaSansUnicode00 f
+(n) 2502 1335 w
+7 /LucidaSansUnicode21 f
+(\222) 2500 1285 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2620 1335 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2739 1248 w
+(\357) 2739 1348 w
+(\356) 2739 1448 w
+10 /LucidaSansUnicode00 f
+(|) 2813 1447 w
+(v) 2861 1430 w
+7 /LucidaSansUnicode21 f
+(\222) 2854 1380 w
+10 /LucidaSansUnicode00 f
+(|) 2913 1447 w
+(x) 2841 1275 w
+10 /S1 f
+(_) 2799 1305 w
+(__) 2845 1305 w
+10 /LucidaSansUnicode00 f
+(,) 2963 1335 w
+(|) 3068 1447 w
+(v) 3116 1430 w
+7 /LucidaSansUnicode21 f
+(\222) 3109 1380 w
+10 /LucidaSansUnicode00 f
+(|) 3168 1447 w
+(y) 3100 1275 w
+10 /S1 f
+(_) 3053 1305 w
+(__) 3099 1305 w
+10 /S f
+(\374) 3209 1248 w
+(\357) 3209 1348 w
+(\376) 3209 1448 w
+10 /LucidaSans-Demi f
+(2.2.) 720 1740 w
+(Point3) 962 1740 w
+(Addition) 720 1980 w
+9 /LucidaTypewriter f
+(Point3) 920 2150 w
+(addpt3\(Point3) 1375 2150 w
+(a,) 2285 2150 w
+(Point3) 2480 2150 w
+(b\)) 2935 2150 w
+10 /LucidaSansUnicode00 f
+(a) 1846 2425 w
+10 /S f
+(+) 1917 2425 w
+10 /LucidaSansUnicode00 f
+(b) 1988 2425 w
+10 /S f
+(=) 2107 2425 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2226 2388 w
+(\356) 2226 2488 w
+10 /LucidaSansUnicode00 f
+(x) 2275 2425 w
+7 /LucidaSansUnicode00 f
+(a) 2347 2445 w
+10 /S f
+(+) 2410 2425 w
+10 /LucidaSansUnicode00 f
+(x) 2481 2425 w
+7 /LucidaSansUnicode00 f
+(b) 2553 2445 w
+10 /LucidaSansUnicode00 f
+(,) 2613 2425 w
+(y) 2693 2425 w
+7 /LucidaSansUnicode00 f
+(a) 2756 2445 w
+10 /S f
+(+) 2819 2425 w
+10 /LucidaSansUnicode00 f
+(y) 2890 2425 w
+7 /LucidaSansUnicode00 f
+(b) 2953 2445 w
+10 /LucidaSansUnicode00 f
+(,) 3013 2425 w
+(z) 3093 2425 w
+7 /LucidaSansUnicode00 f
+(a) 3161 2445 w
+10 /S f
+(+) 3224 2425 w
+10 /LucidaSansUnicode00 f
+(z) 3295 2425 w
+7 /LucidaSansUnicode00 f
+(b) 3363 2445 w
+10 /LucidaSansUnicode00 f
+(,) 3423 2425 w
+(w) 3503 2425 w
+7 /LucidaSansUnicode00 f
+(a) 3591 2445 w
+10 /S f
+(+) 3654 2425 w
+10 /LucidaSansUnicode00 f
+(w) 3725 2425 w
+7 /LucidaSansUnicode00 f
+(b) 3813 2445 w
+10 /S f
+(\374) 3865 2388 w
+(\376) 3865 2488 w
+10 /LucidaSans-Demi f
+(Substraction) 720 2780 w
+9 /LucidaTypewriter f
+(Point3) 920 2950 w
+(subpt3\(Point3) 1375 2950 w
+(a,) 2285 2950 w
+(Point3) 2480 2950 w
+(b\)) 2935 2950 w
+10 /LucidaSansUnicode00 f
+(a) 1846 3225 w
+10 /S f
+(-) 1917 3225 w
+10 /LucidaSansUnicode00 f
+(b) 1988 3225 w
+10 /S f
+(=) 2107 3225 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2226 3188 w
+(\356) 2226 3288 w
+10 /LucidaSansUnicode00 f
+(x) 2275 3225 w
+7 /LucidaSansUnicode00 f
+(a) 2347 3245 w
+10 /S f
+(-) 2410 3225 w
+10 /LucidaSansUnicode00 f
+(x) 2481 3225 w
+7 /LucidaSansUnicode00 f
+(b) 2553 3245 w
+10 /LucidaSansUnicode00 f
+(,) 2613 3225 w
+(y) 2693 3225 w
+7 /LucidaSansUnicode00 f
+(a) 2756 3245 w
+10 /S f
+(-) 2819 3225 w
+10 /LucidaSansUnicode00 f
+(y) 2890 3225 w
+7 /LucidaSansUnicode00 f
+(b) 2953 3245 w
+10 /LucidaSansUnicode00 f
+(,) 3013 3225 w
+(z) 3093 3225 w
+7 /LucidaSansUnicode00 f
+(a) 3161 3245 w
+10 /S f
+(-) 3224 3225 w
+10 /LucidaSansUnicode00 f
+(z) 3295 3225 w
+7 /LucidaSansUnicode00 f
+(b) 3363 3245 w
+10 /LucidaSansUnicode00 f
+(,) 3423 3225 w
+(w) 3503 3225 w
+7 /LucidaSansUnicode00 f
+(a) 3591 3245 w
+10 /S f
+(-) 3654 3225 w
+10 /LucidaSansUnicode00 f
+(w) 3725 3225 w
+7 /LucidaSansUnicode00 f
+(b) 3813 3245 w
+10 /S f
+(\374) 3865 3188 w
+(\376) 3865 3288 w
+10 /LucidaSans-Demi f
+(Multiplication) 720 3580 w
+9 /LucidaTypewriter f
+(Point3) 920 3750 w
+(mulpt3\(Point3) 1375 3750 w
+(p,) 2285 3750 w
+(double) 2480 3750 w
+(s\)) 2935 3750 w
+10 /LucidaSansUnicode00 f
+(p) 2297 3990 w
+(*) 2368 3990 w
+(s) 2424 3990 w
+10 /S f
+(=) 2531 3990 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2650 3953 w
+(\356) 2650 4053 w
+10 /LucidaSansUnicode00 f
+(xs) 2699 4000 w
+(,) 2819 4000 w
+(ys) 2899 4000 w
+(,) 3010 4000 w
+(zs) 3090 4000 w
+(,) 3206 4000 w
+(ws) 3286 4000 w
+10 /S f
+(\374) 3414 3953 w
+(\376) 3414 4053 w
+10 /LucidaSans-Demi f
+(Division) 720 4295 w
+9 /LucidaTypewriter f
+(Point3) 920 4465 w
+(divpt3\(Point3) 1375 4465 w
+(p,) 2285 4465 w
+(double) 2480 4465 w
+(s\)) 2935 4465 w
+10 /LucidaSansUnicode00 f
+(p) 2296 4790 w
+(/) 2367 4790 w
+(s) 2428 4790 w
+10 /S f
+(=) 2535 4790 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2654 4703 w
+(\357) 2654 4803 w
+(\356) 2654 4903 w
+10 /LucidaSansUnicode00 f
+(s) 2733 4860 w
+(x) 2728 4730 w
+10 /S1 f
+(_) 2713 4760 w
+(_) 2754 4760 w
+10 /LucidaSansUnicode00 f
+(,) 2822 4790 w
+(s) 2927 4860 w
+(y) 2927 4730 w
+10 /S1 f
+(_) 2912 4760 w
+(_) 2944 4760 w
+10 /LucidaSansUnicode00 f
+(,) 3012 4790 w
+(s) 3120 4860 w
+(z) 3117 4730 w
+10 /S1 f
+(_) 3102 4760 w
+(_) 3139 4760 w
+10 /LucidaSansUnicode00 f
+(,) 3207 4790 w
+(s) 3325 4860 w
+(w) 3312 4730 w
+10 /S1 f
+(_) 3297 4760 w
+(__) 3304 4760 w
+10 /S f
+(\374) 3414 4703 w
+(\357) 3414 4803 w
+(\376) 3414 4903 w
+10 /LucidaSans-Demi f
+(Vector Dot Product) 720 5195 w
+9 /LucidaTypewriter f
+(double) 920 5365 w
+(dotvec3\(Point3) 1375 5365 w
+(a,) 2350 5365 w
+(Point3) 2545 5365 w
+(b\)) 3000 5365 w
+10 /LucidaSansUnicode00 f
+(a) 2210 5610 w
+7 /LucidaSansUnicode21 f
+(\222) 2205 5560 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSansUnicode20 f
+(") 2314 5610 w
+10 /LucidaSansUnicode00 f
+(b) 2418 5610 w
+7 /LucidaSansUnicode21 f
+(\222) 2417 5535 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2538 5610 w
+10 /LucidaSansUnicode00 f
+(x) 2649 5610 w
+7 /LucidaSansUnicode00 f
+(a) 2721 5630 w
+10 /LucidaSansUnicode00 f
+(x) 2776 5610 w
+7 /LucidaSansUnicode00 f
+(b) 2848 5630 w
+10 /S f
+(+) 2916 5610 w
+10 /LucidaSansUnicode00 f
+(y) 2987 5610 w
+7 /LucidaSansUnicode00 f
+(a) 3050 5630 w
+10 /LucidaSansUnicode00 f
+(y) 3105 5610 w
+7 /LucidaSansUnicode00 f
+(b) 3168 5630 w
+10 /S f
+(+) 3236 5610 w
+10 /LucidaSansUnicode00 f
+(z) 3307 5610 w
+7 /LucidaSansUnicode00 f
+(a) 3375 5630 w
+10 /LucidaSansUnicode00 f
+(z) 3430 5610 w
+7 /LucidaSansUnicode00 f
+(b) 3498 5630 w
+10 /LucidaSans-Demi f
+(Vector Cross Product) 720 5910 w
+9 /LucidaTypewriter f
+(double) 920 6080 w
+(crossvec3\(Point3) 1375 6080 w
+(a,) 2480 6080 w
+(Point3) 2675 6080 w
+(b\)) 3130 6080 w
+10 /LucidaSansUnicode00 f
+(a) 1650 6355 w
+7 /LucidaSansUnicode21 f
+(\222) 1645 6305 w
+10 /LucidaSansUnicode00 f
+(\327) 1754 6355 w
+(b) 1882 6355 w
+7 /LucidaSansUnicode21 f
+(\222) 1881 6280 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2002 6355 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2121 6318 w
+(\356) 2121 6418 w
+10 /LucidaSansUnicode00 f
+(y) 2170 6355 w
+7 /LucidaSansUnicode00 f
+(a) 2233 6375 w
+10 /LucidaSansUnicode00 f
+(z) 2288 6355 w
+7 /LucidaSansUnicode00 f
+(b) 2356 6375 w
+10 /S f
+(-) 2424 6355 w
+10 /LucidaSansUnicode00 f
+(z) 2495 6355 w
+7 /LucidaSansUnicode00 f
+(a) 2563 6375 w
+10 /LucidaSansUnicode00 f
+(y) 2618 6355 w
+7 /LucidaSansUnicode00 f
+(b) 2681 6375 w
+10 /LucidaSansUnicode00 f
+(,) 2741 6355 w
+(z) 2821 6355 w
+7 /LucidaSansUnicode00 f
+(a) 2889 6375 w
+10 /LucidaSansUnicode00 f
+(x) 2944 6355 w
+7 /LucidaSansUnicode00 f
+(b) 3016 6375 w
+10 /S f
+(-) 3084 6355 w
+10 /LucidaSansUnicode00 f
+(x) 3155 6355 w
+7 /LucidaSansUnicode00 f
+(a) 3227 6375 w
+10 /LucidaSansUnicode00 f
+(z) 3282 6355 w
+7 /LucidaSansUnicode00 f
+(b) 3350 6375 w
+10 /LucidaSansUnicode00 f
+(,) 3410 6355 w
+(x) 3490 6355 w
+7 /LucidaSansUnicode00 f
+(a) 3562 6375 w
+10 /LucidaSansUnicode00 f
+(y) 3617 6355 w
+7 /LucidaSansUnicode00 f
+(b) 3680 6375 w
+10 /S f
+(-) 3748 6355 w
+10 /LucidaSansUnicode00 f
+(y) 3819 6355 w
+7 /LucidaSansUnicode00 f
+(a) 3882 6375 w
+10 /LucidaSansUnicode00 f
+(x) 3937 6355 w
+7 /LucidaSansUnicode00 f
+(b) 4009 6375 w
+10 /S f
+(\374) 4061 6318 w
+(\376) 4061 6418 w
+10 /LucidaSans-Demi f
+(Vector Magnitude/Length) 720 6710 w
+9 /LucidaTypewriter f
+(double) 920 6880 w
+(vec3len\(Point3) 1375 6880 w
+(v\)) 2350 6880 w
+10 /LucidaSansUnicode00 f
+(|) 2408 7155 w
+(v) 2456 7138 w
+7 /LucidaSansUnicode21 f
+(\222) 2449 7088 w
+10 /LucidaSansUnicode00 f
+(|) 2508 7155 w
+10 /S f
+(=) 2604 7138 w
+10 /LucidaSansUnicode00 f
+12 /LucidaSansUnicode22 f
+(\032) 2715 7138 w
+12 /S f
+(`) 2812 7138 w
+(````````) 2863 7138 w
+10 /LucidaSansUnicode00 f
+(x) 2820 7138 w
+7 /LucidaSansUnicode00 f
+(2) 2886 7098 w
+10 /S f
+(+) 2954 7138 w
+10 /LucidaSansUnicode00 f
+(y) 3025 7138 w
+7 /LucidaSansUnicode00 f
+(2) 3082 7098 w
+10 /S f
+(+) 3150 7138 w
+10 /LucidaSansUnicode00 f
+(z) 3221 7138 w
+7 /LucidaSansUnicode00 f
+(2) 3283 7098 w
+cleartomark
+showpage
+saveobj restore
+%%EndPage: 3 3
+%%Page: 4 4
+/saveobj save def
+mark
+4 pagesetup
+10 /LucidaSansUnicode00 f
+(\255 4 \255) 2783 480 w
+10 /LucidaSans-Demi f
+(Vector Normalization) 720 840 w
+9 /LucidaTypewriter f
+(Point3) 920 1010 w
+(normvec3\(Point3) 1375 1010 w
+(v\)) 2415 1010 w
+10 /LucidaSansUnicode00 f
+(n) 2374 1335 w
+7 /LucidaSansUnicode21 f
+(\222) 2372 1285 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2492 1335 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2611 1248 w
+(\357) 2611 1348 w
+(\356) 2611 1448 w
+10 /LucidaSansUnicode00 f
+(|) 2685 1447 w
+(v) 2733 1430 w
+7 /LucidaSansUnicode21 f
+(\222) 2726 1380 w
+10 /LucidaSansUnicode00 f
+(|) 2785 1447 w
+(x) 2713 1275 w
+10 /S1 f
+(_) 2671 1305 w
+(__) 2717 1305 w
+10 /LucidaSansUnicode00 f
+(,) 2835 1335 w
+(|) 2940 1447 w
+(v) 2988 1430 w
+7 /LucidaSansUnicode21 f
+(\222) 2981 1380 w
+10 /LucidaSansUnicode00 f
+(|) 3040 1447 w
+(y) 2972 1275 w
+10 /S1 f
+(_) 2925 1305 w
+(__) 2971 1305 w
+10 /LucidaSansUnicode00 f
+(,) 3089 1335 w
+(|) 3194 1447 w
+(v) 3242 1430 w
+7 /LucidaSansUnicode21 f
+(\222) 3235 1380 w
+10 /LucidaSansUnicode00 f
+(|) 3294 1447 w
+(z) 3224 1275 w
+10 /S1 f
+(_) 3180 1305 w
+(__) 3226 1305 w
+10 /S f
+(\374) 3336 1248 w
+(\357) 3336 1348 w
+(\376) 3336 1448 w
+10 /LucidaSans-Demi f
+(2.3.) 720 1740 w
+(Matrix) 962 1740 w
+(Addition) 720 1980 w
+9 /LucidaTypewriter f
+(void) 920 2150 w
+(addm\(Matrix) 1245 2150 w
+(A,) 2025 2150 w
+(Matrix) 2220 2150 w
+(B\)) 2675 2150 w
+10 /LucidaSansUnicode00 f
+(\() 2393 2390 w
+10 /LucidaSans-Demi f
+(A) 2434 2390 w
+10 /S f
+(+) 2524 2390 w
+10 /LucidaSans-Demi f
+(B) 2595 2390 w
+10 /LucidaSansUnicode00 f
+(\)) 2666 2390 w
+7 /LucidaSansUnicode00 f
+(i) 2710 2410 w
+(,) 2735 2410 w
+(j) 2762 2410 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2847 2390 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSans-Demi f
+(A) 2958 2390 w
+7 /LucidaSansUnicode00 f
+(i) 3043 2410 w
+(,) 3068 2410 w
+(j) 3095 2410 w
+10 /S f
+(+) 3140 2390 w
+10 /LucidaSans-Demi f
+(B) 3211 2390 w
+7 /LucidaSansUnicode00 f
+(i) 3285 2410 w
+(,) 3310 2410 w
+(j) 3337 2410 w
+10 /LucidaSans-Demi f
+(Substraction) 720 2690 w
+9 /LucidaTypewriter f
+(void) 920 2860 w
+(subm\(Matrix) 1245 2860 w
+(A,) 2025 2860 w
+(Matrix) 2220 2860 w
+(B\)) 2675 2860 w
+10 /LucidaSansUnicode00 f
+(\() 2393 3100 w
+10 /LucidaSans-Demi f
+(A) 2434 3100 w
+10 /S f
+(-) 2524 3100 w
+10 /LucidaSans-Demi f
+(B) 2595 3100 w
+10 /LucidaSansUnicode00 f
+(\)) 2666 3100 w
+7 /LucidaSansUnicode00 f
+(i) 2710 3120 w
+(,) 2735 3120 w
+(j) 2762 3120 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2847 3100 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSans-Demi f
+(A) 2958 3100 w
+7 /LucidaSansUnicode00 f
+(i) 3043 3120 w
+(,) 3068 3120 w
+(j) 3095 3120 w
+10 /S f
+(-) 3140 3100 w
+10 /LucidaSans-Demi f
+(B) 3211 3100 w
+7 /LucidaSansUnicode00 f
+(i) 3285 3120 w
+(,) 3310 3120 w
+(j) 3337 3120 w
+10 /LucidaSans-Demi f
+(Multiplication) 720 3400 w
+9 /LucidaTypewriter f
+(void) 920 3570 w
+(mulm\(Matrix) 1245 3570 w
+(A,) 2025 3570 w
+(Matrix) 2220 3570 w
+(B\)) 2675 3570 w
+10 /S f
+(\351) 2370 3823 w
+(\353) 2370 3923 w
+10 /LucidaSans-Demi f
+(AB) 2420 3870 w
+10 /S f
+(\371) 2557 3823 w
+(\373) 2557 3923 w
+7 /LucidaSansUnicode00 f
+(i) 2606 3905 w
+(,) 2631 3905 w
+(j) 2658 3905 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2743 3860 w
+10 /LucidaSansUnicode00 f
+7 /LucidaSansUnicode00 f
+(k) 2847 3960 w
+7 /S f
+(=) 2899 3960 w
+7 /LucidaSansUnicode00 f
+(0) 2949 3960 w
+15 /S f
+(S) 2876 3890 w
+7 /LucidaSansUnicode00 f
+(3) 2846 3760 w
+7 /S f
+(-) 2901 3760 w
+7 /LucidaSansUnicode00 f
+(1) 2951 3760 w
+10 /LucidaSans-Demi f
+(A) 3027 3860 w
+7 /LucidaSansUnicode00 f
+(i) 3112 3880 w
+(,) 3137 3880 w
+(k) 3164 3880 w
+10 /LucidaSans-Demi f
+(B) 3221 3860 w
+7 /LucidaSansUnicode00 f
+(k) 3295 3880 w
+(,) 3341 3880 w
+(j) 3368 3880 w
+10 /LucidaSans-Demi f
+(Transpose) 720 4240 w
+9 /LucidaTypewriter f
+(void) 920 4410 w
+(transposem\(Matrix) 1245 4410 w
+(M\)) 2415 4410 w
+10 /LucidaSansUnicode00 f
+(\() 2552 4650 w
+10 /LucidaSans-Demi f
+(M) 2593 4650 w
+7 /LucidaSansUnicode00 f
+(T) 2689 4610 w
+10 /LucidaSansUnicode00 f
+(\)) 2749 4650 w
+7 /LucidaSansUnicode00 f
+(i) 2793 4670 w
+(,) 2818 4670 w
+(j) 2845 4670 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2930 4650 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSans-Demi f
+(A) 3041 4650 w
+7 /LucidaSansUnicode00 f
+(j) 3126 4670 w
+(,) 3152 4670 w
+(i) 3179 4670 w
+10 /LucidaSans-Demi f
+(Identity) 720 4950 w
+9 /LucidaTypewriter f
+(void) 920 5120 w
+(identity\(Matrix) 1245 5120 w
+(M\)) 2285 5120 w
+10 /LucidaSans-Demi f
+(M) 2560 5495 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2707 5495 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\351) 2826 5358 w
+(\357) 2826 5458 w
+(\357) 2826 5558 w
+(\353) 2826 5658 w
+10 /LucidaSansUnicode00 f
+(0) 2876 5645 w
+(0) 2987 5645 w
+(1) 3098 5645 w
+(0) 2876 5505 w
+(1) 2987 5505 w
+(0) 3098 5505 w
+(1) 2876 5365 w
+(0) 2987 5365 w
+(0) 3098 5365 w
+10 /S f
+(\371) 3161 5358 w
+(\357) 3161 5458 w
+(\357) 3161 5558 w
+(\373) 3161 5658 w
+10 /LucidaSans-Demi f
+(Determinant) 720 5950 w
+9 /LucidaTypewriter f
+(double) 920 6120 w
+(detm\(Matrix) 1375 6120 w
+(M\)) 2155 6120 w
+10 /LucidaSansUnicode00 f
+(det) 1992 6500 w
+(\() 2156 6500 w
+10 /LucidaSans-Demi f
+(M) 2197 6500 w
+10 /LucidaSansUnicode00 f
+(\)) 2296 6500 w
+10 /S f
+(=) 2393 6500 w
+10 /LucidaSansUnicode00 f
+(m) 2504 6660 w
+7 /LucidaSansUnicode00 f
+(02) 2608 6680 w
+10 /LucidaSansUnicode00 f
+(\() 2712 6660 w
+(m) 2753 6660 w
+7 /LucidaSansUnicode00 f
+(10) 2857 6680 w
+10 /LucidaSansUnicode00 f
+(m) 2961 6660 w
+7 /LucidaSansUnicode00 f
+(21) 3065 6680 w
+10 /S f
+(-) 3177 6660 w
+10 /LucidaSansUnicode00 f
+(m) 3248 6660 w
+7 /LucidaSansUnicode00 f
+(11) 3352 6680 w
+10 /LucidaSansUnicode00 f
+(m) 3456 6660 w
+7 /LucidaSansUnicode00 f
+(20) 3560 6680 w
+10 /LucidaSansUnicode00 f
+(\)) 3664 6660 w
+(m) 2504 6500 w
+7 /LucidaSansUnicode00 f
+(01) 2608 6520 w
+10 /LucidaSansUnicode00 f
+(\() 2712 6500 w
+(m) 2753 6500 w
+7 /LucidaSansUnicode00 f
+(12) 2857 6520 w
+10 /LucidaSansUnicode00 f
+(m) 2961 6500 w
+7 /LucidaSansUnicode00 f
+(20) 3065 6520 w
+10 /S f
+(-) 3177 6500 w
+10 /LucidaSansUnicode00 f
+(m) 3248 6500 w
+7 /LucidaSansUnicode00 f
+(10) 3352 6520 w
+10 /LucidaSansUnicode00 f
+(m) 3456 6500 w
+7 /LucidaSansUnicode00 f
+(22) 3560 6520 w
+10 /LucidaSansUnicode00 f
+(\)) 3664 6500 w
+10 /S f
+(+) 3713 6500 w
+10 /LucidaSansUnicode00 f
+(m) 2504 6340 w
+7 /LucidaSansUnicode00 f
+(00) 2608 6360 w
+10 /LucidaSansUnicode00 f
+(\() 2712 6340 w
+(m) 2753 6340 w
+7 /LucidaSansUnicode00 f
+(11) 2857 6360 w
+10 /LucidaSansUnicode00 f
+(m) 2961 6340 w
+7 /LucidaSansUnicode00 f
+(22) 3065 6360 w
+10 /S f
+(-) 3177 6340 w
+10 /LucidaSansUnicode00 f
+(m) 3248 6340 w
+7 /LucidaSansUnicode00 f
+(12) 3352 6360 w
+10 /LucidaSansUnicode00 f
+(m) 3456 6340 w
+7 /LucidaSansUnicode00 f
+(21) 3560 6360 w
+10 /LucidaSansUnicode00 f
+(\)) 3664 6340 w
+10 /S f
+(+) 3713 6340 w
+cleartomark
+showpage
+saveobj restore
+%%EndPage: 4 4
+%%Page: 5 5
+/saveobj save def
+mark
+5 pagesetup
+10 /LucidaSansUnicode00 f
+(\255 5 \255) 2783 480 w
+10 /LucidaSans-Demi f
+(2.4.) 720 840 w
+(Matrix3) 962 840 w
+(Addition) 720 1080 w
+9 /LucidaTypewriter f
+(void) 920 1250 w
+(addm3\(Matrix3) 1245 1250 w
+(A,) 2155 1250 w
+(Matrix3) 2350 1250 w
+(B\)) 2870 1250 w
+10 /LucidaSansUnicode00 f
+(\() 2393 1490 w
+10 /LucidaSans-Demi f
+(A) 2434 1490 w
+10 /S f
+(+) 2524 1490 w
+10 /LucidaSans-Demi f
+(B) 2595 1490 w
+10 /LucidaSansUnicode00 f
+(\)) 2666 1490 w
+7 /LucidaSansUnicode00 f
+(i) 2710 1510 w
+(,) 2735 1510 w
+(j) 2762 1510 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2847 1490 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSans-Demi f
+(A) 2958 1490 w
+7 /LucidaSansUnicode00 f
+(i) 3043 1510 w
+(,) 3068 1510 w
+(j) 3095 1510 w
+10 /S f
+(+) 3140 1490 w
+10 /LucidaSans-Demi f
+(B) 3211 1490 w
+7 /LucidaSansUnicode00 f
+(i) 3285 1510 w
+(,) 3310 1510 w
+(j) 3337 1510 w
+10 /LucidaSans-Demi f
+(Substraction) 720 1790 w
+9 /LucidaTypewriter f
+(void) 920 1960 w
+(subm3\(Matrix3) 1245 1960 w
+(A,) 2155 1960 w
+(Matrix3) 2350 1960 w
+(B\)) 2870 1960 w
+10 /LucidaSansUnicode00 f
+(\() 2393 2200 w
+10 /LucidaSans-Demi f
+(A) 2434 2200 w
+10 /S f
+(-) 2524 2200 w
+10 /LucidaSans-Demi f
+(B) 2595 2200 w
+10 /LucidaSansUnicode00 f
+(\)) 2666 2200 w
+7 /LucidaSansUnicode00 f
+(i) 2710 2220 w
+(,) 2735 2220 w
+(j) 2762 2220 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2847 2200 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSans-Demi f
+(A) 2958 2200 w
+7 /LucidaSansUnicode00 f
+(i) 3043 2220 w
+(,) 3068 2220 w
+(j) 3095 2220 w
+10 /S f
+(-) 3140 2200 w
+10 /LucidaSans-Demi f
+(B) 3211 2200 w
+7 /LucidaSansUnicode00 f
+(i) 3285 2220 w
+(,) 3310 2220 w
+(j) 3337 2220 w
+10 /LucidaSans-Demi f
+(Multiplication) 720 2500 w
+9 /LucidaTypewriter f
+(void) 920 2670 w
+(mulm3\(Matrix3) 1245 2670 w
+(A,) 2155 2670 w
+(Matrix3) 2350 2670 w
+(B\)) 2870 2670 w
+10 /S f
+(\351) 2374 2923 w
+(\353) 2374 3023 w
+10 /LucidaSans-Demi f
+(AB) 2424 2970 w
+10 /S f
+(\371) 2561 2923 w
+(\373) 2561 3023 w
+7 /LucidaSansUnicode00 f
+(i) 2610 3005 w
+(,) 2635 3005 w
+(j) 2662 3005 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2747 2960 w
+10 /LucidaSansUnicode00 f
+7 /LucidaSansUnicode00 f
+(k) 2859 3060 w
+7 /S f
+(=) 2911 3060 w
+7 /LucidaSansUnicode00 f
+(0) 2961 3060 w
+15 /S f
+(S) 2888 2990 w
+7 /LucidaSansUnicode00 f
+(4) 2858 2860 w
+7 /S f
+(-) 2913 2860 w
+7 /LucidaSansUnicode00 f
+(1) 2963 2860 w
+10 /LucidaSans-Demi f
+(A) 3023 2960 w
+7 /LucidaSansUnicode00 f
+(i) 3108 2980 w
+(,) 3133 2980 w
+(k) 3160 2980 w
+10 /LucidaSans-Demi f
+(B) 3217 2960 w
+7 /LucidaSansUnicode00 f
+(k) 3291 2980 w
+(,) 3337 2980 w
+(j) 3364 2980 w
+10 /LucidaSans-Demi f
+(Transpose) 720 3340 w
+9 /LucidaTypewriter f
+(void) 920 3510 w
+(transposem3\(Matrix3) 1245 3510 w
+(M\)) 2545 3510 w
+10 /LucidaSansUnicode00 f
+(\() 2552 3750 w
+10 /LucidaSans-Demi f
+(M) 2593 3750 w
+7 /LucidaSansUnicode00 f
+(T) 2689 3710 w
+10 /LucidaSansUnicode00 f
+(\)) 2749 3750 w
+7 /LucidaSansUnicode00 f
+(i) 2793 3770 w
+(,) 2818 3770 w
+(j) 2845 3770 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2930 3750 w
+10 /LucidaSansUnicode00 f
+10 /LucidaSans-Demi f
+(A) 3041 3750 w
+7 /LucidaSansUnicode00 f
+(j) 3126 3770 w
+(,) 3152 3770 w
+(i) 3179 3770 w
+10 /LucidaSans-Demi f
+(Identity) 720 4050 w
+9 /LucidaTypewriter f
+(void) 920 4220 w
+(identity3\(Matrix3) 1245 4220 w
+(M\)) 2415 4220 w
+10 /LucidaSans-Demi f
+(M) 2505 4695 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2652 4695 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\351) 2771 4458 w
+(\357) 2771 4558 w
+(\357) 2771 4658 w
+(\357) 2771 4758 w
+(\357) 2771 4858 w
+(\353) 2771 4958 w
+10 /LucidaSansUnicode00 f
+(0) 2821 4915 w
+(0) 2932 4915 w
+(0) 3043 4915 w
+(1) 3154 4915 w
+(0) 2821 4775 w
+(0) 2932 4775 w
+(1) 3043 4775 w
+(0) 3154 4775 w
+(0) 2821 4635 w
+(1) 2932 4635 w
+(0) 3043 4635 w
+(0) 3154 4635 w
+(1) 2821 4495 w
+(0) 2932 4495 w
+(0) 3043 4495 w
+(0) 3154 4495 w
+10 /S f
+(\371) 3217 4458 w
+(\357) 3217 4558 w
+(\357) 3217 4658 w
+(\357) 3217 4758 w
+(\357) 3217 4858 w
+(\373) 3217 4958 w
+10 /LucidaSans-Demi f
+(Determinant) 720 5250 w
+9 /LucidaTypewriter f
+(double) 920 5420 w
+(detm3\(Matrix3) 1375 5420 w
+(M\)) 2285 5420 w
+10 /LucidaSansUnicode00 f
+(det) 567 5910 w
+(\() 731 5910 w
+10 /LucidaSans-Demi f
+(M) 772 5910 w
+10 /LucidaSansUnicode00 f
+(\)) 871 5910 w
+10 /S f
+(=) 968 5910 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(-) 1079 6120 w
+10 /LucidaSansUnicode00 f
+(m) 1150 6120 w
+7 /LucidaSansUnicode00 f
+(03) 1254 6140 w
+10 /LucidaSansUnicode00 f
+(\() 1358 6120 w
+(m) 1399 6120 w
+7 /LucidaSansUnicode00 f
+(10) 1503 6140 w
+10 /LucidaSansUnicode00 f
+(\() 1607 6120 w
+(m) 1648 6120 w
+7 /LucidaSansUnicode00 f
+(21) 1752 6140 w
+10 /LucidaSansUnicode00 f
+(m) 1856 6120 w
+7 /LucidaSansUnicode00 f
+(32) 1960 6140 w
+10 /S f
+(-) 2072 6120 w
+10 /LucidaSansUnicode00 f
+(m) 2143 6120 w
+7 /LucidaSansUnicode00 f
+(22) 2247 6140 w
+10 /LucidaSansUnicode00 f
+(m) 2351 6120 w
+7 /LucidaSansUnicode00 f
+(31) 2455 6140 w
+10 /LucidaSansUnicode00 f
+(\)) 2559 6120 w
+10 /S f
+(+) 2608 6120 w
+10 /LucidaSansUnicode00 f
+(m) 2679 6120 w
+7 /LucidaSansUnicode00 f
+(11) 2783 6140 w
+10 /LucidaSansUnicode00 f
+(\() 2887 6120 w
+(m) 2928 6120 w
+7 /LucidaSansUnicode00 f
+(22) 3032 6140 w
+10 /LucidaSansUnicode00 f
+(m) 3136 6120 w
+7 /LucidaSansUnicode00 f
+(30) 3240 6140 w
+10 /S f
+(-) 3352 6120 w
+10 /LucidaSansUnicode00 f
+(m) 3423 6120 w
+7 /LucidaSansUnicode00 f
+(20) 3527 6140 w
+10 /LucidaSansUnicode00 f
+(m) 3631 6120 w
+7 /LucidaSansUnicode00 f
+(32) 3735 6140 w
+10 /LucidaSansUnicode00 f
+(\)) 3839 6120 w
+10 /S f
+(+) 3888 6120 w
+10 /LucidaSansUnicode00 f
+(m) 3959 6120 w
+7 /LucidaSansUnicode00 f
+(12) 4063 6140 w
+10 /LucidaSansUnicode00 f
+(\() 4167 6120 w
+(m) 4208 6120 w
+7 /LucidaSansUnicode00 f
+(20) 4312 6140 w
+10 /LucidaSansUnicode00 f
+(m) 4416 6120 w
+7 /LucidaSansUnicode00 f
+(31) 4520 6140 w
+10 /S f
+(-) 4632 6120 w
+10 /LucidaSansUnicode00 f
+(m) 4703 6120 w
+7 /LucidaSansUnicode00 f
+(21) 4807 6140 w
+10 /LucidaSansUnicode00 f
+(m) 4911 6120 w
+7 /LucidaSansUnicode00 f
+(30) 5015 6140 w
+10 /LucidaSansUnicode00 f
+(\)) 5119 6120 w
+(\)) 5160 6120 w
+10 /S f
+(+) 1079 5960 w
+10 /LucidaSansUnicode00 f
+(m) 1150 5960 w
+7 /LucidaSansUnicode00 f
+(02) 1254 5980 w
+10 /LucidaSansUnicode00 f
+(\() 1358 5960 w
+(m) 1399 5960 w
+7 /LucidaSansUnicode00 f
+(10) 1503 5980 w
+10 /LucidaSansUnicode00 f
+(\() 1607 5960 w
+(m) 1648 5960 w
+7 /LucidaSansUnicode00 f
+(21) 1752 5980 w
+10 /LucidaSansUnicode00 f
+(m) 1856 5960 w
+7 /LucidaSansUnicode00 f
+(33) 1960 5980 w
+10 /S f
+(-) 2072 5960 w
+10 /LucidaSansUnicode00 f
+(m) 2143 5960 w
+7 /LucidaSansUnicode00 f
+(23) 2247 5980 w
+10 /LucidaSansUnicode00 f
+(m) 2351 5960 w
+7 /LucidaSansUnicode00 f
+(31) 2455 5980 w
+10 /LucidaSansUnicode00 f
+(\)) 2559 5960 w
+10 /S f
+(+) 2608 5960 w
+10 /LucidaSansUnicode00 f
+(m) 2679 5960 w
+7 /LucidaSansUnicode00 f
+(11) 2783 5980 w
+10 /LucidaSansUnicode00 f
+(\() 2887 5960 w
+(m) 2928 5960 w
+7 /LucidaSansUnicode00 f
+(23) 3032 5980 w
+10 /LucidaSansUnicode00 f
+(m) 3136 5960 w
+7 /LucidaSansUnicode00 f
+(30) 3240 5980 w
+10 /S f
+(-) 3352 5960 w
+10 /LucidaSansUnicode00 f
+(m) 3423 5960 w
+7 /LucidaSansUnicode00 f
+(20) 3527 5980 w
+10 /LucidaSansUnicode00 f
+(m) 3631 5960 w
+7 /LucidaSansUnicode00 f
+(33) 3735 5980 w
+10 /LucidaSansUnicode00 f
+(\)) 3839 5960 w
+10 /S f
+(+) 3888 5960 w
+10 /LucidaSansUnicode00 f
+(m) 3959 5960 w
+7 /LucidaSansUnicode00 f
+(13) 4063 5980 w
+10 /LucidaSansUnicode00 f
+(\() 4167 5960 w
+(m) 4208 5960 w
+7 /LucidaSansUnicode00 f
+(20) 4312 5980 w
+10 /LucidaSansUnicode00 f
+(m) 4416 5960 w
+7 /LucidaSansUnicode00 f
+(31) 4520 5980 w
+10 /S f
+(-) 4632 5960 w
+10 /LucidaSansUnicode00 f
+(m) 4703 5960 w
+7 /LucidaSansUnicode00 f
+(21) 4807 5980 w
+10 /LucidaSansUnicode00 f
+(m) 4911 5960 w
+7 /LucidaSansUnicode00 f
+(30) 5015 5980 w
+10 /LucidaSansUnicode00 f
+(\)) 5119 5960 w
+(\)) 5160 5960 w
+10 /S f
+(-) 1079 5800 w
+10 /LucidaSansUnicode00 f
+(m) 1150 5800 w
+7 /LucidaSansUnicode00 f
+(01) 1254 5820 w
+10 /LucidaSansUnicode00 f
+(\() 1358 5800 w
+(m) 1399 5800 w
+7 /LucidaSansUnicode00 f
+(10) 1503 5820 w
+10 /LucidaSansUnicode00 f
+(\() 1607 5800 w
+(m) 1648 5800 w
+7 /LucidaSansUnicode00 f
+(22) 1752 5820 w
+10 /LucidaSansUnicode00 f
+(m) 1856 5800 w
+7 /LucidaSansUnicode00 f
+(33) 1960 5820 w
+10 /S f
+(-) 2072 5800 w
+10 /LucidaSansUnicode00 f
+(m) 2143 5800 w
+7 /LucidaSansUnicode00 f
+(23) 2247 5820 w
+10 /LucidaSansUnicode00 f
+(m) 2351 5800 w
+7 /LucidaSansUnicode00 f
+(32) 2455 5820 w
+10 /LucidaSansUnicode00 f
+(\)) 2559 5800 w
+10 /S f
+(+) 2608 5800 w
+10 /LucidaSansUnicode00 f
+(m) 2679 5800 w
+7 /LucidaSansUnicode00 f
+(12) 2783 5820 w
+10 /LucidaSansUnicode00 f
+(\() 2887 5800 w
+(m) 2928 5800 w
+7 /LucidaSansUnicode00 f
+(23) 3032 5820 w
+10 /LucidaSansUnicode00 f
+(m) 3136 5800 w
+7 /LucidaSansUnicode00 f
+(30) 3240 5820 w
+10 /S f
+(-) 3352 5800 w
+10 /LucidaSansUnicode00 f
+(m) 3423 5800 w
+7 /LucidaSansUnicode00 f
+(20) 3527 5820 w
+10 /LucidaSansUnicode00 f
+(m) 3631 5800 w
+7 /LucidaSansUnicode00 f
+(33) 3735 5820 w
+10 /LucidaSansUnicode00 f
+(\)) 3839 5800 w
+10 /S f
+(+) 3888 5800 w
+10 /LucidaSansUnicode00 f
+(m) 3959 5800 w
+7 /LucidaSansUnicode00 f
+(13) 4063 5820 w
+10 /LucidaSansUnicode00 f
+(\() 4167 5800 w
+(m) 4208 5800 w
+7 /LucidaSansUnicode00 f
+(20) 4312 5820 w
+10 /LucidaSansUnicode00 f
+(m) 4416 5800 w
+7 /LucidaSansUnicode00 f
+(32) 4520 5820 w
+10 /S f
+(-) 4632 5800 w
+10 /LucidaSansUnicode00 f
+(m) 4703 5800 w
+7 /LucidaSansUnicode00 f
+(22) 4807 5820 w
+10 /LucidaSansUnicode00 f
+(m) 4911 5800 w
+7 /LucidaSansUnicode00 f
+(30) 5015 5820 w
+10 /LucidaSansUnicode00 f
+(\)) 5119 5800 w
+(\)) 5160 5800 w
+(m) 1150 5640 w
+7 /LucidaSansUnicode00 f
+(00) 1254 5660 w
+10 /LucidaSansUnicode00 f
+(\() 1358 5640 w
+(m) 1399 5640 w
+7 /LucidaSansUnicode00 f
+(11) 1503 5660 w
+10 /LucidaSansUnicode00 f
+(\() 1607 5640 w
+(m) 1648 5640 w
+7 /LucidaSansUnicode00 f
+(22) 1752 5660 w
+10 /LucidaSansUnicode00 f
+(m) 1856 5640 w
+7 /LucidaSansUnicode00 f
+(33) 1960 5660 w
+10 /S f
+(-) 2072 5640 w
+10 /LucidaSansUnicode00 f
+(m) 2143 5640 w
+7 /LucidaSansUnicode00 f
+(23) 2247 5660 w
+10 /LucidaSansUnicode00 f
+(m) 2351 5640 w
+7 /LucidaSansUnicode00 f
+(32) 2455 5660 w
+10 /LucidaSansUnicode00 f
+(\)) 2559 5640 w
+10 /S f
+(+) 2608 5640 w
+10 /LucidaSansUnicode00 f
+(m) 2679 5640 w
+7 /LucidaSansUnicode00 f
+(12) 2783 5660 w
+10 /LucidaSansUnicode00 f
+(\() 2887 5640 w
+(m) 2928 5640 w
+7 /LucidaSansUnicode00 f
+(23) 3032 5660 w
+10 /LucidaSansUnicode00 f
+(m) 3136 5640 w
+7 /LucidaSansUnicode00 f
+(31) 3240 5660 w
+10 /S f
+(-) 3352 5640 w
+10 /LucidaSansUnicode00 f
+(m) 3423 5640 w
+7 /LucidaSansUnicode00 f
+(21) 3527 5660 w
+10 /LucidaSansUnicode00 f
+(m) 3631 5640 w
+7 /LucidaSansUnicode00 f
+(33) 3735 5660 w
+10 /LucidaSansUnicode00 f
+(\)) 3839 5640 w
+10 /S f
+(+) 3888 5640 w
+10 /LucidaSansUnicode00 f
+(m) 3959 5640 w
+7 /LucidaSansUnicode00 f
+(13) 4063 5660 w
+10 /LucidaSansUnicode00 f
+(\() 4167 5640 w
+(m) 4208 5640 w
+7 /LucidaSansUnicode00 f
+(21) 4312 5660 w
+10 /LucidaSansUnicode00 f
+(m) 4416 5640 w
+7 /LucidaSansUnicode00 f
+(32) 4520 5660 w
+10 /S f
+(-) 4632 5640 w
+10 /LucidaSansUnicode00 f
+(m) 4703 5640 w
+7 /LucidaSansUnicode00 f
+(22) 4807 5660 w
+10 /LucidaSansUnicode00 f
+(m) 4911 5640 w
+7 /LucidaSansUnicode00 f
+(31) 5015 5660 w
+10 /LucidaSansUnicode00 f
+(\)) 5119 5640 w
+(\)) 5160 5640 w
+10 /LucidaSans-Demi f
+(2.5.) 720 6420 w
+(Quaternion) 962 6420 w
+(Addition) 720 6660 w
+9 /LucidaTypewriter f
+(Quaternion) 920 6830 w
+(addq\(Quaternion) 1635 6830 w
+(q,) 2675 6830 w
+(Quaternion) 2870 6830 w
+(r\)) 3585 6830 w
+10 /LucidaSansUnicode00 f
+(q) 1974 7070 w
+10 /S f
+(+) 2053 7070 w
+10 /LucidaSansUnicode00 f
+(r) 2124 7070 w
+10 /S f
+(=) 2221 7070 w
+10 /LucidaSansUnicode00 f
+(\() 2332 7070 w
+(r) 2373 7070 w
+7 /LucidaSansUnicode00 f
+(q) 2425 7090 w
+10 /S f
+(+) 2493 7070 w
+10 /LucidaSansUnicode00 f
+(r) 2564 7070 w
+7 /LucidaSansUnicode00 f
+(r) 2616 7090 w
+10 /LucidaSansUnicode00 f
+(,) 2661 7070 w
+(i) 2741 7070 w
+7 /LucidaSansUnicode00 f
+(q) 2781 7090 w
+10 /S f
+(+) 2849 7070 w
+10 /LucidaSansUnicode00 f
+(i) 2920 7070 w
+7 /LucidaSansUnicode00 f
+(r) 2960 7090 w
+10 /LucidaSansUnicode00 f
+(,) 3005 7070 w
+(j) 3085 7070 w
+7 /LucidaSansUnicode00 f
+(q) 3126 7090 w
+10 /S f
+(+) 3194 7070 w
+10 /LucidaSansUnicode00 f
+(j) 3265 7070 w
+7 /LucidaSansUnicode00 f
+(r) 3306 7090 w
+10 /LucidaSansUnicode00 f
+(,) 3351 7070 w
+(k) 3431 7070 w
+7 /LucidaSansUnicode00 f
+(q) 3500 7090 w
+10 /S f
+(+) 3568 7070 w
+10 /LucidaSansUnicode00 f
+(k) 3639 7070 w
+7 /LucidaSansUnicode00 f
+(r) 3708 7090 w
+10 /LucidaSansUnicode00 f
+(\)) 3753 7070 w
+cleartomark
+showpage
+saveobj restore
+%%EndPage: 5 5
+%%Page: 6 6
+/saveobj save def
+mark
+6 pagesetup
+10 /LucidaSansUnicode00 f
+(\255 6 \255) 2783 480 w
+10 /LucidaSans-Demi f
+(Substraction) 720 840 w
+9 /LucidaTypewriter f
+(Quaternion) 920 1010 w
+(subq\(Quaternion) 1635 1010 w
+(q,) 2675 1010 w
+(Quaternion) 2870 1010 w
+(r\)) 3585 1010 w
+10 /LucidaSansUnicode00 f
+(q) 1974 1250 w
+10 /S f
+(-) 2053 1250 w
+10 /LucidaSansUnicode00 f
+(r) 2124 1250 w
+10 /S f
+(=) 2221 1250 w
+10 /LucidaSansUnicode00 f
+(\() 2332 1250 w
+(r) 2373 1250 w
+7 /LucidaSansUnicode00 f
+(q) 2425 1270 w
+10 /S f
+(-) 2493 1250 w
+10 /LucidaSansUnicode00 f
+(r) 2564 1250 w
+7 /LucidaSansUnicode00 f
+(r) 2616 1270 w
+10 /LucidaSansUnicode00 f
+(,) 2661 1250 w
+(i) 2741 1250 w
+7 /LucidaSansUnicode00 f
+(q) 2781 1270 w
+10 /S f
+(-) 2849 1250 w
+10 /LucidaSansUnicode00 f
+(i) 2920 1250 w
+7 /LucidaSansUnicode00 f
+(r) 2960 1270 w
+10 /LucidaSansUnicode00 f
+(,) 3005 1250 w
+(j) 3085 1250 w
+7 /LucidaSansUnicode00 f
+(q) 3126 1270 w
+10 /S f
+(-) 3194 1250 w
+10 /LucidaSansUnicode00 f
+(j) 3265 1250 w
+7 /LucidaSansUnicode00 f
+(r) 3306 1270 w
+10 /LucidaSansUnicode00 f
+(,) 3351 1250 w
+(k) 3431 1250 w
+7 /LucidaSansUnicode00 f
+(q) 3500 1270 w
+10 /S f
+(-) 3568 1250 w
+10 /LucidaSansUnicode00 f
+(k) 3639 1250 w
+7 /LucidaSansUnicode00 f
+(r) 3708 1270 w
+10 /LucidaSansUnicode00 f
+(\)) 3753 1250 w
+10 /LucidaSans-Demi f
+(Multiplication) 720 1550 w
+9 /LucidaTypewriter f
+(Quaternion) 920 1720 w
+(mulq\(Quaternion) 1635 1720 w
+(q,) 2675 1720 w
+(Quaternion) 2870 1720 w
+(r\)) 3585 1720 w
+10 /LucidaSansUnicode00 f
+(q) 1321 1965 w
+10 /S f
+(=) 1440 1965 w
+10 /LucidaSansUnicode00 f
+([) 1551 1965 w
+(r) 1592 1965 w
+7 /LucidaSansUnicode00 f
+(q) 1644 1985 w
+10 /LucidaSansUnicode00 f
+(,) 1704 1965 w
+(v) 1784 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 1777 1915 w
+7 /LucidaSansUnicode00 f
+(q) 1847 1985 w
+10 /LucidaSansUnicode00 f
+(]) 1907 1965 w
+(r) 1956 1965 w
+10 /S f
+(=) 2053 1965 w
+10 /LucidaSansUnicode00 f
+([) 2164 1965 w
+(r) 2205 1965 w
+7 /LucidaSansUnicode00 f
+(r) 2257 1985 w
+10 /LucidaSansUnicode00 f
+(,) 2302 1965 w
+(v) 2382 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 2375 1915 w
+7 /LucidaSansUnicode00 f
+(r) 2445 1985 w
+10 /LucidaSansUnicode00 f
+(]) 2490 1965 w
+(qr) 2539 1965 w
+10 /S f
+(=) 2699 1965 w
+10 /LucidaSansUnicode00 f
+([) 2810 1965 w
+(r) 2851 1965 w
+7 /LucidaSansUnicode00 f
+(q) 2903 1985 w
+10 /LucidaSansUnicode00 f
+(r) 2963 1965 w
+7 /LucidaSansUnicode00 f
+(r) 3015 1985 w
+10 /S f
+(-) 3068 1965 w
+10 /LucidaSansUnicode00 f
+(v) 3139 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 3132 1915 w
+7 /LucidaSansUnicode00 f
+(q) 3202 1985 w
+10 /LucidaSansUnicode20 f
+(") 3262 1965 w
+10 /LucidaSansUnicode00 f
+(v) 3326 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 3319 1915 w
+7 /LucidaSansUnicode00 f
+(r) 3389 1985 w
+10 /LucidaSansUnicode00 f
+(,) 3434 1965 w
+(v) 3514 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 3507 1915 w
+7 /LucidaSansUnicode00 f
+(r) 3577 1985 w
+10 /LucidaSansUnicode00 f
+(r) 3622 1965 w
+7 /LucidaSansUnicode00 f
+(q) 3674 1985 w
+10 /S f
+(+) 3742 1965 w
+10 /LucidaSansUnicode00 f
+(v) 3813 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 3806 1915 w
+7 /LucidaSansUnicode00 f
+(q) 3876 1985 w
+10 /LucidaSansUnicode00 f
+(r) 3936 1965 w
+7 /LucidaSansUnicode00 f
+(r) 3988 1985 w
+10 /S f
+(+) 4041 1965 w
+10 /LucidaSansUnicode00 f
+(v) 4112 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 4105 1915 w
+7 /LucidaSansUnicode00 f
+(q) 4175 1985 w
+10 /LucidaSansUnicode00 f
+(Xv) 4235 1965 w
+7 /LucidaSansUnicode21 f
+(\222) 4291 1915 w
+7 /LucidaSansUnicode00 f
+(r) 4361 1985 w
+10 /LucidaSansUnicode00 f
+(]) 4406 1965 w
+10 /LucidaSans-Demi f
+(Scalar Multiplication) 720 2265 w
+9 /LucidaTypewriter f
+(Quaternion) 920 2435 w
+(smulq\(Quaternion) 1635 2435 w
+(q,) 2740 2435 w
+(double) 2935 2435 w
+(s\)) 3390 2435 w
+10 /LucidaSansUnicode00 f
+(qs) 2243 2675 w
+10 /S f
+(=) 2413 2675 w
+10 /LucidaSansUnicode00 f
+([) 2524 2675 w
+(r) 2565 2675 w
+7 /LucidaSansUnicode00 f
+(q) 2617 2695 w
+10 /LucidaSansUnicode00 f
+(s) 2677 2675 w
+(,) 2736 2675 w
+(i) 2816 2675 w
+7 /LucidaSansUnicode00 f
+(q) 2856 2695 w
+10 /LucidaSansUnicode00 f
+(s) 2916 2675 w
+(,) 2975 2675 w
+(j) 3055 2675 w
+7 /LucidaSansUnicode00 f
+(q) 3096 2695 w
+10 /LucidaSansUnicode00 f
+(s) 3156 2675 w
+(,) 3215 2675 w
+(k) 3295 2675 w
+7 /LucidaSansUnicode00 f
+(q) 3364 2695 w
+10 /LucidaSansUnicode00 f
+(s) 3424 2675 w
+(]) 3483 2675 w
+10 /LucidaSans-Demi f
+(Inverse) 720 2975 w
+9 /LucidaTypewriter f
+(Quaternion) 920 3145 w
+(invq\(Quaternion) 1635 3145 w
+(q\)) 2675 3145 w
+10 /LucidaSansUnicode00 f
+(q) 2009 3470 w
+7 /S f
+(-) 2083 3430 w
+7 /LucidaSansUnicode00 f
+(1) 2133 3430 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(=) 2241 3470 w
+10 /LucidaSansUnicode00 f
+10 /S f
+(\354) 2360 3383 w
+(\357) 2360 3483 w
+(\356) 2360 3583 w
+10 /LucidaSansUnicode00 f
+(|) 2434 3567 w
+(q) 2482 3550 w
+(|) 2545 3567 w
+7 /LucidaSansUnicode00 f
+(2) 2583 3510 w
+10 /LucidaSansUnicode00 f
+(r) 2514 3410 w
+10 /S1 f
+(_) 2419 3440 w
+(____) 2450 3440 w
+10 /LucidaSansUnicode00 f
+(,) 2668 3470 w
+(|) 2781 3567 w
+(q) 2829 3550 w
+(|) 2892 3567 w
+7 /LucidaSansUnicode00 f
+(2) 2930 3510 w
+10 /S f
+(-) 2832 3410 w
+10 /LucidaSansUnicode00 f
+(i) 2903 3410 w
+10 /S1 f
+(_) 2767 3440 w
+(____) 2798 3440 w
+10 /LucidaSansUnicode00 f
+(,) 3016 3470 w
+(|) 3129 3567 w
+(q) 3177 3550 w
+(|) 3240 3567 w
+7 /LucidaSansUnicode00 f
+(2) 3278 3510 w
+10 /S f
+(-) 3179 3410 w
+10 /LucidaSansUnicode00 f
+(j) 3250 3410 w
+10 /S1 f
+(_) 3114 3440 w
+(____) 3145 3440 w
+10 /LucidaSansUnicode00 f
+(,) 3363 3470 w
+(|) 3476 3567 w
+(q) 3524 3550 w
+(|) 3587 3567 w
+7 /LucidaSansUnicode00 f
+(2) 3625 3510 w
+10 /S f
+(-) 3512 3410 w
+10 /LucidaSansUnicode00 f
+(k) 3583 3410 w
+10 /S1 f
+(_) 3461 3440 w
+(____) 3492 3440 w
+10 /S f
+(\374) 3702 3383 w
+(\357) 3702 3483 w
+(\376) 3702 3583 w
+10 /LucidaSans-Demi f
+(Magnitude/Length) 720 3875 w
+9 /LucidaTypewriter f
+(double) 920 4045 w
+(qlen\(Quaternion) 1375 4045 w
+(q\)) 2415 4045 w
+10 /LucidaSansUnicode00 f
+(|) 2337 4320 w
+(q) 2385 4303 w
+(|) 2448 4320 w
+10 /S f
+(=) 2544 4303 w
+10 /LucidaSansUnicode00 f
+12 /LucidaSansUnicode22 f
+(\032) 2655 4303 w
+12 /S f
+(`) 2752 4303 w
+(```````````) 2755 4303 w
+10 /LucidaSansUnicode00 f
+(r) 2760 4303 w
+7 /LucidaSansUnicode00 f
+(2) 2806 4263 w
+10 /S f
+(+) 2874 4303 w
+10 /LucidaSansUnicode00 f
+(i) 2945 4303 w
+7 /LucidaSansUnicode00 f
+(2) 2979 4263 w
+10 /S f
+(+) 3047 4303 w
+10 /LucidaSansUnicode00 f
+(j) 3118 4303 w
+7 /LucidaSansUnicode00 f
+(2) 3153 4263 w
+10 /S f
+(+) 3221 4303 w
+10 /LucidaSansUnicode00 f
+(k) 3292 4303 w
+7 /LucidaSansUnicode00 f
+(2) 3355 4263 w
+cleartomark
+showpage
+saveobj restore
+%%EndPage: 6 6
+%%Trailer
+done
+%%DocumentFonts: LucidaSansUnicode20 LucidaSansUnicode21 LucidaSansUnicode22 S1 S LucidaSansUnicode00 LucidaSans-Demi LucidaSans-Italic LucidaTypewriter
+%%Pages: 6

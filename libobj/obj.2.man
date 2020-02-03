@@ -1,0 +1,88 @@
+.TH OBJ 2
+.SH NAME
+objparse,
+objfree,
+OBJfmt,
+OBJfmtinstall
+\- OBJ parser
+.SH SYNOPSIS
+.ta 0.7i +0.7i +0.7i +0.7i +0.7i +0.7i +0.7i
+.EX
+#include <u.h>
+#include <libc.h>
+#include <obj.h>
+
+enum {
+	OBJVGeometric,
+	OBJVTexture,
+	OBJVNormal,
+	OBJVParametric,
+	OBJNVERT
+};
+
+enum {
+	OBJEPoint,
+	OBJELine,
+	OBJEFace,
+	OBJECurve,
+	OBJECurve2,
+	OBJESurface
+};
+
+enum {
+	OBJHTSIZE = 17
+};
+
+typedef struct
+{
+	union {
+		struct { double x, y, z, w; };	/* geometric */
+		struct { double u, v, vv; };	/* texture and parametric */
+		struct { double i, j, k; };	/* normal */
+	};
+} OBJVertex;
+
+typedef struct
+{
+	OBJVertex	*verts;
+	int		nvert;
+} OBJVertexArray;
+
+typedef struct
+{
+	int	*indices;
+	int	nindex;
+	int	type;
+	OBJElem	*next;
+} OBJElem;
+
+typedef struct
+{
+	char		*name;
+	OBJElem		*child;
+	OBJObject	*next;
+} OBJObject;
+
+typedef struct
+{
+	OBJVertexArray	vertdata[OBJNVERT];
+	OBJObject	*objtab[OBJHTSIZE];
+} OBJ;
+
+OBJ	*objparse(char *file);
+void	objfree(OBJ *obj);
+int	OBJfmt(Fmt*);
+void	OBJfmtinstall(void);
+.EE
+.SH DESCRIPTION
+An OBJ structure contains geometry and material information about a set of 3D objects
+.SH SOURCE
+.B /sys/src/libobj
+.SH SEE ALSO
+.IR geometry (2)
+.br
+http://paulbourke.net/dataformats/obj
+.br
+https://people.sc.fsu.edu/~jburkardt/data/obj/obj.html
+.SH DIAGNOSTICS
+.SH BUGS

@@ -1,0 +1,21 @@
+</$objtype/mkfile
+
+BIN=$home/$objtype/bin
+TARG=objtest
+OFILES=\
+	main.$O\
+
+HFILES=../../obj.h
+
+LIB=\
+	../../libobj.a$O\
+
+</sys/src/cmd/mkone
+
+../../libobj.a$O:
+	cd ..
+	mk install
+
+clean nuke:V:
+	rm -f *.[$OS] [$OS].out y.tab.? y.debug y.output $TARG
+	@{cd ..; mk $target}
