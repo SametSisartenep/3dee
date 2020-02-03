@@ -33,9 +33,10 @@ Rune keys[Ke] = {
 char stats[Se][256];
 
 Mousectl *mctl;
+Channel *drawc;
 int kdown;
-double t0, Δt;
-RWLock worldlock;
+vlong t0, t;
+double Δt;
 Mesh model;
 char *mdlpath = "../threedee/mdl/rocket.obj";
 
@@ -119,7 +120,7 @@ drawstats(void)
 {
 	int i;
 
-	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %d", maincam-cams+1);
+	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams+1);
 	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", maincam->fov);
 	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", maincam->p);
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", maincam->bx);
@@ -193,13 +194,11 @@ redraw(void)
 }
 
 void
-scrsynproc(void *)
+drawproc(void *)
 {
-	threadsetname("scrsynproc");
+	threadsetname("drawproc");
 	for(;;){
-		rlock(&worldlock);
-		redraw();
-		runlock(&worldlock);
+		send(drawc, nil);
 		sleep(FPS2MS(60));
 	}
 }
@@ -224,15 +223,15 @@ screenshot(void)
 void
 mouse(void)
 {
-	if(mctl->buttons & 1)
+	if((mctl->buttons & 1) != 0)
 		fprint(2, "%v\n", fromviewport(maincam, mctl->xy));
-	if(mctl->buttons & 8){
+	if((mctl->buttons & 8) != 0){
 		maincam->fov -= 5;
 		if(maincam->fov < 1)
 			maincam->fov = 1;
 		reloadcamera(maincam);
 	}
-	if(mctl->buttons & 16){
+	if((mctl->buttons & 16) != 0){
 		maincam->fov += 5;
 		if(maincam->fov > 359)
 			maincam->fov = 359;
@@ -336,7 +335,7 @@ resize(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s\n", argv0);
+	fprint(2, "usage: %s [-l objmdl]\n", argv0);
 	exits("usage");
 }
 
@@ -370,27 +369,29 @@ threadmain(int argc, char *argv[])
 	maincam = &cams[0];
 	if((objmesh = objparse(mdlpath)) == nil)
 		sysfatal("objparse: %r");
+	drawc = chancreate(1, 0);
 	display->locking = 1;
 	unlockdisplay(display);
-	proccreate(scrsynproc, nil, mainstacksize);
+	proccreate(drawproc, nil, mainstacksize);
 	proccreate(kbdproc, nil, mainstacksize);
 	t0 = nsec();
 	for(;;){
-		enum {MOUSE, RESIZE};
+		enum {MOUSE, RESIZE, DRAW};
 		Alt a[] = {
 			{mctl->c, &mctl->Mouse, CHANRCV},
 			{mctl->resizec, nil, CHANRCV},
+			{drawc, nil, CHANRCV},
 			{nil, nil, CHANNOBLK}
 		};
-		wlock(&worldlock);
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
+		case DRAW: redraw(); break;
 		}
-		Δt = (nsec()-t0)/1e9;
+		t = nsec();
+		Δt = (t-t0)/1e9;
 		handlekeys();
-		t0 += Δt*1e9;
-		wunlock(&worldlock);
+		t0 = t;
 		sleep(16);
 	}
 }
