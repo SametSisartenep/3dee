@@ -1,4 +1,4 @@
-#define DEG 0.01745329251994330
+#define DEG 0.01745329251994330	/* π/180 */
 
 typedef struct Point2 Point2;
 typedef struct Point3 Point3;

@@ -4,7 +4,6 @@ typedef enum {
 } Projection;
 
 typedef struct Vertex Vertex;
-typedef struct Triangle Triangle;
 typedef struct Viewport Viewport;
 typedef struct Camera Camera;
 
@@ -12,10 +11,6 @@ struct Vertex {
 	Point3 p;	/* position */
 	Point3 n;	/* surface normal */
 	//Image tx;	/* (?) */
-};
-
-struct Triangle {
-	Point p0, p1, p2;
 };
 
 struct Camera {
@@ -28,12 +23,6 @@ struct Camera {
 	Matrix3 proj;		/* VCS to NDC xform */
 	Projection ptype;
 };
-
-/* Triangle */
-Triangle Trian(int, int, int, int, int, int);
-Triangle Trianpt(Point, Point, Point);
-void triangle(Image *, Triangle, int, Image *, Point);
-void filltriangle(Image *, Triangle, Image *, Point);
 
 /* Camera */
 void perspective(Matrix3, double, double, double, double);

@@ -4,16 +4,6 @@
 #include "../geometry.h"
 #include "../graphics.h"
 
-/*
- * careful with concurrent rendering.
- * use a lock or embed on each routine.
- */
-static RFrame imgrframe = {
-	0,  0, 1,	/* p */
-	1,  0, 0,	/* bx */
-	0, -1, 0	/* by */
-};
-
 /* requires p to be in NDC */
 int
 isclipping(Point3 p)
@@ -51,17 +41,26 @@ Point
 toviewport(Camera *c, Point3 p)
 {
 	Point2 p2;
+	RFrame rf = {
+		c->viewport->r.min.x, c->viewport->r.max.y, 1,
+		1,  0, 0,
+		0, -1, 0
+	};
 
-	imgrframe.p = Pt2(c->viewport->r.min.x, c->viewport->r.max.y, 1);
-	p2 = invrframexform(flatten(c, p), imgrframe);
+	p2 = invrframexform(flatten(c, p), rf);
 	return (Point){p2.x, p2.y};
 }
 
 Point2
 fromviewport(Camera *c, Point p)
 {
-	imgrframe.p = Pt2(c->viewport->r.min.x, c->viewport->r.max.y, 1);
-	return rframexform(Pt2(p.x, p.y, 1), imgrframe);
+	RFrame rf = {
+		c->viewport->r.min.x, c->viewport->r.max.y, 1,
+		1,  0, 0,
+		0, -1, 0
+	};
+
+	return rframexform(Pt2(p.x, p.y, 1), rf);
 }
 
 void
