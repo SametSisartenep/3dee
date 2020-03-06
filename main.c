@@ -10,6 +10,15 @@
 #include "dat.h"
 #include "fns.h"
 
+typedef struct Camcfg Camcfg;
+
+struct Camcfg
+{
+	Point3 p, lookat, up;
+	double fov, clipn, clipf;
+	int ptype;
+};
+
 Rune keys[Ke] = {
  [K↑]		= Kup,
  [K↓]		= Kdown,
@@ -37,10 +46,23 @@ Channel *drawc;
 int kdown;
 vlong t0, t;
 double Δt;
-Mesh model;
+//Mesh model;
 char *mdlpath = "../threedee/mdl/rocket.obj";
 
-Camera cams[4], *maincam;
+Camera *cams[4], *maincam;
+Camcfg camcfgs[4] = {
+	Pt3(2,0,-4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	90, 0.1, 100, Ppersp,
+
+	Pt3(-2,0,-4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	120, 0.1, 100, Ppersp,
+
+	Pt3(-2,0,4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	90, 0.1, 100, Ppersp,
+
+	Pt3(2,0,4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	120, 0.1, 100, Ppersp
+};
 
 #pragma varargck type "v" Point2
 int
@@ -120,74 +142,74 @@ drawstats(void)
 {
 	int i;
 
-	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams+1);
+	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams[0]+1);
 	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", maincam->fov);
 	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", maincam->p);
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", maincam->bx);
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", maincam->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", maincam->bz);
 	for(i = 0; i < Se; i++)
-		stringn(maincam->viewport, addpt(screen->r.min, Pt(10, 10 + i*font->height)), display->black, ZP, font, stats[i], sizeof(stats[i]));
+		stringn(maincam->viewport, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], sizeof(stats[i]));
 }
 
 void
 redraw(void)
 {
-	Triangle3 tmp;
-	static TTriangle3 *vistris;
-	static int nallocvistri;
-	Triangle trit;
-	Point3 n;
-	u8int c;
-	int i, nvistri;
-
-	nvistri = 0;
-	if(nallocvistri == 0 && vistris == nil){
-		nallocvistri = model.ntri/2;
-		vistris = emalloc(nallocvistri*sizeof(TTriangle3));
-	}
-	for(i = 0; i < model.ntri; i++){
-		/* world to camera */
-		tmp.p0 = WORLD2VCS(maincam, model.tris[i].p0);
-		tmp.p1 = WORLD2VCS(maincam, model.tris[i].p1);
-		tmp.p2 = WORLD2VCS(maincam, model.tris[i].p2);
-		/* back-face culling */
-		n = normvec3(crossvec3(subpt3(tmp.p1, tmp.p0), subpt3(tmp.p2, tmp.p0)));
-		if(dotvec3(n, mulpt3(tmp.p0, -1)) <= 0)
-			continue;
-		/* camera to projected ndc */
-		tmp.p0 = VCS2NDC(maincam, tmp.p0);
-		tmp.p1 = VCS2NDC(maincam, tmp.p1);
-		tmp.p2 = VCS2NDC(maincam, tmp.p2);
-		/* clipping */
-		/*
-		 * no clipping for now, the whole triangle is ignored
-		 * if any of its vertices gets outside the fustrum.
-		 */
-		if(isclipping(tmp.p0) || isclipping(tmp.p1) || isclipping(tmp.p2))
-			continue;
-		if(nvistri >= nallocvistri){
-			nallocvistri += model.ntri/3;
-			vistris = erealloc(vistris, nallocvistri*sizeof(TTriangle3));
-		}
-		vistris[nvistri] = (TTriangle3)tmp;
-		c = 0xff*fabs(dotvec3(n, Vec3(0, 0, 1)));
-		vistris[nvistri].tx = allocimage(display, Rect(0, 0, 1, 1), screen->chan, 1, c<<24|c<<16|c<<8|0xff);
-		nvistri++;
-	}
-	qsort(vistris, nvistri, sizeof(TTriangle3), depthcmp);
+//	Triangle3 tmp;
+//	static TTriangle3 *vistris;
+//	static int nallocvistri;
+//	Triangle trit;
+//	Point3 n;
+//	u8int c;
+//	int i, nvistri;
+//
+//	nvistri = 0;
+//	if(nallocvistri == 0 && vistris == nil){
+//		nallocvistri = model.ntri/2;
+//		vistris = emalloc(nallocvistri*sizeof(TTriangle3));
+//	}
+//	for(i = 0; i < model.ntri; i++){
+//		/* world to camera */
+//		tmp.p0 = WORLD2VCS(maincam, model.tris[i].p0);
+//		tmp.p1 = WORLD2VCS(maincam, model.tris[i].p1);
+//		tmp.p2 = WORLD2VCS(maincam, model.tris[i].p2);
+//		/* back-face culling */
+//		n = normvec3(crossvec3(subpt3(tmp.p1, tmp.p0), subpt3(tmp.p2, tmp.p0)));
+//		if(dotvec3(n, mulpt3(tmp.p0, -1)) <= 0)
+//			continue;
+//		/* camera to projected ndc */
+//		tmp.p0 = VCS2NDC(maincam, tmp.p0);
+//		tmp.p1 = VCS2NDC(maincam, tmp.p1);
+//		tmp.p2 = VCS2NDC(maincam, tmp.p2);
+//		/* clipping */
+//		/*
+//		 * no clipping for now, the whole triangle is ignored
+//		 * if any of its vertices gets outside the fustrum.
+//		 */
+//		if(isclipping(tmp.p0) || isclipping(tmp.p1) || isclipping(tmp.p2))
+//			continue;
+//		if(nvistri >= nallocvistri){
+//			nallocvistri += model.ntri/3;
+//			vistris = erealloc(vistris, nallocvistri*sizeof(TTriangle3));
+//		}
+//		vistris[nvistri] = (TTriangle3)tmp;
+//		c = 0xff*fabs(dotvec3(n, Vec3(0,0,1)));
+//		vistris[nvistri].tx = allocimage(display, Rect(0,0,1,1), screen->chan, 1, c<<24|c<<16|c<<8|0xff);
+//		nvistri++;
+//	}
+//	qsort(vistris, nvistri, sizeof(TTriangle3), depthcmp);
 	lockdisplay(display);
 	draw(maincam->viewport, maincam->viewport->r, display->white, nil, ZP);
 	drawaxis();
-	for(i = 0; i < nvistri; i++){
-		/* ndc to screen */
-		trit.p0 = toviewport(maincam, vistris[i].p0);
-		trit.p1 = toviewport(maincam, vistris[i].p1);
-		trit.p2 = toviewport(maincam, vistris[i].p2);
-		filltriangle(maincam->viewport, trit, vistris[i].tx, ZP);
-		triangle(maincam->viewport, trit, 0, display->black, ZP);
-		freeimage(vistris[i].tx);
-	}
+//	for(i = 0; i < nvistri; i++){
+//		/* ndc to screen */
+//		trit.p0 = toviewport(maincam, vistris[i].p0);
+//		trit.p1 = toviewport(maincam, vistris[i].p1);
+//		trit.p2 = toviewport(maincam, vistris[i].p2);
+//		filltriangle(maincam->viewport, trit, vistris[i].tx, ZP);
+//		triangle(maincam->viewport, trit, 0, display->black, ZP);
+//		freeimage(vistris[i].tx);
+//	}
 	drawstats();
 	flushimage(display, 1);
 	unlockdisplay(display);
@@ -310,13 +332,13 @@ handlekeys(void)
 	if(kdown & 1<<KR↻)
 		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, -5*DEG));
 	if(kdown & 1<<Kcam0)
-		maincam = &cams[0];
+		maincam = cams[0];
 	if(kdown & 1<<Kcam1)
-		maincam = &cams[1];
+		maincam = cams[1];
 	if(kdown & 1<<Kcam2)
-		maincam = &cams[2];
+		maincam = cams[2];
 	if(kdown & 1<<Kcam3)
-		maincam = &cams[3];
+		maincam = cams[3];
 	if(kdown & 1<<Kscrshot)
 		screenshot();
 }
@@ -328,8 +350,7 @@ resize(void)
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
 	unlockdisplay(display);
-	maincam->viewport = screen;
-	reloadcamera(maincam);
+	maincam->updatefb(maincam, screen->r, screen->chan);
 }
 
 void
@@ -343,6 +364,7 @@ void
 threadmain(int argc, char *argv[])
 {
 	OBJ *objmesh;
+	int i;
 
 	fmtinstall('V', Vfmt);
 	fmtinstall('v', vfmt);
@@ -358,15 +380,12 @@ threadmain(int argc, char *argv[])
 		sysfatal("initdraw: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
-	placecamera(&cams[0], Pt3(2, 0, -4, 1), Pt3(0, 0, 0, 1), Vec3(0, 1, 0));
-	configcamera(&cams[0], screen, 90, 0.1, 100, Ppersp);
-	placecamera(&cams[1], Pt3(-2, 0, -4, 1), Pt3(0, 0, 0, 1), Vec3(0, 1, 0));
-	configcamera(&cams[1], screen, 120, 0.1, 100, Ppersp);
-	placecamera(&cams[2], Pt3(-2, 0, 4, 1), Pt3(0, 0, 0, 1), Vec3(0, 1, 0));
-	configcamera(&cams[2], screen, 90, 0.1, 100, Ppersp);
-	placecamera(&cams[3], Pt3(2, 0, 4, 1), Pt3(0, 0, 0, 1), Vec3(0, 1, 0));
-	configcamera(&cams[3], screen, 120, 0.1, 100, Ppersp);
-	maincam = &cams[0];
+	for(i = 0; i < nelem(cams); i++){
+		cams[i] = alloccamera(screen->r, screen->chan);
+		placecamera(cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
+		configcamera(cams[i], camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
+	}
+	maincam = cams[0];
 	if((objmesh = objparse(mdlpath)) == nil)
 		sysfatal("objparse: %r");
 	drawc = chancreate(1, 0);

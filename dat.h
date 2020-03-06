@@ -26,16 +26,3 @@ enum {
 	Scambx, Scamby, Scambz,
 	Se
 };
-
-typedef struct Mesh Mesh;
-typedef struct TTriangle3 TTriangle3;
-
-struct Mesh {
-	Triangle3 *tris;
-	int ntri;
-};
-
-struct TTriangle3 {
-	Triangle3;
-	Image *tx;
-};

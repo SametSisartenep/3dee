@@ -41,26 +41,41 @@ Point
 toviewport(Camera *c, Point3 p)
 {
 	Point2 p2;
-	RFrame rf = {
-		c->viewport->r.min.x, c->viewport->r.max.y, 1,
-		1,  0, 0,
-		0, -1, 0
-	};
 
-	p2 = invrframexform(flatten(c, p), rf);
+	p2 = invrframexform(flatten(c, p), c->viewport);
 	return (Point){p2.x, p2.y};
 }
 
 Point2
 fromviewport(Camera *c, Point p)
 {
-	RFrame rf = {
-		c->viewport->r.min.x, c->viewport->r.max.y, 1,
-		1,  0, 0,
-		0, -1, 0
-	};
+	return rframexform(Pt2(p.x,p.y,1), c->viewport);
+}
 
-	return rframexform(Pt2(p.x, p.y, 1), rf);
+void
+perspective(Matrix3 m, double fov, double a, double n, double f)
+{
+	double cotan;
+
+	cotan = 1/tan(fov/2*DEG);
+	identity3(m);
+	m[0][0] =  cotan/a;
+	m[1][1] =  cotan;
+	m[2][2] = -(f+n)/(f-n);
+	m[2][3] = -2*f*n/(f-n);
+	m[3][2] = -1;
+}
+
+void
+orthographic(Matrix3 m, double l, double r, double b, double t, double n, double f)
+{
+	identity3(m);
+	m[0][0] =  2/(r - l);
+	m[1][1] =  2/(t - b);
+	m[2][2] = -2/(f - n);
+	m[0][3] = -(r + l)/(r - l);
+	m[1][3] = -(t + b)/(t - b);
+	m[2][3] = -(f + n)/(f - n);
 }
 
 void
