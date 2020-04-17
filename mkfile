@@ -5,29 +5,35 @@ TARG=3d
 OFILES=\
 	main.$O\
 
-HFILES=geometry.h graphics.h obj.h dat.h fns.h
+HFILES=libgeometry/geometry.h\
+	libgraphics/graphics.h\
+	libobj/obj.h\
+	dat.h\
+	fns.h\
 
 LIB=\
-	libgeometry.a$O\
-	libgraphics.a$O\
-	libobj.a$O
+	libobj/libobj.a$O\
+	libgraphics/libgraphics.a$O\
+	libgeometry/libgeometry.a$O\
+
+CFLAGS=$CFLAGS -I. -Ilibgeometry -Ilibgraphics -Ilibobj
 
 </sys/src/cmd/mkone
 
-libgeometry.a$O:
+libgeometry/libgeometry.a$O:
 	cd libgeometry
 	mk install
 
-libgraphics.a$O:
+libgraphics/libgraphics.a$O:
 	cd libgraphics
 	mk install
 
-libobj.a$O:
+libobj/libobj.a$O:
 	cd libobj
 	mk install
 
 clean nuke:V:
-	rm -f *.[$OS] [$OS].out y.tab.? y.debug y.output $TARG
+	rm -f *.[$OS] [$OS].out $TARG
 	@{cd libgeometry; mk $target}
 	@{cd libgraphics; mk $target}
 	@{cd libobj; mk $target}

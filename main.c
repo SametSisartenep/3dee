@@ -2,16 +2,16 @@
 #include <libc.h>
 #include <thread.h>
 #include <draw.h>
+#include <memdraw.h>
 #include <mouse.h>
 #include <keyboard.h>
-#include "geometry.h"
-#include "graphics.h"
-#include "obj.h"
+#include <geometry.h>
+#include <graphics.h>
+#include <obj.h>
 #include "dat.h"
 #include "fns.h"
 
 typedef struct Camcfg Camcfg;
-
 struct Camcfg
 {
 	Point3 p, lookat, up;
@@ -46,21 +46,28 @@ Channel *drawc;
 int kdown;
 vlong t0, t;
 double Δt;
-//Mesh model;
 char *mdlpath = "../threedee/mdl/rocket.obj";
 
-Camera *cams[4], *maincam;
+Camera cams[4], *maincam;
 Camcfg camcfgs[4] = {
-	Pt3(2,0,-4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	2,0,-4,1,
+	0,0,0,1,
+	0,1,0,0,
 	90, 0.1, 100, Ppersp,
 
-	Pt3(-2,0,-4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	-2,0,-4,1,
+	0,0,0,1,
+	0,1,0,0,
 	120, 0.1, 100, Ppersp,
 
-	Pt3(-2,0,4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	-2,0,4,1,
+	0,0,0,1,
+	0,1,0,0,
 	90, 0.1, 100, Ppersp,
 
-	Pt3(2,0,4,1), Pt3(0,0,0,1), Vec3(0,1,0),
+	2,0,4,1,
+	0,0,0,1,
+	0,1,0,0,
 	120, 0.1, 100, Ppersp
 };
 
@@ -114,8 +121,8 @@ depthcmp(void *a, void *b)
 	Triangle3 *ta, *tb;
 	double za, zb;
 
-	ta = (Triangle3 *)a;
-	tb = (Triangle3 *)b;
+	ta = (Triangle3*)a;
+	tb = (Triangle3*)b;
 	za = (ta->p0.z + ta->p1.z + ta->p2.z)/3;
 	zb = (tb->p0.z + tb->p1.z + tb->p2.z)/3;
 	return zb-za;
@@ -124,10 +131,10 @@ depthcmp(void *a, void *b)
 void
 drawaxis(void)
 {
-	Point3	op = (Point3){0, 0, 0, 1},
-		px = (Point3){1, 0, 0, 1},
-		py = (Point3){0, 1, 0, 1},
-		pz = (Point3){0, 0, 1, 1};
+	Point3	op = Pt3(0,0,0,1),
+		px = Pt3(1,0,0,1),
+		py = Pt3(0,1,0,1),
+		pz = Pt3(0,0,1,1);
 
 	line3(maincam, op, px, 0, Endarrow, display->black);
 	string3(maincam, px, display->black, font, "x");
@@ -142,14 +149,14 @@ drawstats(void)
 {
 	int i;
 
-	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams[0]+1);
+	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams+1);
 	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", maincam->fov);
 	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", maincam->p);
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", maincam->bx);
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", maincam->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", maincam->bz);
 	for(i = 0; i < Se; i++)
-		stringn(maincam->viewport, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], sizeof(stats[i]));
+		string(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i]);
 }
 
 void
@@ -184,7 +191,7 @@ redraw(void)
 //		/* clipping */
 //		/*
 //		 * no clipping for now, the whole triangle is ignored
-//		 * if any of its vertices gets outside the fustrum.
+//		 * if any of its vertices gets outside the frustum.
 //		 */
 //		if(isclipping(tmp.p0) || isclipping(tmp.p1) || isclipping(tmp.p2))
 //			continue;
@@ -198,6 +205,7 @@ redraw(void)
 //		nvistri++;
 //	}
 //	qsort(vistris, nvistri, sizeof(TTriangle3), depthcmp);
+
 	lockdisplay(display);
 	draw(maincam->viewport, maincam->viewport->r, display->white, nil, ZP);
 	drawaxis();
@@ -332,13 +340,13 @@ handlekeys(void)
 	if(kdown & 1<<KR↻)
 		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, -5*DEG));
 	if(kdown & 1<<Kcam0)
-		maincam = cams[0];
+		maincam = &cams[0];
 	if(kdown & 1<<Kcam1)
-		maincam = cams[1];
+		maincam = &cams[1];
 	if(kdown & 1<<Kcam2)
-		maincam = cams[2];
+		maincam = &cams[2];
 	if(kdown & 1<<Kcam3)
-		maincam = cams[3];
+		maincam = &cams[3];
 	if(kdown & 1<<Kscrshot)
 		screenshot();
 }
@@ -350,7 +358,8 @@ resize(void)
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
 	unlockdisplay(display);
-	maincam->updatefb(maincam, screen->r, screen->chan);
+	maincam->viewport = screen;
+	reloadcamera(maincam);
 }
 
 void
@@ -381,11 +390,10 @@ threadmain(int argc, char *argv[])
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
 	for(i = 0; i < nelem(cams); i++){
-		cams[i] = alloccamera(screen->r, screen->chan);
-		placecamera(cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
-		configcamera(cams[i], camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
+		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
+		configcamera(&cams[i], screen, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
 	}
-	maincam = cams[0];
+	maincam = &cams[0];
 	if((objmesh = objparse(mdlpath)) == nil)
 		sysfatal("objparse: %r");
 	drawc = chancreate(1, 0);

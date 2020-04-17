@@ -788,6 +788,162 @@ complex Display display;
 complex Font font;
 complex Image screen;
 complex Screen _screen;
+sizeofMemdata = 40;
+aggr Memdata
+{
+	'Y' 0 base;
+	'Y' 8 bdata;
+	'D' 16 ref;
+	'Y' 24 imref;
+	'D' 32 allocd;
+};
+
+defn
+Memdata(addr) {
+	complex Memdata addr;
+	print("	base	", addr.base\Y, "\n");
+	print("	bdata	", addr.bdata\Y, "\n");
+	print("	ref	", addr.ref, "\n");
+	print("	imref	", addr.imref\Y, "\n");
+	print("	allocd	", addr.allocd, "\n");
+};
+
+Frepl = 1;
+Fsimple = 2;
+Fgrey = 4;
+Falpha = 8;
+Fcmap = 16;
+Fbytes = 32;
+sizeofMemimage = 168;
+aggr Memimage
+{
+	Rectangle 0 r;
+	Rectangle 16 clipr;
+	'D' 32 depth;
+	'D' 36 nchan;
+	'U' 40 chan;
+	'Y' 48 cmap;
+	'A' Memdata 56 data;
+	'D' 64 zero;
+	'U' 68 width;
+	'Y' 72 layer;
+	'U' 80 flags;
+	'a' 84 shift;
+	'a' 112 mask;
+	'a' 140 nbits;
+};
+
+defn
+Memimage(addr) {
+	complex Memimage addr;
+	print("Rectangle r {\n");
+	Rectangle(addr.r);
+	print("}\n");
+	print("Rectangle clipr {\n");
+	Rectangle(addr.clipr);
+	print("}\n");
+	print("	depth	", addr.depth, "\n");
+	print("	nchan	", addr.nchan, "\n");
+	print("	chan	", addr.chan, "\n");
+	print("	cmap	", addr.cmap\Y, "\n");
+	print("	data	", addr.data\Y, "\n");
+	print("	zero	", addr.zero, "\n");
+	print("	width	", addr.width, "\n");
+	print("	layer	", addr.layer\Y, "\n");
+	print("	flags	", addr.flags, "\n");
+	print("	shift	", addr.shift, "\n");
+	print("	mask	", addr.mask, "\n");
+	print("	nbits	", addr.nbits, "\n");
+};
+
+sizeofMemcmap = 4864;
+aggr Memcmap
+{
+	'a' 0 cmap2rgb;
+	'a' 768 rgb2cmap;
+};
+
+defn
+Memcmap(addr) {
+	complex Memcmap addr;
+	print("	cmap2rgb	", addr.cmap2rgb, "\n");
+	print("	rgb2cmap	", addr.rgb2cmap, "\n");
+};
+
+sizeofMemsubfont = 32;
+aggr Memsubfont
+{
+	'Y' 0 name;
+	'd' 8 n;
+	'b' 10 height;
+	'C' 11 ascent;
+	'A' Fontchar 16 info;
+	'A' Memimage 24 bits;
+};
+
+defn
+Memsubfont(addr) {
+	complex Memsubfont addr;
+	print("	name	", addr.name\Y, "\n");
+	print("	n	", addr.n, "\n");
+	print("	height	", addr.height, "\n");
+	print("	ascent	", addr.ascent, "\n");
+	print("	info	", addr.info\Y, "\n");
+	print("	bits	", addr.bits\Y, "\n");
+};
+
+Simplesrc = 1;
+Simplemask = 2;
+Replsrc = 4;
+Replmask = 8;
+Fullmask = 16;
+sizeofMemdrawparam = 104;
+aggr Memdrawparam
+{
+	'A' Memimage 0 dst;
+	Rectangle 8 r;
+	'A' Memimage 24 src;
+	Rectangle 32 sr;
+	'A' Memimage 48 mask;
+	Rectangle 56 mr;
+	'D' 72 op;
+	'U' 76 state;
+	'U' 80 mval;
+	'U' 84 mrgba;
+	'U' 88 sval;
+	'U' 92 srgba;
+	'U' 96 sdval;
+};
+
+defn
+Memdrawparam(addr) {
+	complex Memdrawparam addr;
+	print("	dst	", addr.dst\Y, "\n");
+	print("Rectangle r {\n");
+	Rectangle(addr.r);
+	print("}\n");
+	print("	src	", addr.src\Y, "\n");
+	print("Rectangle sr {\n");
+	Rectangle(addr.sr);
+	print("}\n");
+	print("	mask	", addr.mask\Y, "\n");
+	print("Rectangle mr {\n");
+	Rectangle(addr.mr);
+	print("}\n");
+	print("	op	", addr.op, "\n");
+	print("	state	", addr.state, "\n");
+	print("	mval	", addr.mval, "\n");
+	print("	mrgba	", addr.mrgba, "\n");
+	print("	sval	", addr.sval, "\n");
+	print("	srgba	", addr.srgba, "\n");
+	print("	sdval	", addr.sdval, "\n");
+};
+
+complex Memimage memwhite;
+complex Memimage memblack;
+complex Memimage memopaque;
+complex Memimage memtransparent;
+complex Memcmap memdefcmap;
 sizeofMouse = 24;
 aggr Mouse
 {
@@ -963,51 +1119,51 @@ Quaternion(addr) {
 	print("	k	", addr.k, "\n");
 };
 
-sizeofReferenceFrame = 72;
-aggr ReferenceFrame
+sizeofRFrame = 72;
+aggr RFrame
 {
 	Point2 0 p;
-	Point2 24 xb;
-	Point2 48 yb;
+	Point2 24 bx;
+	Point2 48 by;
 };
 
 defn
-ReferenceFrame(addr) {
-	complex ReferenceFrame addr;
+RFrame(addr) {
+	complex RFrame addr;
 	print("Point2 p {\n");
 	Point2(addr.p);
 	print("}\n");
-	print("Point2 xb {\n");
-	Point2(addr.xb);
+	print("Point2 bx {\n");
+	Point2(addr.bx);
 	print("}\n");
-	print("Point2 yb {\n");
-	Point2(addr.yb);
+	print("Point2 by {\n");
+	Point2(addr.by);
 	print("}\n");
 };
 
-sizeofReferenceFrame3 = 128;
-aggr ReferenceFrame3
+sizeofRFrame3 = 128;
+aggr RFrame3
 {
 	Point3 0 p;
-	Point3 32 xb;
-	Point3 64 yb;
-	Point3 96 zb;
+	Point3 32 bx;
+	Point3 64 by;
+	Point3 96 bz;
 };
 
 defn
-ReferenceFrame3(addr) {
-	complex ReferenceFrame3 addr;
+RFrame3(addr) {
+	complex RFrame3 addr;
 	print("Point3 p {\n");
 	Point3(addr.p);
 	print("}\n");
-	print("Point3 xb {\n");
-	Point3(addr.xb);
+	print("Point3 bx {\n");
+	Point3(addr.bx);
 	print("}\n");
-	print("Point3 yb {\n");
-	Point3(addr.yb);
+	print("Point3 by {\n");
+	Point3(addr.by);
 	print("}\n");
-	print("Point3 zb {\n");
-	Point3(addr.zb);
+	print("Point3 bz {\n");
+	Point3(addr.bz);
 	print("}\n");
 };
 
@@ -1053,101 +1209,325 @@ Vertex(addr) {
 	print("}\n");
 };
 
-sizeofTriangle = 24;
-aggr Triangle
+sizeofViewport = 80;
+aggr Viewport
 {
-	Point 0 p0;
-	Point 8 p1;
-	Point 16 p2;
+	{
+	Point2 0 p;
+	Point2 24 bx;
+	Point2 48 by;
+	};
+	'A' Memimage 72 fb;
 };
 
 defn
-Triangle(addr) {
-	complex Triangle addr;
-	print("Point p0 {\n");
-	Point(addr.p0);
+Viewport(addr) {
+	complex Viewport addr;
+	print("RFrame {\n");
+		RFrame(addr+0);
 	print("}\n");
-	print("Point p1 {\n");
-	Point(addr.p1);
-	print("}\n");
-	print("Point p2 {\n");
-	Point(addr.p2);
-	print("}\n");
+	print("	fb	", addr.fb\Y, "\n");
 };
 
-sizeof_2_ = 16;
-aggr _2_
-{
-	'F' 0 n;
-	'F' 8 f;
-};
-
-defn
-_2_(addr) {
-	complex _2_ addr;
-	print("	n	", addr.n, "\n");
-	print("	f	", addr.f, "\n");
-};
-
-sizeofCamera = 296;
+sizeofCamera = 384;
 aggr Camera
 {
 	{
 	Point3 0 p;
-	Point3 32 xb;
-	Point3 64 yb;
-	Point3 96 zb;
+	Point3 32 bx;
+	Point3 64 by;
+	Point3 96 bz;
 	};
-	'A' Image 128 viewport;
-	'F' 136 fov;
-	_2_ 144 clip;
-	'D' 160 ptype;
-	'a' 168 proj;
+	Viewport 128 viewport;
+	'F' 208 fov;
+	'F' 216 clipn;
+	'F' 224 clipf;
+	'a' 232 proj;
+	'D' 360 ptype;
+	'Y' 368 updatefb;
+	'Y' 376 develop;
 };
 
 defn
 Camera(addr) {
 	complex Camera addr;
-	print("ReferenceFrame3 {\n");
-		ReferenceFrame3(addr+0);
+	print("RFrame3 {\n");
+		RFrame3(addr+0);
 	print("}\n");
-	print("	viewport	", addr.viewport\Y, "\n");
+	print("Viewport viewport {\n");
+	Viewport(addr.viewport);
+	print("}\n");
 	print("	fov	", addr.fov, "\n");
-	print("_2_ clip {\n");
-	_2_(addr.clip);
-	print("}\n");
-	print("	ptype	", addr.ptype, "\n");
+	print("	clipn	", addr.clipn, "\n");
+	print("	clipf	", addr.clipf, "\n");
 	print("	proj	", addr.proj, "\n");
+	print("	ptype	", addr.ptype, "\n");
+	print("	updatefb	", addr.updatefb\Y, "\n");
+	print("	develop	", addr.develop\Y, "\n");
 };
 
-STACK = 8192;
-SEC = 1000;
-FPS = 60;
+OBJVGeometric = 0;
+OBJVTexture = 1;
+OBJVNormal = 2;
+OBJVParametric = 3;
+OBJNVERT = 4;
+OBJEPoint = 0;
+OBJELine = 1;
+OBJEFace = 2;
+OBJECurve = 3;
+OBJECurve2 = 4;
+OBJESurface = 5;
+OBJGGlobal = 0;
+OBJGSmoothing = 1;
+OBJGMerging = 2;
+OBJHTSIZE = 17;
+sizeof_2_ = 32;
+aggr _2_
+{
+	'F' 0 x;
+	'F' 8 y;
+	'F' 16 z;
+	'F' 24 w;
+};
+
+defn
+_2_(addr) {
+	complex _2_ addr;
+	print("	x	", addr.x, "\n");
+	print("	y	", addr.y, "\n");
+	print("	z	", addr.z, "\n");
+	print("	w	", addr.w, "\n");
+};
+
+sizeof_3_ = 24;
+aggr _3_
+{
+	'F' 0 u;
+	'F' 8 v;
+	'F' 16 vv;
+};
+
+defn
+_3_(addr) {
+	complex _3_ addr;
+	print("	u	", addr.u, "\n");
+	print("	v	", addr.v, "\n");
+	print("	vv	", addr.vv, "\n");
+};
+
+sizeof_4_ = 24;
+aggr _4_
+{
+	'F' 0 i;
+	'F' 8 j;
+	'F' 16 k;
+};
+
+defn
+_4_(addr) {
+	complex _4_ addr;
+	print("	i	", addr.i, "\n");
+	print("	j	", addr.j, "\n");
+	print("	k	", addr.k, "\n");
+};
+
+sizeof_5_ = 32;
+aggr _5_
+{
+	{
+	'F' 0 x;
+	'F' 8 y;
+	'F' 16 z;
+	'F' 24 w;
+	};
+	{
+	'F' 0 u;
+	'F' 8 v;
+	'F' 16 vv;
+	};
+	{
+	'F' 0 i;
+	'F' 8 j;
+	'F' 16 k;
+	};
+};
+
+defn
+_5_(addr) {
+	complex _5_ addr;
+	print("_2_ {\n");
+		_2_(addr+0);
+	print("}\n");
+	print("_3_ {\n");
+		_3_(addr+0);
+	print("}\n");
+	print("_4_ {\n");
+		_4_(addr+0);
+	print("}\n");
+};
+
+sizeofOBJVertex = 32;
+aggr OBJVertex
+{
+	{
+	{
+	'F' 0 x;
+	'F' 8 y;
+	'F' 16 z;
+	'F' 24 w;
+	};
+	{
+	'F' 0 u;
+	'F' 8 v;
+	'F' 16 vv;
+	};
+	{
+	'F' 0 i;
+	'F' 8 j;
+	'F' 16 k;
+	};
+	};
+};
+
+defn
+OBJVertex(addr) {
+	complex OBJVertex addr;
+	print("_5_ {\n");
+		_5_(addr+0);
+	print("}\n");
+};
+
+sizeofOBJVertexArray = 16;
+aggr OBJVertexArray
+{
+	'A' OBJVertex 0 verts;
+	'D' 8 nvert;
+};
+
+defn
+OBJVertexArray(addr) {
+	complex OBJVertexArray addr;
+	print("	verts	", addr.verts\Y, "\n");
+	print("	nvert	", addr.nvert, "\n");
+};
+
+sizeofOBJElem = 24;
+aggr OBJElem
+{
+	'Y' 0 indices;
+	'D' 8 nindex;
+	'D' 12 type;
+	'A' OBJElem 16 next;
+};
+
+defn
+OBJElem(addr) {
+	complex OBJElem addr;
+	print("	indices	", addr.indices\Y, "\n");
+	print("	nindex	", addr.nindex, "\n");
+	print("	type	", addr.type, "\n");
+	print("	next	", addr.next\Y, "\n");
+};
+
+sizeofOBJObject = 24;
+aggr OBJObject
+{
+	'Y' 0 name;
+	'A' OBJElem 8 child;
+	'A' OBJObject 16 next;
+};
+
+defn
+OBJObject(addr) {
+	complex OBJObject addr;
+	print("	name	", addr.name\Y, "\n");
+	print("	child	", addr.child\Y, "\n");
+	print("	next	", addr.next\Y, "\n");
+};
+
+sizeofOBJ = 200;
+aggr OBJ
+{
+	'a' 0 vertdata;
+	'a' 64 objtab;
+};
+
+defn
+OBJ(addr) {
+	complex OBJ addr;
+	print("	vertdata	", addr.vertdata, "\n");
+	print("	objtab	", addr.objtab, "\n");
+};
+
+K↑ = 0;
+K↓ = 1;
+K← = 2;
+K→ = 3;
+Krise = 4;
+Kfall = 5;
+KR↑ = 6;
+KR↓ = 7;
+KR← = 8;
+KR→ = 9;
+KR↺ = 10;
+KR↻ = 11;
+Kcam0 = 12;
+Kcam1 = 13;
+Kcam2 = 14;
+Kcam3 = 15;
+Kscrshot = 16;
+Ke = 17;
 Scamno = 0;
-Scampos = 1;
-Scambs = 2;
-Sfov = 3;
-Se = 4;
+Sfov = 1;
+Scampos = 2;
+Scambx = 3;
+Scamby = 4;
+Scambz = 5;
+Se = 6;
+sizeofCamcfg = 128;
+aggr Camcfg
+{
+	Point3 0 p;
+	Point3 32 lookat;
+	Point3 64 up;
+	'F' 96 fov;
+	'F' 104 clipn;
+	'F' 112 clipf;
+	'D' 120 ptype;
+};
+
+defn
+Camcfg(addr) {
+	complex Camcfg addr;
+	print("Point3 p {\n");
+	Point3(addr.p);
+	print("}\n");
+	print("Point3 lookat {\n");
+	Point3(addr.lookat);
+	print("}\n");
+	print("Point3 up {\n");
+	Point3(addr.up);
+	print("}\n");
+	print("	fov	", addr.fov, "\n");
+	print("	clipn	", addr.clipn, "\n");
+	print("	clipf	", addr.clipf, "\n");
+	print("	ptype	", addr.ptype, "\n");
+};
+
 complex Mousectl mctl;
-complex Keyboardctl kctl;
-complex ReferenceFrame scrrf;
-complex RWLock worldlock;
-complex Triangle3 tri;
-complex Camera cam0;
-complex Camera cam1;
-complex Camera cam2;
-complex Camera cam3;
+complex Channel drawc;
 complex Camera maincam;
 complex Fmt vfmt:f;
 complex Point2 vfmt:p;
 complex Fmt Vfmt:f;
 complex Point3 Vfmt:p;
-complex Point3 flatten:p;
-complex Point2 toscreen:p;
-complex Point fromscreen:p;
-complex Triangle redraw:trit;
-complex Quaternion key:q;
-complex Quaternion key:qtmp;
+complex Triangle3 depthcmp:ta;
+complex Triangle3 depthcmp:tb;
+complex Point3 drawaxis:op;
+complex Point3 drawaxis:px;
+complex Point3 drawaxis:py;
+complex Point3 drawaxis:pz;
+complex OBJ threadmain:objmesh;
 MOUSE = 0;
-KBD = 1;
-RESIZE = 2;
+RESIZE = 1;
+DRAW = 2;
