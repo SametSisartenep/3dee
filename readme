@@ -1,0 +1,10 @@
+3D Environments in Plan 9
+
+You will need:
+
+• libgeometry
+• libgraphics
+and
+• libobj
+
+Place/bind(1) them to the proper directory slot and mk it.
