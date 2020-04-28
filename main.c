@@ -52,43 +52,23 @@ Camcfg camcfgs[4] = {
 	2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	90, 0.1, 100, Ppersp,
+	90*DEG, 0.1, 100, Ppersp,
 
 	-2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120, 0.1, 100, Ppersp,
+	120*DEG, 0.1, 100, Ppersp,
 
 	-2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	90, 0.1, 100, Ppersp,
+	90*DEG, 0.1, 100, Ppersp,
 
 	2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120, 0.1, 100, Ppersp
+	120*DEG, 0.1, 100, Ppersp
 };
-
-#pragma varargck type "v" Point2
-int
-vfmt(Fmt *f)
-{
-	Point2 p;
-
-	p = va_arg(f->args, Point2);
-	return fmtprint(f, "[%g %g %g]", p.x, p.y, p.w);
-}
-
-#pragma varargck type "V" Point3
-int
-Vfmt(Fmt *f)
-{
-	Point3 p;
-
-	p = va_arg(f->args, Point3);
-	return fmtprint(f, "[%g %g %g %g]", p.x, p.y, p.z, p.w);
-}
 
 void *
 emalloc(ulong n)
@@ -176,17 +156,17 @@ redraw(void)
 //	}
 //	for(i = 0; i < model.ntri; i++){
 //		/* world to camera */
-//		tmp.p0 = WORLD2VCS(maincam, model.tris[i].p0);
-//		tmp.p1 = WORLD2VCS(maincam, model.tris[i].p1);
-//		tmp.p2 = WORLD2VCS(maincam, model.tris[i].p2);
+//		tmp.p0 = world2vcs(maincam, model.tris[i].p0);
+//		tmp.p1 = world2vcs(maincam, model.tris[i].p1);
+//		tmp.p2 = world2vcs(maincam, model.tris[i].p2);
 //		/* back-face culling */
 //		n = normvec3(crossvec3(subpt3(tmp.p1, tmp.p0), subpt3(tmp.p2, tmp.p0)));
 //		if(dotvec3(n, mulpt3(tmp.p0, -1)) <= 0)
 //			continue;
 //		/* camera to projected ndc */
-//		tmp.p0 = VCS2NDC(maincam, tmp.p0);
-//		tmp.p1 = VCS2NDC(maincam, tmp.p1);
-//		tmp.p2 = VCS2NDC(maincam, tmp.p2);
+//		tmp.p0 = vcs2ndc(maincam, tmp.p0);
+//		tmp.p1 = vcs2ndc(maincam, tmp.p1);
+//		tmp.p2 = vcs2ndc(maincam, tmp.p2);
 //		/* clipping */
 //		/*
 //		 * no clipping for now, the whole triangle is ignored
@@ -228,7 +208,7 @@ drawproc(void *)
 	threadsetname("drawproc");
 	for(;;){
 		send(drawc, nil);
-		sleep(FPS2MS(60));
+		sleep(MS2FR);
 	}
 }
 
@@ -374,8 +354,7 @@ threadmain(int argc, char *argv[])
 	OBJ *objmesh;
 	int i;
 
-	fmtinstall('V', Vfmt);
-	fmtinstall('v', vfmt);
+	GEOMfmtinstall();
 	ARGBEGIN{
 	default: usage();
 	case 'l':
