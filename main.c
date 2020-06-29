@@ -41,7 +41,6 @@ Rune keys[Ke] = {
 char stats[Se][256];
 
 Mousectl *mctl;
-Channel *drawc;
 int kdown;
 vlong t0, t;
 double Δt;
@@ -69,30 +68,6 @@ Camcfg camcfgs[4] = {
 	0,1,0,0,
 	120*DEG, 0.1, 100, Ppersp
 };
-
-void *
-emalloc(ulong n)
-{
-	void *p;
-
-	p = malloc(n);
-	if(p == nil)
-		sysfatal("malloc: %r");
-	setmalloctag(p, getcallerpc(&n));
-	return p;
-}
-
-void *
-erealloc(void *p, ulong n)
-{
-	void *np;
-
-	np = realloc(p, n);
-	if(np == nil)
-		sysfatal("realloc: %r");
-	setrealloctag(np, getcallerpc(&p));
-	return np;
-}
 
 int
 depthcmp(void *a, void *b)
@@ -203,11 +178,15 @@ redraw(void)
 }
 
 void
-drawproc(void *)
+drawproc(void *drawc)
 {
+	Channel *c;
+
 	threadsetname("drawproc");
+
+	c = drawc;
 	for(;;){
-		send(drawc, nil);
+		send(c, nil);
 		sleep(MS2FR);
 	}
 }
@@ -352,6 +331,7 @@ void
 threadmain(int argc, char *argv[])
 {
 	OBJ *objmesh;
+	Channel *drawc;
 	int i;
 
 	GEOMfmtinstall();
@@ -363,10 +343,12 @@ threadmain(int argc, char *argv[])
 	}ARGEND;
 	if(argc != 0)
 		usage();
+
 	if(initdraw(nil, nil, "3d") < 0)
 		sysfatal("initdraw: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
+
 	for(i = 0; i < nelem(cams); i++){
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		configcamera(&cams[i], screen, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
@@ -374,11 +356,14 @@ threadmain(int argc, char *argv[])
 	maincam = &cams[0];
 	if((objmesh = objparse(mdlpath)) == nil)
 		sysfatal("objparse: %r");
-	drawc = chancreate(1, 0);
+
 	display->locking = 1;
 	unlockdisplay(display);
-	proccreate(drawproc, nil, mainstacksize);
-	proccreate(kbdproc, nil, mainstacksize);
+
+	drawc = chancreate(1, 0);
+	proccreate(drawproc, drawc, 1024);
+	proccreate(kbdproc, nil, 4096);
+
 	t0 = nsec();
 	for(;;){
 		enum {MOUSE, RESIZE, DRAW};

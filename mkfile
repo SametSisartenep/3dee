@@ -3,6 +3,7 @@
 BIN=$home/$objtype/bin
 TARG=3d
 OFILES=\
+	alloc.$O\
 	main.$O\
 
 HFILES=libgeometry/geometry.h\
