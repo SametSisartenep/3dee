@@ -2,11 +2,12 @@
 #include <libc.h>
 #include <thread.h>
 #include <draw.h>
+#include <memdraw.h>
 #include <mouse.h>
 #include <keyboard.h>
 #include <geometry.h>
-#include <graphics.h>
-#include <obj.h>
+#include "libobj/obj.h"
+#include "libgraphics/graphics.h"
 #include "dat.h"
 #include "fns.h"
 
@@ -37,65 +38,260 @@ Rune keys[Ke] = {
  [Kcam3]	= KF|4,
  [Kscrshot]	= KF|12
 };
-
 char stats[Se][256];
-
+Memimage *screenfb;
 Mousectl *mctl;
+Channel *drawc;
 int kdown;
-vlong t0, t;
-double Δt;
-char *mdlpath = "../threedee/mdl/rocket.obj";
+OBJ *model;
+Memimage *modeltex;
+Shader *shader;
+double θ, ω;
 
 Camera cams[4], *maincam;
 Camcfg camcfgs[4] = {
 	2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	90*DEG, 0.1, 100, Ppersp,
+	90*DEG, 0.1, 100, PERSPECTIVE,
 
 	-2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120*DEG, 0.1, 100, Ppersp,
+	120*DEG, 0.1, 100, PERSPECTIVE,
 
 	-2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	90*DEG, 0.1, 100, Ppersp,
+	90*DEG, 0.1, 100, PERSPECTIVE,
+
+//	-2,0,4,1,
+//	0,0,0,1,
+//	0,1,0,0,
+//	0, 0.1, 100, ORTHOGRAPHIC,
 
 	2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120*DEG, 0.1, 100, Ppersp
+	120*DEG, 0.1, 100, PERSPECTIVE
 };
+Point3 center = {0,0,0,1};
+Point3 light = {0,1,1,1};	/* global directional light */
 
-int
-depthcmp(void *a, void *b)
+static int
+min(int a, int b)
 {
-	Triangle3 *ta, *tb;
-	double za, zb;
-
-	ta = (Triangle3*)a;
-	tb = (Triangle3*)b;
-	za = (ta->p0.z + ta->p1.z + ta->p2.z)/3;
-	zb = (tb->p0.z + tb->p1.z + tb->p2.z)/3;
-	return zb-za;
+	return a < b? a: b;
 }
 
-void
-drawaxis(void)
+static int
+max(int a, int b)
 {
-	Point3	op = Pt3(0,0,0,1),
-		px = Pt3(1,0,0,1),
-		py = Pt3(0,1,0,1),
-		pz = Pt3(0,0,1,1);
+	return a > b? a: b;
+}
 
-	line3(maincam, op, px, 0, Endarrow, display->black);
-	string3(maincam, px, display->black, font, "x");
-	line3(maincam, op, py, 0, Endarrow, display->black);
-	string3(maincam, py, display->black, font, "y");
-	line3(maincam, op, pz, 0, Endarrow, display->black);
-	string3(maincam, pz, display->black, font, "z");
+//void
+//drawaxis(void)
+//{
+//	Point3	op = Pt3(0,0,0,1),
+//		px = Pt3(1,0,0,1),
+//		py = Pt3(0,1,0,1),
+//		pz = Pt3(0,0,1,1);
+//
+//	line3(maincam, op, px, 0, Endarrow, display->black);
+//	string3(maincam, px, display->black, font, "x");
+//	line3(maincam, op, py, 0, Endarrow, display->black);
+//	string3(maincam, py, display->black, font, "y");
+//	line3(maincam, op, pz, 0, Endarrow, display->black);
+//	string3(maincam, pz, display->black, font, "z");
+//}
+
+Point3
+vertshader(VSparams *sp)
+{
+	*sp->n = qrotate(*sp->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->su->var_intensity[sp->idx] = fmax(0, dotvec3(*sp->n, light));
+	*sp->n = world2vcs(maincam, *sp->n);
+	*sp->p = qrotate(*sp->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	*sp->p = ndc2viewport(maincam, world2ndc(maincam, *sp->p));
+	return *sp->p;
+}
+
+Memimage *
+gouraudshader(FSparams *sp)
+{
+	double intens;
+
+	intens = dotvec3(Vec3(sp->su->var_intensity[0], sp->su->var_intensity[1], sp->su->var_intensity[2]), sp->bc);
+	sp->cbuf[1] *= intens;
+	sp->cbuf[2] *= intens;
+	sp->cbuf[3] *= intens;
+	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
+
+	return sp->frag;
+}
+
+Memimage *
+toonshader(FSparams *sp)
+{
+	double intens;
+
+	intens = dotvec3(Vec3(sp->su->var_intensity[0], sp->su->var_intensity[1], sp->su->var_intensity[2]), sp->bc);
+	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
+	sp->cbuf[1] = 0;
+	sp->cbuf[2] = 155*intens;
+	sp->cbuf[3] = 255*intens;
+	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
+
+	return sp->frag;
+}
+
+Memimage *
+triangleshader(FSparams *sp)
+{
+	Triangle2 t;
+	Rectangle bbox;
+	Point3 bc;
+	uchar cbuf[4];
+
+	t.p0 = Pt2(240,200,1);
+	t.p1 = Pt2(400,40,1);
+	t.p2 = Pt2(240,40,1);
+
+	bbox = Rect(
+		min(min(t.p0.x, t.p1.x), t.p2.x), min(min(t.p0.y, t.p1.y), t.p2.y),
+		max(max(t.p0.x, t.p1.x), t.p2.x), max(max(t.p0.y, t.p1.y), t.p2.y)
+	);
+	if(!ptinrect(sp->p, bbox))
+		return nil;
+
+	bc = barycoords(t, Pt2(sp->p.x,sp->p.y,1));
+	if(bc.x < 0 || bc.y < 0 || bc.z < 0)
+		return nil;
+
+	cbuf[0] = 0xFF;
+	cbuf[1] = 0xFF*bc.z;
+	cbuf[2] = 0xFF*bc.y;
+	cbuf[3] = 0xFF*bc.x;
+	memfillcolor(sp->frag, *(ulong*)cbuf);
+	return sp->frag;
+}
+
+Memimage *
+circleshader(FSparams *sp)
+{
+	Point2 uv;
+	double r, d;
+	uchar cbuf[4];
+
+	uv = Pt2(sp->p.x,sp->p.y,1);
+	uv.x /= Dx(sp->su->fb->r);
+	uv.y /= Dy(sp->su->fb->r);
+//	r = 0.3;
+	r = 0.3*fabs(sin(sp->su->uni_time/1e9));
+	d = vec2len(subpt2(uv, Vec2(0.5,0.5)));
+
+	if(d > r + r*0.05 || d < r - r*0.05)
+		return nil;
+
+	cbuf[0] = 0xFF;
+	cbuf[1] = 0;
+	cbuf[2] = 0xFF*uv.y;
+	cbuf[3] = 0xFF*uv.x;
+
+	memfillcolor(sp->frag, *(ulong*)cbuf);
+	return sp->frag;
+}
+
+/* some shaping functions from The Book of Shaders, Chapter 5 */
+Memimage *
+sfshader(FSparams *sp)
+{
+	Point2 uv;
+	double y, pct;
+	uchar cbuf[4];
+
+	uv = Pt2(sp->p.x,sp->p.y,1);
+	uv.x /= Dx(sp->su->fb->r);
+	uv.y /= Dy(sp->su->fb->r);
+	uv.y = 1 - uv.y;		/* make [0 0] the bottom-left corner */
+
+//	y = step(0.5, uv.x);
+//	y = pow(uv.x, 5);
+//	y = sin(uv.x);
+	y = sin(uv.x*sp->su->uni_time/1e8)/2.0 + 0.5;
+//	y = smoothstep(0.1, 0.9, uv.x);
+	pct = smoothstep(y-0.02, y, uv.y) - smoothstep(y, y+0.02, uv.y);
+
+	cbuf[0] = 0xFF;
+	cbuf[1] = 0xFF*flerp(y, 0, pct);
+	cbuf[2] = 0xFF*flerp(y, 1, pct);
+	cbuf[3] = 0xFF*flerp(y, 0, pct);
+
+	memfillcolor(sp->frag, *(ulong*)cbuf);
+	return sp->frag;
+}
+
+Memimage *
+boxshader(FSparams *sp)
+{
+	Point2 uv, p;
+	Point2 r;
+	uchar cbuf[4];
+
+	uv = Pt2(sp->p.x,sp->p.y,1);
+	uv.x /= Dx(sp->su->fb->r);
+	uv.y /= Dy(sp->su->fb->r);
+	r = Vec2(0.2,0.4);
+
+	p = Pt2(fabs(uv.x - 0.5), fabs(uv.y - 0.5), 1);
+	p = subpt2(p, r);
+	p.x = fmax(p.x, 0);
+	p.y = fmax(p.y, 0);
+
+	if(vec2len(p) > 0)
+		return nil;
+
+	cbuf[0] = 0xFF;
+	cbuf[1] = 0xFF*smoothstep(0,1,uv.x+uv.y);
+	cbuf[2] = 0xFF*uv.y;
+	cbuf[3] = 0xFF*uv.x;
+
+	memfillcolor(sp->frag, *(ulong*)cbuf);
+	return sp->frag;
+}
+
+Point3
+ivshader(VSparams *sp)
+{
+	return ndc2viewport(maincam, world2ndc(maincam, *sp->p));
+}
+
+Memimage *
+identshader(FSparams *sp)
+{
+	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
+	return sp->frag;
+}
+
+Shader shadertab[] = {
+	{ "triangle", ivshader, triangleshader },
+	{ "circle", ivshader, circleshader },
+	{ "box", ivshader, boxshader },
+	{ "sf", ivshader, sfshader },
+	{ "gouraud", vertshader, gouraudshader },
+	{ "toon", vertshader, toonshader },
+	{ "ident", vertshader, identshader },
+};
+Shader *
+getshader(char *name)
+{
+	int i;
+
+	for(i = 0; i < nelem(shadertab); i++)
+		if(strcmp(shadertab[i].name, name) == 0)
+			return &shadertab[i];
+	return nil;
 }
 
 void
@@ -104,11 +300,12 @@ drawstats(void)
 	int i;
 
 	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams+1);
-	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", maincam->fov);
+	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", maincam->fov/DEG);
 	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", maincam->p);
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", maincam->bx);
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", maincam->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", maincam->bz);
+	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !maincam->stats.max? 0: 1e9/maincam->stats.max, !maincam->stats.avg? 0: 1e9/maincam->stats.avg, !maincam->stats.min? 0: 1e9/maincam->stats.min, !maincam->stats.v? 0: 1e9/maincam->stats.v);
 	for(i = 0; i < Se; i++)
 		string(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i]);
 }
@@ -116,78 +313,25 @@ drawstats(void)
 void
 redraw(void)
 {
-//	Triangle3 tmp;
-//	static TTriangle3 *vistris;
-//	static int nallocvistri;
-//	Triangle trit;
-//	Point3 n;
-//	u8int c;
-//	int i, nvistri;
-//
-//	nvistri = 0;
-//	if(nallocvistri == 0 && vistris == nil){
-//		nallocvistri = model.ntri/2;
-//		vistris = emalloc(nallocvistri*sizeof(TTriangle3));
-//	}
-//	for(i = 0; i < model.ntri; i++){
-//		/* world to camera */
-//		tmp.p0 = world2vcs(maincam, model.tris[i].p0);
-//		tmp.p1 = world2vcs(maincam, model.tris[i].p1);
-//		tmp.p2 = world2vcs(maincam, model.tris[i].p2);
-//		/* back-face culling */
-//		n = normvec3(crossvec3(subpt3(tmp.p1, tmp.p0), subpt3(tmp.p2, tmp.p0)));
-//		if(dotvec3(n, mulpt3(tmp.p0, -1)) <= 0)
-//			continue;
-//		/* camera to projected ndc */
-//		tmp.p0 = vcs2ndc(maincam, tmp.p0);
-//		tmp.p1 = vcs2ndc(maincam, tmp.p1);
-//		tmp.p2 = vcs2ndc(maincam, tmp.p2);
-//		/* clipping */
-//		/*
-//		 * no clipping for now, the whole triangle is ignored
-//		 * if any of its vertices gets outside the frustum.
-//		 */
-//		if(isclipping(tmp.p0) || isclipping(tmp.p1) || isclipping(tmp.p2))
-//			continue;
-//		if(nvistri >= nallocvistri){
-//			nallocvistri += model.ntri/3;
-//			vistris = erealloc(vistris, nallocvistri*sizeof(TTriangle3));
-//		}
-//		vistris[nvistri] = (TTriangle3)tmp;
-//		c = 0xff*fabs(dotvec3(n, Vec3(0,0,1)));
-//		vistris[nvistri].tx = allocimage(display, Rect(0,0,1,1), screen->chan, 1, c<<24|c<<16|c<<8|0xff);
-//		nvistri++;
-//	}
-//	qsort(vistris, nvistri, sizeof(TTriangle3), depthcmp);
+	memfillcolor(screenfb, DWhite);
+	maincam->vp->fbctl->draw(maincam->vp->fbctl, screenfb);
 
 	lockdisplay(display);
-	draw(maincam->viewport, maincam->viewport->r, display->white, nil, ZP);
-	drawaxis();
-//	for(i = 0; i < nvistri; i++){
-//		/* ndc to screen */
-//		trit.p0 = toviewport(maincam, vistris[i].p0);
-//		trit.p1 = toviewport(maincam, vistris[i].p1);
-//		trit.p2 = toviewport(maincam, vistris[i].p2);
-//		filltriangle(maincam->viewport, trit, vistris[i].tx, ZP);
-//		triangle(maincam->viewport, trit, 0, display->black, ZP);
-//		freeimage(vistris[i].tx);
-//	}
+	loadimage(screen, rectaddpt(screenfb->r, screen->r.min), byteaddr(screenfb, screenfb->r.min), bytesperline(screenfb->r, screenfb->depth)*Dy(screenfb->r));
+//	drawaxis();
 	drawstats();
 	flushimage(display, 1);
 	unlockdisplay(display);
 }
 
 void
-drawproc(void *drawc)
+drawproc(void *)
 {
-	Channel *c;
-
 	threadsetname("drawproc");
 
-	c = drawc;
 	for(;;){
-		send(c, nil);
-		sleep(MS2FR);
+		shootcamera(maincam, model, modeltex, shader);
+		nbsend(drawc, nil);
 	}
 }
 
@@ -211,18 +355,12 @@ screenshot(void)
 void
 mouse(void)
 {
-	if((mctl->buttons & 1) != 0)
-		fprint(2, "%v\n", fromviewport(maincam, mctl->xy));
 	if((mctl->buttons & 8) != 0){
-		maincam->fov -= 5;
-		if(maincam->fov < 1)
-			maincam->fov = 1;
+		maincam->fov = fclamp(maincam->fov - 5*DEG, 1*DEG, 359*DEG);
 		reloadcamera(maincam);
 	}
 	if((mctl->buttons & 16) != 0){
-		maincam->fov += 5;
-		if(maincam->fov > 359)
-			maincam->fov = 359;
+		maincam->fov = fclamp(maincam->fov + 5*DEG, 1*DEG, 359*DEG);
 		reloadcamera(maincam);
 	}
 }
@@ -235,9 +373,11 @@ kbdproc(void *)
 	int fd, n;
 
 	threadsetname("kbdproc");
+
 	if((fd = open("/dev/kbd", OREAD)) < 0)
 		sysfatal("kbdproc: %r");
 	memset(buf, 0, sizeof buf);
+
 	for(;;){
 		if(buf[0] != 0){
 			n = strlen(buf)+1;
@@ -267,6 +407,17 @@ kbdproc(void *)
 					break;
 				}
 		}
+	}
+}
+
+void
+keyproc(void *c)
+{
+	threadsetname("keyproc");
+
+	for(;;){
+		nbsend(c, nil);
+		sleep(HZ2MS(100));	/* key poll rate */
 	}
 }
 
@@ -316,72 +467,95 @@ resize(void)
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
 	unlockdisplay(display);
-	maincam->viewport = screen;
-	reloadcamera(maincam);
+	nbsend(drawc, nil);
 }
 
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-l objmdl]\n", argv0);
+	fprint(2, "usage: %s [-t texture] [-s shader] model\n", argv0);
 	exits("usage");
 }
 
 void
 threadmain(int argc, char *argv[])
 {
-	OBJ *objmesh;
-	Channel *drawc;
+	Viewport *v;
+	Channel *keyc;
+	char *mdlpath, *texpath, *sname, *p;
 	int i;
 
 	GEOMfmtinstall();
+	texpath = nil;
+	sname = "gouraud";
 	ARGBEGIN{
+	case 't': texpath = EARGF(usage()); break;
+	case 's': sname = EARGF(usage()); break;
 	default: usage();
-	case 'l':
-		mdlpath = EARGF(usage());
-		break;
 	}ARGEND;
-	if(argc != 0)
+	if(argc != 1)
 		usage();
+
+	mdlpath = argv[0];
+
+	if((shader = getshader(sname)) == nil)
+		sysfatal("couldn't find %s shader", sname);
+
+	if((model = objparse(mdlpath)) == nil)
+		sysfatal("objparse: %r");
+	if(texpath != nil){
+		if((p = strrchr(texpath, '/')) == nil)
+			p = texpath;
+		p = strchr(p, '.');
+		if(p == nil)
+			sysfatal("unknown image file");
+		if(strcmp(++p, "tga") == 0 && (modeltex = readtga(texpath)) == nil)
+			sysfatal("readtga: %r");
+		else if(strcmp(p, "png") == 0 && (modeltex = readpng(texpath)) == nil)
+			sysfatal("readpng: %r");
+		if(modeltex == nil)
+			sysfatal("unknown image file");
+	}
 
 	if(initdraw(nil, nil, "3d") < 0)
 		sysfatal("initdraw: %r");
+	if(memimageinit() != 0)
+		sysfatal("memimageinit: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
 
+	screenfb = eallocmemimage(rectsubpt(screen->r, screen->r.min), screen->chan);
 	for(i = 0; i < nelem(cams); i++){
+		v = mkviewport(screenfb->r);
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
-		configcamera(&cams[i], screen, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
+		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
 	}
 	maincam = &cams[0];
-	if((objmesh = objparse(mdlpath)) == nil)
-		sysfatal("objparse: %r");
+	light = normvec3(subpt3(light, center));
 
+	keyc = chancreate(sizeof(void*), 1);
+	drawc = chancreate(sizeof(void*), 1);
 	display->locking = 1;
 	unlockdisplay(display);
 
-	drawc = chancreate(1, 0);
-	proccreate(drawproc, drawc, 1024);
-	proccreate(kbdproc, nil, 4096);
+	proccreate(kbdproc, nil, mainstacksize);
+	proccreate(keyproc, keyc, mainstacksize);
+	proccreate(drawproc, nil, mainstacksize);
 
-	t0 = nsec();
 	for(;;){
-		enum {MOUSE, RESIZE, DRAW};
+		enum {MOUSE, RESIZE, KEY, DRAW};
 		Alt a[] = {
 			{mctl->c, &mctl->Mouse, CHANRCV},
 			{mctl->resizec, nil, CHANRCV},
+			{keyc, nil, CHANRCV},
 			{drawc, nil, CHANRCV},
-			{nil, nil, CHANNOBLK}
+			{nil, nil, CHANEND}
 		};
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
+		case KEY: handlekeys(); break;
 		case DRAW: redraw(); break;
 		}
-		t = nsec();
-		Δt = (t-t0)/1e9;
-		handlekeys();
-		t0 = t;
-		sleep(16);
 	}
 }

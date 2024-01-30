@@ -1,6 +1,7 @@
 #include <u.h>
 #include <libc.h>
 #include <draw.h>
+#include <memdraw.h>
 
 void*
 emalloc(ulong n)
@@ -40,5 +41,17 @@ eallocimage(Display *d, Rectangle r, ulong chan, int repl, ulong col)
 	i = allocimage(d, r, chan, repl, col);
 	if(i == nil)
 		sysfatal("allocimage: %r");
+	return i;
+}
+
+Memimage *
+eallocmemimage(Rectangle r, ulong chan)
+{
+	Memimage *i;
+
+	i = allocmemimage(r, chan);
+	if(i == nil)
+		sysfatal("allocmemimage: %r");
+	memfillcolor(i, DTransparent);
 	return i;
 }

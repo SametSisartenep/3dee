@@ -6,24 +6,13 @@ OFILES=\
 	alloc.$O\
 	main.$O\
 
-HFILES=libgeometry/geometry.h\
-	libgraphics/graphics.h\
-	libobj/obj.h\
-	dat.h\
-	fns.h\
+HFILES=dat.h fns.h
 
 LIB=\
 	libobj/libobj.a$O\
 	libgraphics/libgraphics.a$O\
-	libgeometry/libgeometry.a$O\
-
-CFLAGS=$CFLAGS -I. -Ilibgeometry -Ilibgraphics -Ilibobj
 
 </sys/src/cmd/mkone
-
-libgeometry/libgeometry.a$O:
-	cd libgeometry
-	mk install
 
 libgraphics/libgraphics.a$O:
 	cd libgraphics
@@ -33,8 +22,14 @@ libobj/libobj.a$O:
 	cd libobj
 	mk install
 
+pulldeps:VQ:
+	git/clone git://antares-labs.eu/libobj || \
+	git/clone git://shithub.us/rodri/libobj || \
+	git/clone https://github.com/sametsisartenep/libobj
+	git/clone git://antares-labs.eu/libgraphics || \
+	git/clone https://github.com/sametsisartenep/libgraphics
+
 clean nuke:V:
 	rm -f *.[$OS] [$OS].out $TARG
-	@{cd libgeometry; mk $target}
 	@{cd libgraphics; mk $target}
 	@{cd libobj; mk $target}

@@ -2,9 +2,9 @@
 
 You will need:
 
-• libgeometry
+• libgeometry (ships with 9front)
 • libgraphics
 and
 • libobj
 
-Place/bind(1) them to the proper directory slot and mk it.
+`mk pulldeps` should take care of everything.
