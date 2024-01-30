@@ -109,12 +109,12 @@ max(int a, int b)
 Point3
 vertshader(VSparams *sp)
 {
-	*sp->n = qrotate(*sp->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->su->var_intensity[sp->idx] = fmax(0, dotvec3(*sp->n, light));
-	*sp->n = world2vcs(maincam, *sp->n);
-	*sp->p = qrotate(*sp->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	*sp->p = ndc2viewport(maincam, world2ndc(maincam, *sp->p));
-	return *sp->p;
+	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->su->var_intensity[sp->idx] = fmax(0, dotvec3(sp->v->n, light));
+	sp->v->n = world2vcs(maincam, sp->v->n);
+	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->v->p = ndc2viewport(maincam, world2ndc(maincam, sp->v->p));
+	return sp->v->p;
 }
 
 Memimage *
@@ -264,7 +264,7 @@ boxshader(FSparams *sp)
 Point3
 ivshader(VSparams *sp)
 {
-	return ndc2viewport(maincam, world2ndc(maincam, *sp->p));
+	return ndc2viewport(maincam, world2ndc(maincam, sp->v->p));
 }
 
 Memimage *
