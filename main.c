@@ -50,25 +50,30 @@ double θ, ω;
 
 Camera cams[4], *maincam;
 Camcfg camcfgs[4] = {
+//	2,0,-4,1,
+//	0,0,0,1,
+//	0,1,0,0,
+//	90*DEG, 0.1, 100, PERSPECTIVE,
+
 	2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	90*DEG, 0.1, 100, PERSPECTIVE,
+	0, 0.1, 100, ORTHOGRAPHIC,
 
 	-2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
 	120*DEG, 0.1, 100, PERSPECTIVE,
 
-	-2,0,4,1,
-	0,0,0,1,
-	0,1,0,0,
-	90*DEG, 0.1, 100, PERSPECTIVE,
-
 //	-2,0,4,1,
 //	0,0,0,1,
 //	0,1,0,0,
-//	0, 0.1, 100, ORTHOGRAPHIC,
+//	90*DEG, 0.1, 100, PERSPECTIVE,
+
+	-2,0,4,1,
+	0,0,0,1,
+	0,1,0,0,
+	0, 0.1, 100, ORTHOGRAPHIC,
 
 	2,0,4,1,
 	0,0,0,1,
@@ -76,7 +81,7 @@ Camcfg camcfgs[4] = {
 	120*DEG, 0.1, 100, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-Point3 light = {0,1,1,1};	/* global directional light */
+Point3 light = {0,1,1,1};	/* global point light */
 
 static int
 min(int a, int b)
@@ -113,7 +118,7 @@ vertshader(VSparams *sp)
 	sp->su->var_intensity[sp->idx] = fmax(0, dotvec3(sp->v->n, light));
 	sp->v->n = world2vcs(maincam, sp->v->n);
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->p = ndc2viewport(maincam, world2ndc(maincam, sp->v->p));
+	sp->v->p = world2clip(maincam, sp->v->p);
 	return sp->v->p;
 }
 
@@ -264,7 +269,7 @@ boxshader(FSparams *sp)
 Point3
 ivshader(VSparams *sp)
 {
-	return ndc2viewport(maincam, world2ndc(maincam, sp->v->p));
+	return world2clip(maincam, sp->v->p);
 }
 
 Memimage *
@@ -482,8 +487,8 @@ threadmain(int argc, char *argv[])
 {
 	Viewport *v;
 	Channel *keyc;
-	char *mdlpath, *texpath, *sname, *p;
-	int i;
+	char *mdlpath, *texpath, *sname;
+	int i, fd;
 
 	GEOMfmtinstall();
 	texpath = nil;
@@ -504,17 +509,12 @@ threadmain(int argc, char *argv[])
 	if((model = objparse(mdlpath)) == nil)
 		sysfatal("objparse: %r");
 	if(texpath != nil){
-		if((p = strrchr(texpath, '/')) == nil)
-			p = texpath;
-		p = strchr(p, '.');
-		if(p == nil)
-			sysfatal("unknown image file");
-		if(strcmp(++p, "tga") == 0 && (modeltex = readtga(texpath)) == nil)
-			sysfatal("readtga: %r");
-		else if(strcmp(p, "png") == 0 && (modeltex = readpng(texpath)) == nil)
-			sysfatal("readpng: %r");
-		if(modeltex == nil)
-			sysfatal("unknown image file");
+		fd = open(texpath, OREAD);
+		if(fd < 0)
+			sysfatal("open: %r");
+		if((modeltex = readmemimage(fd)) == nil)
+			sysfatal("readmemimage: %r");
+		close(fd);
 	}
 
 	if(initdraw(nil, nil, "3d") < 0)
