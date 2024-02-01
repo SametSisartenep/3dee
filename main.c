@@ -36,7 +36,6 @@ Rune keys[Ke] = {
  [Kcam1]	= KF|2,
  [Kcam2]	= KF|3,
  [Kcam3]	= KF|4,
- [Kscrshot]	= KF|12
 };
 char stats[Se][256];
 Memimage *screenfb;
@@ -341,23 +340,6 @@ drawproc(void *)
 }
 
 void
-screenshot(void)
-{
-	int fd;
-	static char buf[128];
-
-	enter("Path", buf, sizeof buf, mctl, nil, nil);
-	if(buf[0] == 0)
-		return;
-	fd = create(buf, OWRITE, 0644);
-	if(fd < 0)
-		sysfatal("open: %r");
-	if(writeimage(fd, screen, 1) < 0)
-		sysfatal("writeimage: %r");
-	close(fd);
-}
-
-void
 mouse(void)
 {
 	if((mctl->buttons & 8) != 0){
@@ -461,8 +443,6 @@ handlekeys(void)
 		maincam = &cams[2];
 	if(kdown & 1<<Kcam3)
 		maincam = &cams[3];
-	if(kdown & 1<<Kscrshot)
-		screenshot();
 }
 
 void

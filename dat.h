@@ -15,7 +15,6 @@ enum {
 	Kcam1,
 	Kcam2,
 	Kcam3,
-	Kscrshot,
 	Ke
 };
 
