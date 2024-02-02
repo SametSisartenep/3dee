@@ -45,15 +45,10 @@ int kdown;
 OBJ *model;
 Memimage *modeltex;
 Shader *shader;
-double θ, ω;
+double θ, ω = 2*DEG;
 
 Camera cams[4], *maincam;
 Camcfg camcfgs[4] = {
-//	2,0,-4,1,
-//	0,0,0,1,
-//	0,1,0,0,
-//	90*DEG, 0.1, 100, PERSPECTIVE,
-
 	2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
@@ -63,11 +58,6 @@ Camcfg camcfgs[4] = {
 	0,0,0,1,
 	0,1,0,0,
 	120*DEG, 0.1, 100, PERSPECTIVE,
-
-//	-2,0,4,1,
-//	0,0,0,1,
-//	0,1,0,0,
-//	90*DEG, 0.1, 100, PERSPECTIVE,
 
 	-2,0,4,1,
 	0,0,0,1,
@@ -81,6 +71,8 @@ Camcfg camcfgs[4] = {
 };
 Point3 center = {0,0,0,1};
 Point3 light = {0,1,1,1};	/* global point light */
+
+static int doprof;
 
 static int
 min(int a, int b)
@@ -115,10 +107,8 @@ vertshader(VSparams *sp)
 {
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->su->var_intensity[sp->idx] = fmax(0, dotvec3(sp->v->n, light));
-	sp->v->n = world2vcs(maincam, sp->v->n);
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->p = world2clip(maincam, sp->v->p);
-	return sp->v->p;
+	return world2clip(maincam, sp->v->p);
 }
 
 Memimage *
@@ -455,6 +445,25 @@ resize(void)
 	nbsend(drawc, nil);
 }
 
+static void
+confproc(void)
+{
+	char buf[64];
+	int fd;
+
+	snprint(buf, sizeof buf, "/proc/%d/ctl", getpid());
+	fd = open(buf, OWRITE);
+	if(fd < 0)
+		sysfatal("open: %r");
+
+	if(doprof)
+		fprint(fd, "profile\n");
+//	fprint(fd, "pri 15\n");
+//	fprint(fd, "wired 0\n");
+
+	close(fd);
+}
+
 void
 usage(void)
 {
@@ -476,12 +485,15 @@ threadmain(int argc, char *argv[])
 	ARGBEGIN{
 	case 't': texpath = EARGF(usage()); break;
 	case 's': sname = EARGF(usage()); break;
+	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
 	if(argc != 1)
 		usage();
 
 	mdlpath = argv[0];
+
+	confproc();
 
 	if((shader = getshader(sname)) == nil)
 		sysfatal("couldn't find %s shader", sname);
