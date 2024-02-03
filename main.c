@@ -321,11 +321,18 @@ redraw(void)
 void
 drawproc(void *)
 {
+	uvlong t0, Δt;
+
 	threadsetname("drawproc");
 
+	t0 = nsec();
 	for(;;){
 		shootcamera(maincam, model, modeltex, shader);
-		nbsend(drawc, nil);
+		Δt = nsec() - t0;
+		if(Δt > HZ2MS(60)*1000000ULL){
+			nbsend(drawc, nil);
+			t0 += Δt;
+		}
 	}
 }
 
