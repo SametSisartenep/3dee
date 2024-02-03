@@ -16,7 +16,6 @@ LIB=\
 
 libgraphics/libgraphics.a$O:
 	cd libgraphics
-	mk pulldeps
 	mk install
 
 libobj/libobj.a$O:
@@ -29,6 +28,7 @@ pulldeps:VQ:
 	git/clone https://github.com/sametsisartenep/libobj
 	git/clone git://antares-labs.eu/libgraphics || \
 	git/clone https://github.com/sametsisartenep/libgraphics
+	@{cd libgraphics; mk $target}
 
 clean nuke:V:
 	rm -f *.[$OS] [$OS].out $TARG
