@@ -1,6 +1,6 @@
 </$objtype/mkfile
 
-BIN=$home/$objtype/bin
+BIN=$home/bin/$objtype
 TARG=3d
 OFILES=\
 	alloc.$O\
@@ -16,6 +16,7 @@ LIB=\
 
 libgraphics/libgraphics.a$O:
 	cd libgraphics
+	mk pulldeps
 	mk install
 
 libobj/libobj.a$O:
@@ -33,3 +34,6 @@ clean nuke:V:
 	rm -f *.[$OS] [$OS].out $TARG
 	@{cd libgraphics; mk $target}
 	@{cd libobj; mk $target}
+
+uninstall:V:
+	rm -f $BIN/$TARG
