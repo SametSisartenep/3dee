@@ -45,34 +45,35 @@ int kdown;
 OBJ *model;
 Memimage *modeltex;
 Shader *shader;
-double θ, ω = 2*DEG;
+double θ, ω = 0;
 
 Camera cams[4], *maincam;
 Camcfg camcfgs[4] = {
 	2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	0, 0.1, 100, ORTHOGRAPHIC,
+	0, 0.01, 100, ORTHOGRAPHIC,
 
 	-2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120*DEG, 0.1, 100, PERSPECTIVE,
+	120*DEG, 0.01, 100, PERSPECTIVE,
 
 	-2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	0, 0.1, 100, ORTHOGRAPHIC,
+	0, 0.01, 100, ORTHOGRAPHIC,
 
 	2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120*DEG, 0.1, 100, PERSPECTIVE
+	120*DEG, 0.01, 100, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
 Point3 light = {0,1,1,1};	/* global point light */
 
 static int doprof;
+static int inception;
 
 static int
 min(int a, int b)
@@ -321,17 +322,35 @@ redraw(void)
 void
 drawproc(void *)
 {
+	Memimage *scrtex;
 	uvlong t0, Δt;
+	int fd;
 
 	threadsetname("drawproc");
 
+	scrtex = nil;
+	fd = -1;
+	if(inception){
+		fd = open("/dev/screen", OREAD);
+		if(fd < 0)
+			sysfatal("open: %r");
+		if((scrtex = readmemimage(fd)) == nil)
+			sysfatal("readmemimage: %r");
+	}
+
 	t0 = nsec();
 	for(;;){
-		shootcamera(maincam, model, modeltex, shader);
+		shootcamera(maincam, model, inception? scrtex: modeltex, shader);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			nbsend(drawc, nil);
 			t0 += Δt;
+			if(inception){
+				freememimage(scrtex);
+				seek(fd, 0, 0);
+				if((scrtex = readmemimage(fd)) == nil)
+					sysfatal("readmemimage: %r");
+			}
 		}
 	}
 }
@@ -340,11 +359,11 @@ void
 mouse(void)
 {
 	if((mctl->buttons & 8) != 0){
-		maincam->fov = fclamp(maincam->fov - 5*DEG, 1*DEG, 359*DEG);
+		maincam->fov = fclamp(maincam->fov - 1*DEG, 1*DEG, 359*DEG);
 		reloadcamera(maincam);
 	}
 	if((mctl->buttons & 16) != 0){
-		maincam->fov = fclamp(maincam->fov + 5*DEG, 1*DEG, 359*DEG);
+		maincam->fov = fclamp(maincam->fov + 1*DEG, 1*DEG, 359*DEG);
 		reloadcamera(maincam);
 	}
 }
@@ -409,29 +428,29 @@ void
 handlekeys(void)
 {
 	if(kdown & 1<<K↑)
-		placecamera(maincam, subpt3(maincam->p, maincam->bz), maincam->bz, maincam->by);
+		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->bz, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<K↓)
-		placecamera(maincam, addpt3(maincam->p, maincam->bz), maincam->bz, maincam->by);
+		placecamera(maincam, addpt3(maincam->p, mulpt3(maincam->bz, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<K←)
-		placecamera(maincam, subpt3(maincam->p, maincam->bx), maincam->bz, maincam->by);
+		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->bx, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<K→)
-		placecamera(maincam, addpt3(maincam->p, maincam->bx), maincam->bz, maincam->by);
+		placecamera(maincam, addpt3(maincam->p, mulpt3(maincam->bx, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<Krise)
-		placecamera(maincam, addpt3(maincam->p, maincam->by), maincam->bz, maincam->by);
+		placecamera(maincam, addpt3(maincam->p, mulpt3(maincam->by, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<Kfall)
-		placecamera(maincam, subpt3(maincam->p, maincam->by), maincam->bz, maincam->by);
+		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->by, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<KR↑)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->bx, 5*DEG));
+		aimcamera(maincam, qrotate(maincam->bz, maincam->bx, 1*DEG));
 	if(kdown & 1<<KR↓)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->bx, -5*DEG));
+		aimcamera(maincam, qrotate(maincam->bz, maincam->bx, -1*DEG));
 	if(kdown & 1<<KR←)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->by, 5*DEG));
+		aimcamera(maincam, qrotate(maincam->bz, maincam->by, 1*DEG));
 	if(kdown & 1<<KR→)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->by, -5*DEG));
+		aimcamera(maincam, qrotate(maincam->bz, maincam->by, -1*DEG));
 	if(kdown & 1<<KR↺)
-		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, 5*DEG));
+		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, 1*DEG));
 	if(kdown & 1<<KR↻)
-		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, -5*DEG));
+		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, -1*DEG));
 	if(kdown & 1<<Kcam0)
 		maincam = &cams[0];
 	if(kdown & 1<<Kcam1)
@@ -474,7 +493,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-t texture] [-s shader] model\n", argv0);
+	fprint(2, "usage: %s [-t texture] [-s shader] [-ω yrot] model\n", argv0);
 	exits("usage");
 }
 
@@ -492,6 +511,8 @@ threadmain(int argc, char *argv[])
 	ARGBEGIN{
 	case 't': texpath = EARGF(usage()); break;
 	case 's': sname = EARGF(usage()); break;
+	case L'ω': ω = strtod(EARGF(usage()), nil)*DEG; break;
+	case L'σ': inception++; break;
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
