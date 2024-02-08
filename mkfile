@@ -22,7 +22,12 @@ libobj/libobj.a$O:
 	cd libobj
 	mk install
 
-pulldeps:VQ:
+nuke∅dirs:VQ:
+	for(d in `{walk -d | grep -v '^\.git'})
+		if(~ `{walk -f $d} '')
+			rm -f $d
+
+pulldeps:VQ: nuke∅dirs
 	git/clone git://antares-labs.eu/libobj || \
 	git/clone git://shithub.us/rodri/libobj || \
 	git/clone https://github.com/sametsisartenep/libobj
