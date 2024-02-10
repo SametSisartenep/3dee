@@ -322,33 +322,32 @@ redraw(void)
 void
 drawproc(void *)
 {
-	Memimage *scrtex;
 	uvlong t0, Δt;
 	int fd;
 
 	threadsetname("drawproc");
 
-	scrtex = nil;
 	fd = -1;
 	if(inception){
 		fd = open("/dev/screen", OREAD);
 		if(fd < 0)
 			sysfatal("open: %r");
-		if((scrtex = readmemimage(fd)) == nil)
+		freememimage(modeltex);
+		if((modeltex = readmemimage(fd)) == nil)
 			sysfatal("readmemimage: %r");
 	}
 
 	t0 = nsec();
 	for(;;){
-		shootcamera(maincam, model, inception? scrtex: modeltex, shader);
+		shootcamera(maincam, model, modeltex, shader);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			nbsend(drawc, nil);
 			t0 += Δt;
 			if(inception){
-				freememimage(scrtex);
+				freememimage(modeltex);
 				seek(fd, 0, 0);
-				if((scrtex = readmemimage(fd)) == nil)
+				if((modeltex = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
 		}
