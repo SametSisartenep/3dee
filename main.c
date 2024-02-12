@@ -36,6 +36,7 @@ Rune keys[Ke] = {
  [Kcam1]	= KF|2,
  [Kcam2]	= KF|3,
  [Kcam3]	= KF|4,
+ [Khud]		= 'h',
 };
 char stats[Se][256];
 Memimage *screenfb;
@@ -67,13 +68,14 @@ Camcfg camcfgs[4] = {
 	2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120*DEG, 0.01, 100, PERSPECTIVE
+	80*DEG, 0.01, 100, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
 Point3 light = {0,1,1,1};	/* global point light */
 
 static int doprof;
 static int inception;
+static int showhud;
 
 static int
 min(int a, int b)
@@ -107,7 +109,7 @@ Point3
 vertshader(VSparams *sp)
 {
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->su->var_intensity[sp->idx] = fmax(0, dotvec3(sp->v->n, light));
+	sp->v->intensity = fmax(0, dotvec3(sp->v->n, light));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	return world2clip(maincam, sp->v->p);
 }
@@ -314,7 +316,8 @@ redraw(void)
 	lockdisplay(display);
 	loadimage(screen, rectaddpt(screenfb->r, screen->r.min), byteaddr(screenfb, screenfb->r.min), bytesperline(screenfb->r, screenfb->depth)*Dy(screenfb->r));
 //	drawaxis();
-	drawstats();
+	if(showhud)
+		drawstats();
 	flushimage(display, 1);
 	unlockdisplay(display);
 }
@@ -426,6 +429,8 @@ keyproc(void *c)
 void
 handlekeys(void)
 {
+	static int okdown;
+
 	if(kdown & 1<<K↑)
 		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->bz, 0.1)), maincam->bz, maincam->by);
 	if(kdown & 1<<K↓)
@@ -458,6 +463,11 @@ handlekeys(void)
 		maincam = &cams[2];
 	if(kdown & 1<<Kcam3)
 		maincam = &cams[3];
+
+	if((okdown & 1<<Khud) == 0 && (kdown & 1<<Khud) != 0)
+		showhud ^= 1;
+
+	okdown = kdown;
 }
 
 void
