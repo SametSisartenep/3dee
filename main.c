@@ -43,9 +43,10 @@ Memimage *screenfb;
 Mousectl *mctl;
 Channel *drawc;
 int kdown;
-OBJ *model;
-Memimage *modeltex;
 Shader *shader;
+Model *model;
+Entity *subject;
+Scene *scene;
 double θ, ω = 0;
 
 Camera cams[4], *maincam;
@@ -105,13 +106,19 @@ max(int a, int b)
 //	string3(maincam, pz, display->black, font, "z");
 //}
 
+static Point3
+model2world(Entity *e, Point3 p)
+{
+	return invrframexform3(p, *e);
+}
+
 Point3
 vertshader(VSparams *sp)
 {
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->v->intensity = fmax(0, dotvec3(sp->v->n, light));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	return world2clip(maincam, sp->v->p);
+	return world2clip(maincam, model2world(subject, sp->v->p));
 }
 
 Memimage *
@@ -335,22 +342,22 @@ drawproc(void *)
 		fd = open("/dev/screen", OREAD);
 		if(fd < 0)
 			sysfatal("open: %r");
-		freememimage(modeltex);
-		if((modeltex = readmemimage(fd)) == nil)
+		freememimage(model->tex);
+		if((model->tex = readmemimage(fd)) == nil)
 			sysfatal("readmemimage: %r");
 	}
 
 	t0 = nsec();
 	for(;;){
-		shootcamera(maincam, model, modeltex, shader);
+		shootcamera(maincam, shader);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			nbsend(drawc, nil);
 			t0 += Δt;
 			if(inception){
-				freememimage(modeltex);
+				freememimage(model->tex);
 				seek(fd, 0, 0);
-				if((modeltex = readmemimage(fd)) == nil)
+				if((model->tex = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
 		}
@@ -535,16 +542,22 @@ threadmain(int argc, char *argv[])
 	if((shader = getshader(sname)) == nil)
 		sysfatal("couldn't find %s shader", sname);
 
-	if((model = objparse(mdlpath)) == nil)
+	scene = newscene(nil);
+	model = newmodel();
+	subject = newentity(model);
+	scene->addent(scene, subject);
+
+	if((model->obj = objparse(mdlpath)) == nil)
 		sysfatal("objparse: %r");
 	if(texpath != nil){
 		fd = open(texpath, OREAD);
 		if(fd < 0)
 			sysfatal("open: %r");
-		if((modeltex = readmemimage(fd)) == nil)
+		if((model->tex = readmemimage(fd)) == nil)
 			sysfatal("readmemimage: %r");
 		close(fd);
 	}
+	refreshmodel(model);
 
 	if(initdraw(nil, nil, "3d") < 0)
 		sysfatal("initdraw: %r");
@@ -558,6 +571,7 @@ threadmain(int argc, char *argv[])
 		v = mkviewport(screenfb->r);
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
+		cams[i].s = scene;
 	}
 	maincam = &cams[0];
 	light = normvec3(subpt3(light, center));
