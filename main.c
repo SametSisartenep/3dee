@@ -118,7 +118,7 @@ vertshader(VSparams *sp)
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->v->intensity = fmax(0, dotvec3(sp->v->n, light));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	return world2clip(maincam, model2world(subject, sp->v->p));
+	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
 Memimage *
@@ -317,7 +317,7 @@ drawstats(void)
 void
 redraw(void)
 {
-	memfillcolor(screenfb, DWhite);
+	memfillcolor(screenfb, 0x888888FF);
 	maincam->vp->fbctl->draw(maincam->vp->fbctl, screenfb);
 
 	lockdisplay(display);
@@ -509,7 +509,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-t texture] [-s shader] [-ω yrot] model\n", argv0);
+	fprint(2, "usage: %s [-t texture] [-s shader] [-ω yrot] model...\n", argv0);
 	exits("usage");
 }
 
@@ -532,10 +532,8 @@ threadmain(int argc, char *argv[])
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
-	if(argc != 1)
+	if(argc < 1)
 		usage();
-
-	mdlpath = argv[0];
 
 	confproc();
 
@@ -543,21 +541,25 @@ threadmain(int argc, char *argv[])
 		sysfatal("couldn't find %s shader", sname);
 
 	scene = newscene(nil);
-	model = newmodel();
-	subject = newentity(model);
-	scene->addent(scene, subject);
+	while(argc--){
+		mdlpath = argv[argc];
+		model = newmodel();
+		subject = newentity(model);
+		subject->p.x = argc*4;
+		scene->addent(scene, subject);
 
-	if((model->obj = objparse(mdlpath)) == nil)
-		sysfatal("objparse: %r");
-	if(texpath != nil){
-		fd = open(texpath, OREAD);
-		if(fd < 0)
-			sysfatal("open: %r");
-		if((model->tex = readmemimage(fd)) == nil)
-			sysfatal("readmemimage: %r");
-		close(fd);
+		if((model->obj = objparse(mdlpath)) == nil)
+			sysfatal("objparse: %r");
+		if(argc == 0 && texpath != nil){
+			fd = open(texpath, OREAD);
+			if(fd < 0)
+				sysfatal("open: %r");
+			if((model->tex = readmemimage(fd)) == nil)
+				sysfatal("readmemimage: %r");
+			close(fd);
+		}
+		refreshmodel(model);
 	}
-	refreshmodel(model);
 
 	if(initdraw(nil, nil, "3d") < 0)
 		sysfatal("initdraw: %r");
