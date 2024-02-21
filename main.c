@@ -106,12 +106,6 @@ max(int a, int b)
 //	string3(maincam, pz, display->black, font, "z");
 //}
 
-static Point3
-model2world(Entity *e, Point3 p)
-{
-	return invrframexform3(p, *e);
-}
-
 Point3
 vertshader(VSparams *sp)
 {
@@ -502,6 +496,7 @@ confproc(void)
 		fprint(fd, "profile\n");
 //	fprint(fd, "pri 15\n");
 //	fprint(fd, "wired 0\n");
+//	setfcr(getfcr() & ~FPINVAL);
 
 	close(fd);
 }
