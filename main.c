@@ -72,7 +72,8 @@ Camcfg camcfgs[4] = {
 	80*DEG, 0.01, 100, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-Point3 light = {0,1,1,1};	/* global point light */
+LightSource light;		/* global point light */
+Point3 lightdir;
 
 static int doprof;
 static int inception;
@@ -110,7 +111,7 @@ Point3
 vertshader(VSparams *sp)
 {
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->intensity = fmax(0, dotvec3(sp->v->n, light));
+	sp->v->intensity = fmax(0, dotvec3(sp->v->n, lightdir));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
@@ -118,12 +119,47 @@ vertshader(VSparams *sp)
 Memimage *
 gouraudshader(FSparams *sp)
 {
-	double intens;
+	sp->cbuf[1] *= sp->su->var_intensity;
+	sp->cbuf[2] *= sp->su->var_intensity;
+	sp->cbuf[3] *= sp->su->var_intensity;
+	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 
-	intens = dotvec3(Vec3(sp->su->var_intensity[0], sp->su->var_intensity[1], sp->su->var_intensity[2]), sp->bc);
-	sp->cbuf[1] *= intens;
-	sp->cbuf[2] *= intens;
-	sp->cbuf[3] *= intens;
+	return sp->frag;
+}
+
+Point3
+phongvshader(VSparams *sp)
+{
+	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->v->pos = model2world(sp->su->entity, sp->v->p);
+	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
+}
+
+Memimage *
+phongshader(FSparams *sp)
+{
+	static double Ka = 0.1;	/* ambient factor */
+	static double Ks = 0.5;	/* specular factor */
+	double Kd;		/* diffuse factor */
+	double spec;
+	Color ambient, diffuse, specular;
+	Point3 lookdir, lightdir₂;
+
+	ambient = mulpt3(light.c, Ka);
+
+	lightdir₂ = normvec3(subpt3(light.p, sp->su->var_pos));
+	Kd = fmax(0, dotvec3(sp->su->var_normal, lightdir₂));
+	diffuse = mulpt3(light.c, Kd);
+
+	lookdir = normvec3(subpt3(maincam->p, sp->su->var_pos));
+	lightdir₂ = qrotate(lightdir₂, sp->su->var_normal, PI);
+	spec = pow(fmax(0, dotvec3(lookdir, lightdir₂)), 64);
+	specular = mulpt3(light.c, spec*Ks);
+
+	sp->cbuf[1] *= fclamp(ambient.b + diffuse.b + specular.b, 0, 1);
+	sp->cbuf[2] *= fclamp(ambient.g + diffuse.g + specular.g, 0, 1);
+	sp->cbuf[3] *= fclamp(ambient.r + diffuse.r + specular.r, 0, 1);
 	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 
 	return sp->frag;
@@ -134,7 +170,7 @@ toonshader(FSparams *sp)
 {
 	double intens;
 
-	intens = dotvec3(Vec3(sp->su->var_intensity[0], sp->su->var_intensity[1], sp->su->var_intensity[2]), sp->bc);
+	intens = sp->su->var_intensity;
 	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
 	sp->cbuf[1] = 0;
 	sp->cbuf[2] = 155*intens;
@@ -262,7 +298,7 @@ boxshader(FSparams *sp)
 Point3
 ivshader(VSparams *sp)
 {
-	return world2clip(maincam, sp->v->p);
+	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
 Memimage *
@@ -277,6 +313,7 @@ Shader shadertab[] = {
 	{ "circle", ivshader, circleshader },
 	{ "box", ivshader, boxshader },
 	{ "sf", ivshader, sfshader },
+	{ "phong", phongvshader, phongshader },
 	{ "gouraud", vertshader, gouraudshader },
 	{ "toon", vertshader, toonshader },
 	{ "ident", vertshader, identshader },
@@ -354,13 +391,37 @@ drawproc(void *)
 				if((model->tex = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
+			light.p = qrotate(light.p, Vec3(0,1,0), θ+fmod(ω*Δt/1e9, 2*PI));
 		}
 	}
+}
+
+static char *
+genrmbmenuitem(int idx)
+{
+	if(idx < nelem(shadertab))
+		return shadertab[idx].name;
+	return nil;
+}
+
+void
+rmb(void)
+{
+	static Menu menu = { .gen = genrmbmenuitem };
+	int idx;
+
+	idx = menuhit(3, mctl, &menu, _screen);
+	if(idx < 0)
+		return;
+	shader = &shadertab[idx];
+	nbsendp(drawc, nil);
 }
 
 void
 mouse(void)
 {
+	if((mctl->buttons & 4) != 0)
+		rmb();
 	if((mctl->buttons & 8) != 0){
 		maincam->fov = fclamp(maincam->fov - 1*DEG, 1*DEG, 359*DEG);
 		reloadcamera(maincam);
@@ -504,7 +565,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-t texture] [-s shader] [-ω yrot] model...\n", argv0);
+	fprint(2, "usage: %s [-t texture] [-n normals] [-s shader] [-ω yrot] model...\n", argv0);
 	exits("usage");
 }
 
@@ -513,17 +574,19 @@ threadmain(int argc, char *argv[])
 {
 	Viewport *v;
 	Channel *keyc;
-	char *mdlpath, *texpath, *sname;
+	char *texpath, *norpath, *sname, *mdlpath;
 	int i, fd;
 
 	GEOMfmtinstall();
 	texpath = nil;
+	norpath = nil;
 	sname = "gouraud";
 	ARGBEGIN{
 	case 't': texpath = EARGF(usage()); break;
+	case 'n': norpath = EARGF(usage()); break;
 	case 's': sname = EARGF(usage()); break;
 	case L'ω': ω = strtod(EARGF(usage()), nil)*DEG; break;
-	case L'σ': inception++; break;
+	case L'ι': inception++; break;
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
@@ -553,6 +616,14 @@ threadmain(int argc, char *argv[])
 				sysfatal("readmemimage: %r");
 			close(fd);
 		}
+		if(argc == 0 && norpath != nil){
+			fd = open(norpath, OREAD);
+			if(fd < 0)
+				sysfatal("open: %r");
+			if((model->nor = readmemimage(fd)) == nil)
+				sysfatal("readmemimage: %r");
+			close(fd);
+		}
 		refreshmodel(model);
 	}
 
@@ -571,7 +642,10 @@ threadmain(int argc, char *argv[])
 		cams[i].s = scene;
 	}
 	maincam = &cams[0];
-	light = normvec3(subpt3(light, center));
+	light.p = Pt3(0,100,100,1);
+	light.c = Pt3(1,1,1,1);
+	light.type = LIGHT_POINT;
+	lightdir = normvec3(subpt3(light.p, center));
 
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
