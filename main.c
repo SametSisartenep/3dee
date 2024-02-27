@@ -39,7 +39,7 @@ Rune keys[Ke] = {
  [Khud]		= 'h',
 };
 char stats[Se][256];
-Memimage *screenfb;
+Image *screenb;
 Mousectl *mctl;
 Channel *drawc;
 int kdown;
@@ -73,7 +73,6 @@ Camcfg camcfgs[4] = {
 };
 Point3 center = {0,0,0,1};
 LightSource light;		/* global point light */
-Point3 lightdir;
 
 static int doprof;
 static int inception;
@@ -110,6 +109,9 @@ max(int a, int b)
 Point3
 vertshader(VSparams *sp)
 {
+	Point3 lightdir;
+
+	lightdir = normvec3(subpt3(light.p, center));
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->v->intensity = fmax(0, dotvec3(sp->v->n, lightdir));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
@@ -144,17 +146,17 @@ phongshader(FSparams *sp)
 	double Kd;		/* diffuse factor */
 	double spec;
 	Color ambient, diffuse, specular;
-	Point3 lookdir, lightdir₂;
+	Point3 lookdir, lightdir;
 
 	ambient = mulpt3(light.c, Ka);
 
-	lightdir₂ = normvec3(subpt3(light.p, sp->su->var_pos));
-	Kd = fmax(0, dotvec3(sp->su->var_normal, lightdir₂));
+	lightdir = normvec3(subpt3(light.p, sp->su->var_pos));
+	Kd = fmax(0, dotvec3(sp->su->var_normal, lightdir));
 	diffuse = mulpt3(light.c, Kd);
 
 	lookdir = normvec3(subpt3(maincam->p, sp->su->var_pos));
-	lightdir₂ = qrotate(lightdir₂, sp->su->var_normal, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir₂)), 64);
+	lightdir = qrotate(lightdir, sp->su->var_normal, PI);
+	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), 64);
 	specular = mulpt3(light.c, spec*Ks);
 
 	sp->cbuf[1] *= fclamp(ambient.b + diffuse.b + specular.b, 0, 1);
@@ -348,11 +350,15 @@ drawstats(void)
 void
 redraw(void)
 {
-	memfillcolor(screenfb, 0x888888FF);
-	maincam->vp->fbctl->draw(maincam->vp->fbctl, screenfb);
+	static Image *bg;
+
+	if(bg == nil)
+		bg = eallocimage(display, UR, RGB24, 1, 0x888888FF);
 
 	lockdisplay(display);
-	loadimage(screen, rectaddpt(screenfb->r, screen->r.min), byteaddr(screenfb, screenfb->r.min), bytesperline(screenfb->r, screenfb->depth)*Dy(screenfb->r));
+	maincam->vp->draw(maincam->vp, screenb);
+	draw(screen, screen->r, bg, nil, ZP);
+	draw(screen, screen->r, screenb, nil, ZP);
 //	drawaxis();
 	if(showhud)
 		drawstats();
@@ -634,9 +640,9 @@ threadmain(int argc, char *argv[])
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
 
-	screenfb = eallocmemimage(rectsubpt(screen->r, screen->r.min), screen->chan);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
 	for(i = 0; i < nelem(cams); i++){
-		v = mkviewport(screenfb->r);
+		v = mkviewport(screenb->r);
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
 		cams[i].s = scene;
@@ -645,7 +651,6 @@ threadmain(int argc, char *argv[])
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
 	light.type = LIGHT_POINT;
-	lightdir = normvec3(subpt3(light.p, center));
 
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
