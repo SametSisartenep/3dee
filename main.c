@@ -110,10 +110,12 @@ Point3
 vertshader(VSparams *sp)
 {
 	Point3 lightdir;
+	double intens;
 
 	lightdir = normvec3(subpt3(light.p, center));
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->intensity = fmax(0, dotvec3(sp->v->n, lightdir));
+	intens = fmax(0, dotvec3(sp->v->n, lightdir));
+	addvattr(sp->v, "intensity", VANumber, &intens);
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
@@ -121,9 +123,12 @@ vertshader(VSparams *sp)
 Memimage *
 gouraudshader(FSparams *sp)
 {
-	sp->cbuf[1] *= sp->su->var_intensity;
-	sp->cbuf[2] *= sp->su->var_intensity;
-	sp->cbuf[3] *= sp->su->var_intensity;
+	Vertexattr *va;
+
+	va = getvattr(&sp->v, "intensity");
+	sp->cbuf[1] *= va->n;
+	sp->cbuf[2] *= va->n;
+	sp->cbuf[3] *= va->n;
 	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 
 	return sp->frag;
@@ -132,9 +137,12 @@ gouraudshader(FSparams *sp)
 Point3
 phongvshader(VSparams *sp)
 {
+	Point3 pos;
+
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->pos = model2world(sp->su->entity, sp->v->p);
+	pos = model2world(sp->su->entity, sp->v->p);
+	addvattr(sp->v, "pos", VAPoint, &pos);
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
@@ -146,16 +154,20 @@ phongshader(FSparams *sp)
 	double Kd;		/* diffuse factor */
 	double spec;
 	Color ambient, diffuse, specular;
-	Point3 lookdir, lightdir;
+	Point3 pos, lookdir, lightdir;
+	Vertexattr *va;
+
+	va = getvattr(&sp->v, "pos");
+	pos = va->p;
 
 	ambient = mulpt3(light.c, Ka);
 
-	lightdir = normvec3(subpt3(light.p, sp->su->var_pos));
-	Kd = fmax(0, dotvec3(sp->su->var_normal, lightdir));
+	lightdir = normvec3(subpt3(light.p, pos));
+	Kd = fmax(0, dotvec3(sp->v.n, lightdir));
 	diffuse = mulpt3(light.c, Kd);
 
-	lookdir = normvec3(subpt3(maincam->p, sp->su->var_pos));
-	lightdir = qrotate(lightdir, sp->su->var_normal, PI);
+	lookdir = normvec3(subpt3(maincam->p, pos));
+	lightdir = qrotate(lightdir, sp->v.n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), 64);
 	specular = mulpt3(light.c, spec*Ks);
 
@@ -170,9 +182,11 @@ phongshader(FSparams *sp)
 Memimage *
 toonshader(FSparams *sp)
 {
+	Vertexattr *va;
 	double intens;
 
-	intens = sp->su->var_intensity;
+	va = getvattr(&sp->v, "intensity");
+	intens = va->n;
 	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
 	sp->cbuf[1] = 0;
 	sp->cbuf[2] = 155*intens;
@@ -647,7 +661,7 @@ threadmain(int argc, char *argv[])
 		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
 		cams[i].s = scene;
 	}
-	maincam = &cams[0];
+	maincam = &cams[3];
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
 	light.type = LIGHT_POINT;
