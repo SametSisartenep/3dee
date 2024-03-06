@@ -121,7 +121,7 @@ vertshader(VSparams *sp)
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
-Memimage *
+Color
 gouraudshader(FSparams *sp)
 {
 	Vertexattr *va;
@@ -134,13 +134,7 @@ gouraudshader(FSparams *sp)
 		c = Pt3(1,1,1,1);
 
 	c = mulpt3(c, va->n);
-	sp->cbuf[0] *= c.a;
-	sp->cbuf[1] *= c.b;
-	sp->cbuf[2] *= c.g;
-	sp->cbuf[3] *= c.r;
-	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
-
-	return sp->frag;
+	return c;
 }
 
 Point3
@@ -167,7 +161,7 @@ phongvshader(VSparams *sp)
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
-Memimage *
+Color
 phongshader(FSparams *sp)
 {
 	static double Ka = 0.1;	/* ambient factor */
@@ -211,16 +205,15 @@ phongshader(FSparams *sp)
 		tc = Pt3(1,1,1,1);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
-	sp->cbuf[0] *= fclamp(c.a*tc.a, 0, 1);
-	sp->cbuf[1] *= fclamp(c.b*tc.b, 0, 1);
-	sp->cbuf[2] *= fclamp(c.g*tc.g, 0, 1);
-	sp->cbuf[3] *= fclamp(c.r*tc.r, 0, 1);
-	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
+	c.a = fclamp(c.a*tc.a, 0, 1);
+	c.b = fclamp(c.b*tc.b, 0, 1);
+	c.g = fclamp(c.g*tc.g, 0, 1);
+	c.r = fclamp(c.r*tc.r, 0, 1);
 
-	return sp->frag;
+	return c;
 }
 
-Memimage *
+Color
 toonshader(FSparams *sp)
 {
 	Vertexattr *va;
@@ -229,21 +222,16 @@ toonshader(FSparams *sp)
 	va = getvattr(&sp->v, "intensity");
 	intens = va->n;
 	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
-	sp->cbuf[1] = 0;
-	sp->cbuf[2] = 155*intens;
-	sp->cbuf[3] = 255*intens;
-	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 
-	return sp->frag;
+	return Pt3(intens, 0.6*intens, 0, 1);
 }
 
-Memimage *
+Color
 triangleshader(FSparams *sp)
 {
 	Triangle2 t;
 	Rectangle bbox;
 	Point3 bc;
-	uchar cbuf[4];
 
 	t.p0 = Pt2(240,200,1);
 	t.p1 = Pt2(400,40,1);
@@ -254,26 +242,20 @@ triangleshader(FSparams *sp)
 		max(max(t.p0.x, t.p1.x), t.p2.x), max(max(t.p0.y, t.p1.y), t.p2.y)
 	);
 	if(!ptinrect(sp->p, bbox))
-		return nil;
+		return Vec3(0,0,0);
 
 	bc = barycoords(t, Pt2(sp->p.x,sp->p.y,1));
 	if(bc.x < 0 || bc.y < 0 || bc.z < 0)
-		return nil;
+		return Vec3(0,0,0);
 
-	cbuf[0] = 0xFF;
-	cbuf[1] = 0xFF*bc.z;
-	cbuf[2] = 0xFF*bc.y;
-	cbuf[3] = 0xFF*bc.x;
-	memfillcolor(sp->frag, *(ulong*)cbuf);
-	return sp->frag;
+	return Pt3(bc.x, bc.y, bc.z, 1);
 }
 
-Memimage *
+Color
 circleshader(FSparams *sp)
 {
 	Point2 uv;
 	double r, d;
-	uchar cbuf[4];
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
 	uv.x /= Dx(sp->su->fb->r);
@@ -283,24 +265,17 @@ circleshader(FSparams *sp)
 	d = vec2len(subpt2(uv, Vec2(0.5,0.5)));
 
 	if(d > r + r*0.05 || d < r - r*0.05)
-		return nil;
+		return Vec3(0,0,0);
 
-	cbuf[0] = 0xFF;
-	cbuf[1] = 0;
-	cbuf[2] = 0xFF*uv.y;
-	cbuf[3] = 0xFF*uv.x;
-
-	memfillcolor(sp->frag, *(ulong*)cbuf);
-	return sp->frag;
+	return Pt3(uv.x, uv.y, 0, 1);
 }
 
 /* some shaping functions from The Book of Shaders, Chapter 5 */
-Memimage *
+Color
 sfshader(FSparams *sp)
 {
 	Point2 uv;
 	double y, pct;
-	uchar cbuf[4];
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
 	uv.x /= Dx(sp->su->fb->r);
@@ -314,21 +289,14 @@ sfshader(FSparams *sp)
 //	y = smoothstep(0.1, 0.9, uv.x);
 	pct = smoothstep(y-0.02, y, uv.y) - smoothstep(y, y+0.02, uv.y);
 
-	cbuf[0] = 0xFF;
-	cbuf[1] = 0xFF*flerp(y, 0, pct);
-	cbuf[2] = 0xFF*flerp(y, 1, pct);
-	cbuf[3] = 0xFF*flerp(y, 0, pct);
-
-	memfillcolor(sp->frag, *(ulong*)cbuf);
-	return sp->frag;
+	return Pt3(flerp(y, 0, pct), flerp(y, 1, pct), flerp(y, 0, pct), 1);
 }
 
-Memimage *
+Color
 boxshader(FSparams *sp)
 {
 	Point2 uv, p;
 	Point2 r;
-	uchar cbuf[4];
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
 	uv.x /= Dx(sp->su->fb->r);
@@ -341,15 +309,9 @@ boxshader(FSparams *sp)
 	p.y = fmax(p.y, 0);
 
 	if(vec2len(p) > 0)
-		return nil;
+		return Vec3(0,0,0);
 
-	cbuf[0] = 0xFF;
-	cbuf[1] = 0xFF*smoothstep(0,1,uv.x+uv.y);
-	cbuf[2] = 0xFF*uv.y;
-	cbuf[3] = 0xFF*uv.x;
-
-	memfillcolor(sp->frag, *(ulong*)cbuf);
-	return sp->frag;
+	return Pt3(uv.x, uv.y, smoothstep(0,1,uv.x+uv.y), 1);
 }
 
 Point3
@@ -358,7 +320,7 @@ ivshader(VSparams *sp)
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
-Memimage *
+Color
 identshader(FSparams *sp)
 {
 	Color c;
@@ -367,13 +329,7 @@ identshader(FSparams *sp)
 		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		c = Pt3(1,1,1,1);
-
-	sp->cbuf[0] *= c.a;
-	sp->cbuf[1] *= c.b;
-	sp->cbuf[2] *= c.g;
-	sp->cbuf[3] *= c.r;
-	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
-	return sp->frag;
+	return c;
 }
 
 Shader shadertab[] = {
