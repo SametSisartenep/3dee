@@ -77,6 +77,7 @@ LightSource light;		/* global point light */
 static int doprof;
 static int inception;
 static int showhud;
+Color (*tsampler)(Memimage*,Point2);
 
 static int
 min(int a, int b)
@@ -124,11 +125,19 @@ Memimage *
 gouraudshader(FSparams *sp)
 {
 	Vertexattr *va;
+	Color c;
 
 	va = getvattr(&sp->v, "intensity");
-	sp->cbuf[1] *= va->n;
-	sp->cbuf[2] *= va->n;
-	sp->cbuf[3] *= va->n;
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else
+		c = Pt3(1,1,1,1);
+
+	c = mulpt3(c, va->n);
+	sp->cbuf[0] *= c.a;
+	sp->cbuf[1] *= c.b;
+	sp->cbuf[2] *= c.g;
+	sp->cbuf[3] *= c.r;
 	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 
 	return sp->frag;
@@ -138,11 +147,23 @@ Point3
 phongvshader(VSparams *sp)
 {
 	Point3 pos;
+	Color a, d, s;
+	double ss;
 
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	pos = model2world(sp->su->entity, sp->v->p);
 	addvattr(sp->v, "pos", VAPoint, &pos);
+	if(sp->v->mtl != nil){
+		a.r = sp->v->mtl->Ka.r; a.g = sp->v->mtl->Ka.g; a.b = sp->v->mtl->Ka.b; a.a = 1;
+		d.r = sp->v->mtl->Kd.r; d.g = sp->v->mtl->Kd.g; d.b = sp->v->mtl->Kd.b; d.a = 1;
+		s.r = sp->v->mtl->Ks.r; s.g = sp->v->mtl->Ks.g; s.b = sp->v->mtl->Ks.b; s.a = 1;
+		ss = sp->v->mtl->Ns;
+		addvattr(sp->v, "ambient", VAPoint, &a);
+		addvattr(sp->v, "diffuse", VAPoint, &d);
+		addvattr(sp->v, "specular", VAPoint, &s);
+		addvattr(sp->v, "shininess", VANumber, &ss);
+	}
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
@@ -153,27 +174,47 @@ phongshader(FSparams *sp)
 	static double Ks = 0.5;	/* specular factor */
 	double Kd;		/* diffuse factor */
 	double spec;
-	Color ambient, diffuse, specular;
+	Color ambient, diffuse, specular, tc, c;
 	Point3 pos, lookdir, lightdir;
+	Material m;
 	Vertexattr *va;
 
 	va = getvattr(&sp->v, "pos");
 	pos = va->p;
+	
+	va = getvattr(&sp->v, "ambient");
+	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
+	va = getvattr(&sp->v, "diffuse");
+	m.diffuse = va != nil? va->p: Pt3(1,1,1,1);
+	va = getvattr(&sp->v, "specular");
+	m.specular = va != nil? va->p: Pt3(1,1,1,1);
+	va = getvattr(&sp->v, "shininess");
+	m.shininess = va != nil? va->n: 1;
 
 	ambient = mulpt3(light.c, Ka);
+	ambient.r *= m.ambient.r; ambient.g *= m.ambient.g; ambient.b *= m.ambient.b; ambient.a *= m.ambient.a;
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	Kd = fmax(0, dotvec3(sp->v.n, lightdir));
 	diffuse = mulpt3(light.c, Kd);
+	diffuse.r *= m.diffuse.r; diffuse.g *= m.diffuse.g; diffuse.b *= m.diffuse.b; diffuse.a *= m.diffuse.a;
 
 	lookdir = normvec3(subpt3(maincam->p, pos));
 	lightdir = qrotate(lightdir, sp->v.n, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), 64);
+	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(light.c, spec*Ks);
+	specular.r *= m.specular.r; specular.g *= m.specular.g; specular.b *= m.specular.b; specular.a *= m.specular.a;
 
-	sp->cbuf[1] *= fclamp(ambient.b + diffuse.b + specular.b, 0, 1);
-	sp->cbuf[2] *= fclamp(ambient.g + diffuse.g + specular.g, 0, 1);
-	sp->cbuf[3] *= fclamp(ambient.r + diffuse.r + specular.r, 0, 1);
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else
+		tc = Pt3(1,1,1,1);
+
+	c = addpt3(ambient, addpt3(diffuse, specular));
+	sp->cbuf[0] *= fclamp(c.a*tc.a, 0, 1);
+	sp->cbuf[1] *= fclamp(c.b*tc.b, 0, 1);
+	sp->cbuf[2] *= fclamp(c.g*tc.g, 0, 1);
+	sp->cbuf[3] *= fclamp(c.r*tc.r, 0, 1);
 	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 
 	return sp->frag;
@@ -320,6 +361,17 @@ ivshader(VSparams *sp)
 Memimage *
 identshader(FSparams *sp)
 {
+	Color c;
+
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else
+		c = Pt3(1,1,1,1);
+
+	sp->cbuf[0] *= c.a;
+	sp->cbuf[1] *= c.b;
+	sp->cbuf[2] *= c.g;
+	sp->cbuf[3] *= c.r;
 	memfillcolor(sp->frag, *(ulong*)sp->cbuf);
 	return sp->frag;
 }
@@ -416,6 +468,37 @@ drawproc(void *)
 	}
 }
 
+void
+mmb(void)
+{
+	enum {
+		MOVELIGHT,
+		TSNEAREST,
+		TSBILINEAR,
+	};
+	static char *items[] = {
+	 [MOVELIGHT]	"move light",
+	 [TSNEAREST]	"use nearest sampler",
+	 [TSBILINEAR]	"use bilinear sampler",
+		nil,
+	};
+	static Menu menu = { .item = items };
+
+	switch(menuhit(2, mctl, &menu, _screen)){
+	case MOVELIGHT:
+		srand(time(0));
+		light.p = Pt3((frand()-0.5)*2000,(frand()-0.5)*2000,(frand()-0.5)*2000,1);
+		break;
+	case TSNEAREST:
+		tsampler = neartexsampler;
+		break;
+	case TSBILINEAR:
+		tsampler = bilitexsampler;
+		break;
+	}
+	nbsend(drawc, nil);
+}
+
 static char *
 genrmbmenuitem(int idx)
 {
@@ -434,12 +517,14 @@ rmb(void)
 	if(idx < 0)
 		return;
 	shader = &shadertab[idx];
-	nbsendp(drawc, nil);
+	nbsend(drawc, nil);
 }
 
 void
 mouse(void)
 {
+	if((mctl->buttons & 2) != 0)
+		mmb();
 	if((mctl->buttons & 4) != 0)
 		rmb();
 	if((mctl->buttons & 8) != 0){
@@ -665,6 +750,7 @@ threadmain(int argc, char *argv[])
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
 	light.type = LIGHT_POINT;
+	tsampler = neartexsampler;
 
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
