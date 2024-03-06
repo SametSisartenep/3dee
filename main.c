@@ -128,7 +128,9 @@ gouraudshader(FSparams *sp)
 	Color c;
 
 	va = getvattr(&sp->v, "intensity");
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
+		c = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		c = Pt3(1,1,1,1);
@@ -186,20 +188,31 @@ phongshader(FSparams *sp)
 	m.shininess = va != nil? va->n: 1;
 
 	ambient = mulpt3(light.c, Ka);
-	ambient.r *= m.ambient.r; ambient.g *= m.ambient.g; ambient.b *= m.ambient.b; ambient.a *= m.ambient.a;
+	ambient.r *= m.ambient.r;
+	ambient.g *= m.ambient.g;
+	ambient.b *= m.ambient.b;
+	ambient.a *= m.ambient.a;
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	Kd = fmax(0, dotvec3(sp->v.n, lightdir));
 	diffuse = mulpt3(light.c, Kd);
-	diffuse.r *= m.diffuse.r; diffuse.g *= m.diffuse.g; diffuse.b *= m.diffuse.b; diffuse.a *= m.diffuse.a;
+	diffuse.r *= m.diffuse.r;
+	diffuse.g *= m.diffuse.g;
+	diffuse.b *= m.diffuse.b;
+	diffuse.a *= m.diffuse.a;
 
 	lookdir = normvec3(subpt3(maincam->p, pos));
 	lightdir = qrotate(lightdir, sp->v.n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(light.c, spec*Ks);
-	specular.r *= m.specular.r; specular.g *= m.specular.g; specular.b *= m.specular.b; specular.a *= m.specular.a;
+	specular.r *= m.specular.r;
+	specular.g *= m.specular.g;
+	specular.b *= m.specular.b;
+	specular.a *= m.specular.a;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
+		tc = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
@@ -325,7 +338,9 @@ identshader(FSparams *sp)
 {
 	Color c;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
+		c = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		c = Pt3(1,1,1,1);
