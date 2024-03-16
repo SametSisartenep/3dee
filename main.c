@@ -108,34 +108,74 @@ max(int a, int b)
 //}
 
 Point3
-vertshader(VSparams *sp)
+gouraudvshader(VSparams *sp)
 {
-	Point3 lightdir;
-	double intens;
+	static double Ka = 0.1;	/* ambient factor */
+	static double Ks = 0.5;	/* specular factor */
+	double Kd;		/* diffuse factor */
+	double spec;
+	Point3 pos, lightdir, lookdir;
+	Material m;
+	Color a, d, s;
+	Color ambient, diffuse, specular;
 
-	lightdir = normvec3(subpt3(light.p, center));
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	intens = fmax(0, dotvec3(sp->v->n, lightdir));
-	addvattr(sp->v, "intensity", VANumber, &intens);
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
+	pos = model2world(sp->su->entity, sp->v->p);
+	if(sp->v->mtl != nil){
+		a.r = sp->v->mtl->Ka.r; a.g = sp->v->mtl->Ka.g; a.b = sp->v->mtl->Ka.b; a.a = 1;
+		d.r = sp->v->mtl->Kd.r; d.g = sp->v->mtl->Kd.g; d.b = sp->v->mtl->Kd.b; d.a = 1;
+		s.r = sp->v->mtl->Ks.r; s.g = sp->v->mtl->Ks.g; s.b = sp->v->mtl->Ks.b; s.a = 1;
+		m.ambient = a;
+		m.diffuse = d;
+		m.specular = s;
+		m.shininess = sp->v->mtl->Ns;
+
+		ambient = mulpt3(light.c, Ka);
+		ambient.r *= m.ambient.r;
+		ambient.g *= m.ambient.g;
+		ambient.b *= m.ambient.b;
+		ambient.a *= m.ambient.a;
+
+		lightdir = normvec3(subpt3(light.p, pos));
+		Kd = fmax(0, dotvec3(sp->v->n, lightdir));
+		diffuse = mulpt3(light.c, Kd);
+		diffuse.r *= m.diffuse.r;
+		diffuse.g *= m.diffuse.g;
+		diffuse.b *= m.diffuse.b;
+		diffuse.a *= m.diffuse.a;
+
+		lookdir = normvec3(subpt3(maincam->p, pos));
+		lightdir = qrotate(lightdir, sp->v->n, PI);
+		spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
+		specular = mulpt3(light.c, spec*Ks);
+		specular.r *= m.specular.r;
+		specular.g *= m.specular.g;
+		specular.b *= m.specular.b;
+		specular.a *= m.specular.a;
+
+		sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
+	}
+	return world2clip(maincam, pos);
 }
 
 Color
 gouraudshader(FSparams *sp)
 {
-	Vertexattr *va;
-	Color c;
+	Color tc, c;
 
-	va = getvattr(&sp->v, "intensity");
 	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
-		c = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+		tc = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
 	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
-		c = Pt3(1,1,1,1);
+		tc = Pt3(1,1,1,1);
 
-	c = mulpt3(c, va->n);
+	c.a = fclamp(sp->v.c.a*tc.a, 0, 1);
+	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
+	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
+	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
+
 	return c;
 }
 
@@ -160,7 +200,7 @@ phongvshader(VSparams *sp)
 		addvattr(sp->v, "specular", VAPoint, &s);
 		addvattr(sp->v, "shininess", VANumber, &ss);
 	}
-	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
+	return world2clip(maincam, pos);
 }
 
 Color
@@ -226,6 +266,25 @@ phongshader(FSparams *sp)
 	return c;
 }
 
+Point3
+identvshader(VSparams *sp)
+{
+	Point3 pos, lightdir;
+	double intens;
+
+	pos = model2world(sp->su->entity, sp->v->p);
+	lightdir = normvec3(subpt3(light.p, pos));
+	intens = fmax(0, dotvec3(sp->v->n, lightdir));
+	addvattr(sp->v, "intensity", VANumber, &intens);
+	if(sp->v->mtl != nil){
+		sp->v->c.r = sp->v->mtl->Kd.r;
+		sp->v->c.g = sp->v->mtl->Kd.g;
+		sp->v->c.b = sp->v->mtl->Kd.b;
+		sp->v->c.a = 1;
+	}
+	return world2clip(maincam, pos);
+}
+
 Color
 toonshader(FSparams *sp)
 {
@@ -237,6 +296,32 @@ toonshader(FSparams *sp)
 	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
 
 	return Pt3(intens, 0.6*intens, 0, 1);
+}
+
+Color
+identshader(FSparams *sp)
+{
+	Color tc, c;
+
+	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
+		tc = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else
+		tc = Pt3(1,1,1,1);
+
+	c.a = fclamp(sp->v.c.a*tc.a, 0, 1);
+	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
+	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
+	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
+
+	return c;
+}
+
+Point3
+ivshader(VSparams *sp)
+{
+	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
 Color
@@ -327,35 +412,15 @@ boxshader(FSparams *sp)
 	return Pt3(uv.x, uv.y, smoothstep(0,1,uv.x+uv.y), 1);
 }
 
-Point3
-ivshader(VSparams *sp)
-{
-	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
-}
-
-Color
-identshader(FSparams *sp)
-{
-	Color c;
-
-	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
-		c = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
-	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		c = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else
-		c = Pt3(1,1,1,1);
-	return c;
-}
-
 Shader shadertab[] = {
 	{ "triangle", ivshader, triangleshader },
 	{ "circle", ivshader, circleshader },
 	{ "box", ivshader, boxshader },
 	{ "sf", ivshader, sfshader },
+	{ "toon", identvshader, toonshader },
+	{ "ident", identvshader, identshader },
+	{ "gouraud", gouraudvshader, gouraudshader },
 	{ "phong", phongvshader, phongshader },
-	{ "gouraud", vertshader, gouraudshader },
-	{ "toon", vertshader, toonshader },
-	{ "ident", vertshader, identshader },
 };
 Shader *
 getshader(char *name)
