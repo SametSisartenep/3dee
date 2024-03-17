@@ -23,9 +23,8 @@ libobj/libobj.a$O:
 	mk install
 
 nuke∅dirs:VQ:
-	for(d in `{walk -d | grep -v '^\.git'})
-		if(~ `{walk -f $d} '')
-			rm -f $d
+	for(d in libgeometry libobj libgraphics)
+		rm -rf $d
 
 pulldeps:VQ: nuke∅dirs
 	git/clone git://antares-labs.eu/libobj || \
