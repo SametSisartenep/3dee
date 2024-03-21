@@ -41,6 +41,7 @@ Rune keys[Ke] = {
 char stats[Se][256];
 Image *screenb;
 Mousectl *mctl;
+Keyboardctl *kctl;
 Channel *drawc;
 int kdown;
 Shader *shader;
@@ -445,8 +446,9 @@ drawstats(void)
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", maincam->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", maincam->bz);
 	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !maincam->stats.max? 0: 1e9/maincam->stats.max, !maincam->stats.avg? 0: 1e9/maincam->stats.avg, !maincam->stats.min? 0: 1e9/maincam->stats.min, !maincam->stats.v? 0: 1e9/maincam->stats.v);
+	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", maincam->stats.nframes);
 	for(i = 0; i < Se; i++)
-		string(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i]);
+		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
 
 void
@@ -519,11 +521,20 @@ mmb(void)
 		nil,
 	};
 	static Menu menu = { .item = items };
+	char buf[256], *f[3];
+	int nf;
 
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
-		srand(time(0));
-		light.p = Pt3((frand()-0.5)*2000,(frand()-0.5)*2000,(frand()-0.5)*2000,1);
+		snprint(buf, sizeof buf, "%g %g %g", light.p.x, light.p.y, light.p.z);
+		if(enter("light pos", buf, sizeof buf, mctl, kctl, nil) <= 0)
+			return;
+		nf = tokenize(buf, f, 3);
+		if(nf != 3)
+			return;
+		light.p.x = strtod(f[0], nil);
+		light.p.y = strtod(f[1], nil);
+		light.p.z = strtod(f[2], nil);
 		break;
 	case TSNEAREST:
 		tsampler = neartexsampler;
@@ -553,6 +564,8 @@ rmb(void)
 	if(idx < 0)
 		return;
 	shader = &shadertab[idx];
+	for(idx = 0; idx < nelem(cams); idx++)
+		memset(&cams[idx].stats, 0, sizeof(cams[idx].stats));
 	nbsend(drawc, nil);
 }
 
@@ -598,10 +611,12 @@ kbdproc(void *)
 			buf[n] = 0;
 		}
 		if(buf[0] == 'c'){
-			if(utfrune(buf, Kdel)){
+			chartorune(&r, buf+1);
+			if(r == Kdel){
 				close(fd);
 				threadexitsall(nil);
-			}
+			}else
+				nbsend(kctl->c, &r);
 		}
 		if(buf[0] != 'k' && buf[0] != 'K')
 			continue;
@@ -788,6 +803,8 @@ threadmain(int argc, char *argv[])
 	light.type = LIGHT_POINT;
 	tsampler = neartexsampler;
 
+	kctl = emalloc(sizeof *kctl);
+	kctl->c = chancreate(sizeof(Rune), 16);
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
 	display->locking = 1;

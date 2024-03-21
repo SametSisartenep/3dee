@@ -25,5 +25,6 @@ enum {
 	Scampos,
 	Scambx, Scamby, Scambz,
 	Sfps,
+	Sframes,
 	Se
 };
