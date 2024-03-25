@@ -44,7 +44,7 @@ Mousectl *mctl;
 Keyboardctl *kctl;
 Channel *drawc;
 int kdown;
-Shader *shader;
+Shadertab *shader;
 Model *model;
 Entity *subject;
 Scene *scene;
@@ -413,7 +413,7 @@ boxshader(FSparams *sp)
 	return Pt3(uv.x, uv.y, smoothstep(0,1,uv.x+uv.y), 1);
 }
 
-Shader shadertab[] = {
+Shadertab shadertab[] = {
 	{ "triangle", ivshader, triangleshader },
 	{ "circle", ivshader, circleshader },
 	{ "box", ivshader, boxshader },
@@ -423,7 +423,7 @@ Shader shadertab[] = {
 	{ "gouraud", gouraudvshader, gouraudshader },
 	{ "phong", phongvshader, phongshader },
 };
-Shader *
+Shadertab *
 getshader(char *name)
 {
 	int i;
@@ -729,6 +729,7 @@ void
 threadmain(int argc, char *argv[])
 {
 	Viewport *v;
+	Renderer *rctl;
 	Channel *keyc;
 	char *texpath, *norpath, *sname, *mdlpath;
 	int i, fd;
@@ -783,10 +784,12 @@ threadmain(int argc, char *argv[])
 		refreshmodel(model);
 	}
 
-	if(initdraw(nil, nil, "3d") < 0)
-		sysfatal("initdraw: %r");
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
+	if((rctl = initgraphics()) == nil)
+		sysfatal("initgraphics: %r");
+	if(initdraw(nil, nil, "3d") < 0)
+		sysfatal("initdraw: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
 
@@ -796,6 +799,7 @@ threadmain(int argc, char *argv[])
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
 		cams[i].s = scene;
+		cams[i].rctl = rctl;
 	}
 	maincam = &cams[3];
 	light.p = Pt3(0,100,100,1);
