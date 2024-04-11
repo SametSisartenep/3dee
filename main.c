@@ -32,6 +32,8 @@ Rune keys[Ke] = {
  [KR→]		= 'd',
  [KR↺]		= 'q',
  [KR↻]		= 'e',
+ [Kzoomin]	= 'z',
+ [Kzoomout]	= 'x',
  [Kcam0]	= KF|1,
  [Kcam1]	= KF|2,
  [Kcam2]	= KF|3,
@@ -435,6 +437,20 @@ getshader(char *name)
 }
 
 void
+zoomin(void)
+{
+	maincam->fov = fclamp(maincam->fov - 1*DEG, 1*DEG, 359*DEG);
+	reloadcamera(maincam);
+}
+
+void
+zoomout(void)
+{
+	maincam->fov = fclamp(maincam->fov + 1*DEG, 1*DEG, 359*DEG);
+	reloadcamera(maincam);
+}
+
+void
 drawstats(void)
 {
 	int i;
@@ -576,14 +592,10 @@ mouse(void)
 		mmb();
 	if((mctl->buttons & 4) != 0)
 		rmb();
-	if((mctl->buttons & 8) != 0){
-		maincam->fov = fclamp(maincam->fov - 1*DEG, 1*DEG, 359*DEG);
-		reloadcamera(maincam);
-	}
-	if((mctl->buttons & 16) != 0){
-		maincam->fov = fclamp(maincam->fov + 1*DEG, 1*DEG, 359*DEG);
-		reloadcamera(maincam);
-	}
+	if((mctl->buttons & 8) != 0)
+		zoomin();
+	if((mctl->buttons & 16) != 0)
+		zoomout();
 }
 
 void
@@ -673,6 +685,10 @@ handlekeys(void)
 		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, 1*DEG));
 	if(kdown & 1<<KR↻)
 		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, -1*DEG));
+	if(kdown & 1<<Kzoomin)
+		zoomin();
+	if(kdown & 1<<Kzoomout)
+		zoomout();
 	if(kdown & 1<<Kcam0)
 		maincam = &cams[0];
 	if(kdown & 1<<Kcam1)

@@ -11,6 +11,8 @@ enum {
 	KR→,
 	KR↺,
 	KR↻,
+	Kzoomin,
+	Kzoomout,
 	Kcam0,
 	Kcam1,
 	Kcam2,
