@@ -174,7 +174,7 @@ gouraudshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
-	c.a = fclamp(sp->v.c.a*tc.a, 0, 1);
+	c.a = 1;
 	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
 	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
 	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
@@ -261,7 +261,7 @@ phongshader(FSparams *sp)
 		tc = Pt3(1,1,1,1);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
-	c.a = fclamp(c.a*tc.a, 0, 1);
+	c.a = 1;
 	c.b = fclamp(c.b*tc.b, 0, 1);
 	c.g = fclamp(c.g*tc.g, 0, 1);
 	c.r = fclamp(c.r*tc.r, 0, 1);
@@ -313,7 +313,7 @@ identshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
-	c.a = fclamp(sp->v.c.a*tc.a, 0, 1);
+	c.a = 1;
 	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
 	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
 	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
