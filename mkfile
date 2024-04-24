@@ -1,10 +1,11 @@
 </$objtype/mkfile
 
 BIN=$home/bin/$objtype
-TARG=3d
+TARG=\
+	vis\
+
 OFILES=\
 	alloc.$O\
-	main.$O\
 
 HFILES=dat.h fns.h
 
@@ -12,7 +13,7 @@ LIB=\
 	libobj/libobj.a$O\
 	libgraphics/libgraphics.a$O\
 
-</sys/src/cmd/mkone
+</sys/src/cmd/mkmany
 
 libgraphics/libgraphics.a$O:
 	cd libgraphics
@@ -40,4 +41,4 @@ clean nuke:V:
 	@{cd libobj; mk $target}
 
 uninstall:V:
-	rm -f $BIN/$TARG
+	rm -f $BIN/^$TARG
