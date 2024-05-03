@@ -1,0 +1,8 @@
+newmtl x
+Kd 1 0 0
+
+newmtl y
+Kd 0 1 0
+
+newmtl z
+Kd 0 0 1

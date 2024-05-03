@@ -1,0 +1,12 @@
+mtllib basis.mtl
+v 0 0 0
+v 1 0 0
+v 0 1 0
+v 0 0 1
+p 1
+usemtl x
+p 2
+usemtl y
+p 3
+usemtl z
+p 4

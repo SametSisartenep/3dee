@@ -119,20 +119,13 @@ gouraudvshader(VSparams *sp)
 	double spec;
 	Point3 pos, lightdir, lookdir;
 	Material m;
-	Color a, d, s;
 	Color ambient, diffuse, specular;
 
 	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
 	pos = model2world(sp->su->entity, sp->v->p);
 	if(sp->v->mtl != nil){
-		a.r = sp->v->mtl->Ka.r; a.g = sp->v->mtl->Ka.g; a.b = sp->v->mtl->Ka.b; a.a = 1;
-		d.r = sp->v->mtl->Kd.r; d.g = sp->v->mtl->Kd.g; d.b = sp->v->mtl->Kd.b; d.a = 1;
-		s.r = sp->v->mtl->Ks.r; s.g = sp->v->mtl->Ks.g; s.b = sp->v->mtl->Ks.b; s.a = 1;
-		m.ambient = a;
-		m.diffuse = d;
-		m.specular = s;
-		m.shininess = sp->v->mtl->Ns;
+		m = *sp->v->mtl;
 
 		ambient = mulpt3(light.c, Ka);
 		ambient.r *= m.ambient.r;
@@ -167,9 +160,9 @@ gouraudshader(FSparams *sp)
 {
 	Color tc, c;
 
-	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
-	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0){
+		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	}else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
@@ -194,10 +187,10 @@ phongvshader(VSparams *sp)
 	pos = model2world(sp->su->entity, sp->v->p);
 	addvattr(sp->v, "pos", VAPoint, &pos);
 	if(sp->v->mtl != nil){
-		a.r = sp->v->mtl->Ka.r; a.g = sp->v->mtl->Ka.g; a.b = sp->v->mtl->Ka.b; a.a = 1;
-		d.r = sp->v->mtl->Kd.r; d.g = sp->v->mtl->Kd.g; d.b = sp->v->mtl->Kd.b; d.a = 1;
-		s.r = sp->v->mtl->Ks.r; s.g = sp->v->mtl->Ks.g; s.b = sp->v->mtl->Ks.b; s.a = 1;
-		ss = sp->v->mtl->Ns;
+		a = sp->v->mtl->ambient;
+		d = sp->v->mtl->diffuse;
+		s = sp->v->mtl->specular;
+		ss = sp->v->mtl->shininess;
 		addvattr(sp->v, "ambient", VAPoint, &a);
 		addvattr(sp->v, "diffuse", VAPoint, &d);
 		addvattr(sp->v, "specular", VAPoint, &s);
@@ -253,8 +246,8 @@ phongshader(FSparams *sp)
 	specular.b *= m.specular.b;
 	specular.a *= m.specular.a;
 
-	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
+		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
@@ -279,12 +272,8 @@ identvshader(VSparams *sp)
 	lightdir = normvec3(subpt3(light.p, pos));
 	intens = fmax(0, dotvec3(sp->v->n, lightdir));
 	addvattr(sp->v, "intensity", VANumber, &intens);
-	if(sp->v->mtl != nil){
-		sp->v->c.r = sp->v->mtl->Kd.r;
-		sp->v->c.g = sp->v->mtl->Kd.g;
-		sp->v->c.b = sp->v->mtl->Kd.b;
-		sp->v->c.a = 1;
-	}
+	if(sp->v->mtl != nil)
+		sp->v->c = sp->v->mtl->diffuse;
 	return world2clip(maincam, pos);
 }
 
@@ -306,8 +295,8 @@ identshader(FSparams *sp)
 {
 	Color tc, c;
 
-	if(sp->v.mtl != nil && sp->v.mtl->map_Kd != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->map_Kd, sp->v.uv, tsampler);
+	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
+		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
@@ -747,6 +736,7 @@ threadmain(int argc, char *argv[])
 	Viewport *v;
 	Renderer *rctl;
 	Channel *keyc;
+	OBJ *obj;
 	char *texpath, *norpath, *sname, *mdlpath;
 	int i, fd;
 
@@ -779,8 +769,11 @@ threadmain(int argc, char *argv[])
 		subject->p.x = argc*4;
 		scene->addent(scene, subject);
 
-		if((model->obj = objparse(mdlpath)) == nil)
+		if((obj = objparse(mdlpath)) == nil)
 			sysfatal("objparse: %r");
+		loadobjmodel(model, obj);
+		objfree(obj);
+
 		if(argc == 0 && texpath != nil){
 			fd = open(texpath, OREAD);
 			if(fd < 0)
@@ -797,7 +790,6 @@ threadmain(int argc, char *argv[])
 				sysfatal("readmemimage: %r");
 			close(fd);
 		}
-		refreshmodel(model);
 	}
 
 	if(memimageinit() != 0)
