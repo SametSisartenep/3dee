@@ -36,7 +36,7 @@ pulldeps:VQ: nuke∅dirs
 	@{cd libgraphics; mk $target}
 
 clean nuke:V:
-	rm -f *.[$OS] [$OS].out $TARG
+	rm -f *.[$OS] [$OS].out [$OS].^$TARG
 	@{cd libgraphics; mk $target}
 	@{cd libobj; mk $target}
 
