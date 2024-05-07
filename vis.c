@@ -496,6 +496,12 @@ drawproc(void *)
 	t0 = nsec();
 	for(;;){
 		shootcamera(maincam, shader);
+		if(doprof)
+		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
+			maincam->times.R[maincam->times.cur-1].t0, maincam->times.R[maincam->times.cur-1].t1,
+			maincam->times.E[maincam->times.cur-1].t0, maincam->times.E[maincam->times.cur-1].t1,
+			maincam->times.Tn[maincam->times.cur-1].t0, maincam->times.Tn[maincam->times.cur-1].t1,
+			maincam->times.Rn[maincam->times.cur-1].t0, maincam->times.Rn[maincam->times.cur-1].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			nbsend(drawc, nil);
