@@ -1,0 +1,13 @@
+</$objtype/mkfile
+
+BIN=$home/bin/$objtype
+TARG=\
+	plmon\
+
+OFILES=\
+	../alloc.$O\
+
+</sys/src/cmd/mkmany
+
+uninstall:V:
+	rm -f $BIN/^$TARG
