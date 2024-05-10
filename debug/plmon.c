@@ -16,6 +16,7 @@ enum {
 	CMain,
 	CBack,
 	CTdelim,
+	CSelect,
 	NCOLOR,
 };
 
@@ -106,6 +107,9 @@ initcolors(void)
 	pal[CMain] = display->black;
 	pal[CBack] = display->white;
 	pal[CTdelim] = eallocimage(display, UR, screen->chan, 1, 0xEEEEEEff);
+	pal[CSelect] = eallocimage(display, Rect(0,0,2,2), screen->chan, 1, DWhite);
+	draw(pal[CSelect], UR, display->black, nil, ZP);
+	draw(pal[CSelect], rectaddpt(UR, Pt(1,1)), display->black, nil, ZP);
 }
 
 void
@@ -124,6 +128,25 @@ lmb(Mousectl *mc)
 			graphrf.p.x = Graphoff;
 		redraw();
 	}
+}
+
+void
+mmb(Mousectl *mc)
+{
+	enum {
+		QUIT,
+	};
+	static char *items[] = {
+	 [QUIT]	"quit",
+		nil,
+	};
+	static Menu menu = { .item = items };
+
+	switch(menuhit(2, mc, &menu, _screen)){
+	case QUIT:
+		threadexitsall(nil);
+	}
+	nbsend(drawc, nil);
 }
 
 void
@@ -191,6 +214,8 @@ mouse(Mousectl *mc)
 {
 	if(mc->buttons & 1)
 		lmb(mc);
+	if(mc->buttons & 2)
+		mmb(mc);
 	if(mc->buttons & 4)
 		rmb(mc);
 	if(mc->buttons & 8)
@@ -256,7 +281,7 @@ redraw(void)
 //	snprint(info, sizeof info, "t(%s) %.0f/px", units[abs(scale)/3], mag);
 	snprint(info, sizeof info, "t(%s)", units[abs(scale)/3]);
 	if(curts != nil)
-		snprint(info+strlen(info), sizeof(info)-strlen(info), " t0 %llud t1 %llud", curts->t0, curts->t1);
+		snprint(info+strlen(info), sizeof(info)-strlen(info), " t0 %.2f t1 %.2f Δt %.2f", curts->t0*pow10(scale-(scale%3)), curts->t1*pow10(scale-(scale%3)), (curts->t1 - curts->t0)*pow10(scale-(scale%3)));
 	string(screen, addpt(screen->r.min, Pt(Graphoff+2,0)), pal[CMain], ZP, font, info);
 	line(screen, addpt(screen->r.min, Pt(0, Graphoff)), addpt(screen->r.min, Pt(Dx(screen->r), Graphoff)), 0, 0, 0, pal[CMain], ZP);
 
@@ -279,7 +304,7 @@ redraw(void)
 			r.max = Pt(p.x+1,p.y);
 			if(r.min.x < Graphoff)
 				r.min.x = Graphoff;
-			draw(screen, rectaddpt(r, screen->r.min), pal[CMain], nil, ZP);
+			draw(screen, rectaddpt(r, screen->r.min), s == curts? pal[CSelect]: pal[CMain], nil, ZP);
 		}
 	}
 	line(screen, addpt(screen->r.min, Pt(Graphoff, 0)), addpt(screen->r.min, Pt(Graphoff, Dy(screen->r))), 0, 0, 0, pal[CMain], ZP);
