@@ -351,6 +351,7 @@ threadmain(int argc, char *argv[])
 			continue;
 		addt(f[0], s);
 	}
+	Bterm(bin);
 
 	if(initdraw(nil, nil, "plmon") < 0)
 		sysfatal("initdraw: %r");
