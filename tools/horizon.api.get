@@ -1,0 +1,29 @@
+#!/bin/rc
+#
+# NASA JPL Horizons API
+# https://ssd.jpl.nasa.gov/horizons/
+#
+rfork ne
+center=()
+target=()
+t0=()
+t1=()
+step=()
+flagfmt=''
+args='center target t0 t1 step'
+
+fn usage {
+	aux/usage
+	exit usage
+}
+
+if(! ifs=() eval `{aux/getflags $*} || ! ~ $#* 5)
+	usage
+
+center=$1
+target=$2
+t0=$3
+t1=$4
+step=$5
+
+hget 'https://ssd.jpl.nasa.gov/api/horizons.api?format=text&COMMAND='''$target'''&OBJ_DATA=''YES''&MAKE_EPHEM=''YES''&EPHEM_TYPE=''VECTORS''&CENTER='''$center'''&START_TIME='''$t0'''&STOP_TIME='''$t1'''&STEP_SIZE='''$step'''&VEC_TABLE=''1'''

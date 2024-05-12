@@ -1,0 +1,31 @@
+#!/bin/rc
+rfork ne
+cwd=`{basename -d $0}
+center='@sun'
+target=()
+t0=`{date -f 'YYYY-MM-DD' `{echo `{date -n} - 86400 | bc}}
+t1=`{date -f 'YYYY-MM-DD'}
+step='1 d'
+flagfmt=''
+args='target [t0 t1]'
+
+fn usage {
+	aux/usage
+	exit usage
+}
+
+if(! ifs=() eval `{aux/getflags $*})
+	usage
+
+switch($#*){
+case 1
+	target=$1
+case 3
+	target=$1
+	t0=$2
+	t1=$3
+case *
+	usage
+}
+
+$cwd^/horizon.api.get $center $target $t0 $t1 $step | $cwd^/horizon.getdata.awk | tr A-Z a-z

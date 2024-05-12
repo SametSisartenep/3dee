@@ -3,6 +3,7 @@
 BIN=$home/bin/$objtype
 TARG=\
 	vis\
+	solar\
 
 OFILES=\
 	alloc.$O\
