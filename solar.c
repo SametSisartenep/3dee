@@ -81,7 +81,7 @@ struct Cmdbut
 {
 	char *label;
 	Rectangle r;
-	void (*handler)(Cmdbut*, Mousectl*);
+	void (*handler)(Cmdbut*);
 };
 
 struct Cmdbox
@@ -122,6 +122,7 @@ Planet planets[] = {
 	{ .id = 9,	.name = "Pluto",	.scale = 0.166666 },
 };
 char stats[Se][256];
+char datefmt[] = "YYYY-MM-DD";
 Rectangle viewr, cmdr;
 Cmdbox cmdbox;
 Image *screenb;
@@ -129,6 +130,8 @@ Mousectl *mctl;
 Keyboardctl *kctl;
 Channel *drawc;
 int kdown;
+Tm date;
+char datestr[16];
 Model *model;
 Scene *scene;
 double θ, ω = 0;
@@ -178,16 +181,21 @@ sailor(void *arg)
 }
 
 static char *
-getplanetstate(int id, char *t0, char *t1)
+getplanetstate(int id, Tm *t)
 {
 	Biobuf *bin;
-	char *line, *lastline;
+	char *line, *lastline, t0[16], t1[16];
 	HReq r;
 
+	lastline = nil;
 	r.pid = id;
 	r.t0 = t0;
 	r.t1 = t1;
-	lastline = nil;
+
+	snprint(t1, sizeof t1, "%τ", tmfmt(t, datefmt));
+	t->mday--;
+	snprint(t0, sizeof t0, "%τ", tmfmt(t, datefmt));
+	t->mday++;
 
 	if(pipe(r.pfd) < 0)
 		sysfatal("pipe: %r");
@@ -212,6 +220,32 @@ getplanetstate(int id, char *t0, char *t1)
 	}
 
 	return lastline;
+}
+
+void
+updateplanets(void)
+{
+	char *s, *p;
+	int i;
+
+	fprint(2, "loading planet states...\n");
+	for(i = 1; i < nelem(planets); i++){
+		s = getplanetstate(planets[i].id, &date);
+		if(s == nil){
+			fprint(2, "couldn't load planet: %s", planets[i].name);
+			continue;
+		}
+		p = strchr(s, '=');
+		planets[i].body->p.x = strtod(++p, nil);
+		p = strchr(p, '=');
+		planets[i].body->p.y = strtod(++p, nil);
+		p = strchr(p, '=');
+		planets[i].body->p.z = strtod(++p, nil);
+		planets[i].body->p.w = 1;
+		planets[i].body->p = divpt3(planets[i].body->p, 1e5);
+		free(s);
+		fprint(2, "%s ready\n", planets[i].name);
+	}
 }
 
 static Planet *
@@ -352,13 +386,13 @@ genplanetmenu(int idx)
 }
 
 void
-lookat_cmd(Cmdbut *, Mousectl *mc)
+lookat_cmd(Cmdbut *)
 {
 	static Menu menu = { .gen = genplanetmenu };
 	Planet *p;
 	int idx;
 
-	idx = menuhit(1, mc, &menu, _screen);
+	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx < 0)
 		return;
 	p = &planets[idx];
@@ -367,13 +401,13 @@ lookat_cmd(Cmdbut *, Mousectl *mc)
 }
 
 void
-goto_cmd(Cmdbut *, Mousectl *mc)
+goto_cmd(Cmdbut *)
 {
 	static Menu menu = { .gen = genplanetmenu };
 	Planet *p;
 	int idx;
 
-	idx = menuhit(1, mc, &menu, _screen);
+	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx < 0)
 		return;
 	p = &planets[idx];
@@ -381,9 +415,26 @@ goto_cmd(Cmdbut *, Mousectl *mc)
 	nbsend(drawc, nil);
 }
 
+void
+date_cmd(Cmdbut *)
+{
+	Tm t;
+	char buf[16];
+
+	memmove(buf, datestr, sizeof buf);
+	if(enter("new date", buf, sizeof buf, mctl, kctl, nil) <= 0)
+		return;
+	if(tmparse(&t, datefmt, buf, nil, nil) == nil)
+		return;
+	date = t;
+	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
+	updateplanets();
+}
+
 Cmdbut cmds[] = {
 	{ .label = "look at", .handler = lookat_cmd },
 	{ .label = "go to", .handler = goto_cmd },
+	{ .label = datestr, .handler = date_cmd },
 };
 
 void
@@ -399,7 +450,7 @@ lmb(void)
 
 	if(cmd == nil)
 		return;
-	cmd->handler(cmd, mctl);
+	cmd->handler(cmd);
 }
 
 void
@@ -580,9 +631,9 @@ threadmain(int argc, char *argv[])
 	Entity *subject;
 	OBJ *obj;
 	Point lblsiz;
-	char *s, *p;
 	int i, j;
 
+	tmfmtinstall();
 	GEOMfmtinstall();
 	ARGBEGIN{
 	case 'p': doprof++; break;
@@ -599,10 +650,8 @@ threadmain(int argc, char *argv[])
 	loadobjmodel(model, obj);
 	objfree(obj);
 	scene = newscene(nil);
-	fprint(2, "loading planet states...\n");
 	for(i = 0; i < nelem(planets); i++){
 		subject = newentity(model);
-//		subject->p.x = i*2e3;
 		scene->addent(scene, subject);
 		planets[i].body = subject;
 		for(j = 0; j < model->nmaterials; j++)
@@ -612,20 +661,10 @@ threadmain(int argc, char *argv[])
 			subject->p = Pt3(0,0,0,1);
 			continue;
 		}
-		s = getplanetstate(planets[i].id, nil, nil);
-		if(s == nil)
-			sysfatal("couldn't load planet: %s", planets[i].name);
-		p = strchr(s, '=');
-		subject->p.x = strtod(++p, nil);
-		p = strchr(p, '=');
-		subject->p.y = strtod(++p, nil);
-		p = strchr(p, '=');
-		subject->p.z = strtod(++p, nil);
-		subject->p.w = 1;
-		subject->p = divpt3(subject->p, 1e5);
-		free(s);
-		fprint(2, "%s ready\n", planets[i].name);
 	}
+	tmnow(&date, nil);
+	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
+	updateplanets();
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
