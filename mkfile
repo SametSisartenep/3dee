@@ -7,6 +7,7 @@ TARG=\
 
 OFILES=\
 	alloc.$O\
+	qb.$O\
 
 HFILES=dat.h fns.h
 

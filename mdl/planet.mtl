@@ -1,6 +1,5 @@
 newmtl Sol
 Kd 1.0 1.0 1.0
-map_Kd sol_diffuse.jpg
 
 newmtl Mercury
 Kd 1.0 1.0 1.0

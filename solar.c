@@ -109,17 +109,17 @@ Rune keys[Ke] = {
  [Khud]		= 'h',
 };
 Planet planets[] = {
-	{ .id = 10,	.name = "Sol",		.scale = 100 },
-	{ .id = 1,	.name = "Mercury",	.scale = 0.333333 },
-	{ .id = 2,	.name = "Venus",	.scale = 0.8 },
-	{ .id = 399,	.name = "Earth",	.scale = 1 },
-	{ .id = 301,	.name = "Luna",		.scale = 0.25 },
-	{ .id = 4,	.name = "Mars",		.scale = 0.5 },
-	{ .id = 5,	.name = "Jupiter",	.scale = 11 },
-	{ .id = 6,	.name = "Saturn",	.scale = 9 },
-	{ .id = 7,	.name = "Uranus",	.scale = 4 },
-	{ .id = 8,	.name = "Neptune",	.scale = 3.666666 },
-	{ .id = 9,	.name = "Pluto",	.scale = 0.166666 },
+	{ .id = 10,	.name = "Sol",		.scale = 695700 },
+	{ .id = 1,	.name = "Mercury",	.scale = 2439.4 },
+	{ .id = 2,	.name = "Venus",	.scale = 6051.8 },
+	{ .id = 399,	.name = "Earth",	.scale = 6371.0084 },
+	{ .id = 301,	.name = "Luna",		.scale = 1737.4 },
+	{ .id = 4,	.name = "Mars",		.scale = 3389.50 },
+	{ .id = 5,	.name = "Jupiter",	.scale = 69911 },
+	{ .id = 6,	.name = "Saturn",	.scale = 58232 },
+	{ .id = 7,	.name = "Uranus",	.scale = 25362 },
+	{ .id = 8,	.name = "Neptune",	.scale = 24622 },
+	{ .id = 9,	.name = "Pluto",	.scale = 1188.3 },
 };
 char stats[Se][256];
 char datefmt[] = "YYYY-MM-DD";
@@ -129,12 +129,12 @@ Image *screenb;
 Mousectl *mctl;
 Keyboardctl *kctl;
 Channel *drawc;
+Mouse om;
 int kdown;
 Tm date;
 char datestr[16];
 Model *model;
 Scene *scene;
-double θ, ω = 0;
 
 Camera camera;
 Camcfg cameracfg = {
@@ -144,7 +144,9 @@ Camcfg cameracfg = {
 	80*DEG, 0.01, 1e12, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
+double speed = 10;
 
+static int museummode;
 static int doprof;
 static int showhud;
 
@@ -242,7 +244,6 @@ updateplanets(void)
 		p = strchr(p, '=');
 		planets[i].body->p.z = strtod(++p, nil);
 		planets[i].body->p.w = 1;
-		planets[i].body->p = divpt3(planets[i].body->p, 1e5);
 		free(s);
 		fprint(2, "%s ready\n", planets[i].name);
 	}
@@ -288,15 +289,13 @@ identshader(FSparams *sp)
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
 		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
-	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, neartexsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
 	c.a = 1;
-	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
-	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
-	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
+	c.b = fclamp(tc.b, 0, 1);
+	c.g = fclamp(tc.g, 0, 1);
+	c.r = fclamp(tc.r, 0, 1);
 
 	return c;
 }
@@ -411,7 +410,7 @@ goto_cmd(Cmdbut *)
 	if(idx < 0)
 		return;
 	p = &planets[idx];
-	placecamera(&camera, addpt3(p->body->p, Vec3(0,0,10)), p->body->p, cameracfg.up);
+	placecamera(&camera, addpt3(p->body->p, Vec3(0,0,1.5*p->scale)), p->body->p, cameracfg.up);
 	nbsend(drawc, nil);
 }
 
@@ -420,6 +419,9 @@ date_cmd(Cmdbut *)
 {
 	Tm t;
 	char buf[16];
+
+	if(museummode)
+		return;
 
 	memmove(buf, datestr, sizeof buf);
 	if(enter("new date", buf, sizeof buf, mctl, kctl, nil) <= 0)
@@ -443,6 +445,13 @@ lmb(void)
 	Cmdbut *cmd;
 	int i;
 
+	if(ptinrect(subpt(mctl->xy, screen->r.min), viewr) && (om.buttons^mctl->buttons) == 0){
+		return;
+	}
+
+	if((om.buttons ^ mctl->buttons) == 0)
+		return;
+
 	cmd = nil;
 	for(i = 0; i < cmdbox.ncmds; i++)
 		if(ptinrect(subpt(mctl->xy, screen->r.min), cmdbox.cmds[i].r))
@@ -457,15 +466,27 @@ void
 mmb(void)
 {
 	enum {
+		CHGSPEED,
 		QUIT,
 	};
 	static char *items[] = {
+	 [CHGSPEED]	"change speed",
 	 [QUIT]	"quit",
 		nil,
 	};
 	static Menu menu = { .item = items };
+	char buf[128];
+
+	if((om.buttons ^ mctl->buttons) == 0)
+		return;
 
 	switch(menuhit(2, mctl, &menu, _screen)){
+	case CHGSPEED:
+		snprint(buf, sizeof buf, "%g", speed);
+		if(enter("speed (km)", buf, sizeof buf, mctl, kctl, nil) <= 0)
+			return;
+		speed = fabs(strtod(buf, nil));
+		break;
 	case QUIT:
 		threadexitsall(nil);
 	}
@@ -475,10 +496,6 @@ mmb(void)
 void
 mouse(void)
 {
-	static Mouse om;
-
-	if((om.buttons ^ mctl->buttons) == 0)
-		return;
 	if((mctl->buttons & 1) != 0)
 		lmb();
 	if((mctl->buttons & 2) != 0)
@@ -555,17 +572,17 @@ handlekeys(void)
 	static int okdown;
 
 	if(kdown & 1<<K↑)
-		placecamera(&camera, subpt3(camera.p, mulpt3(camera.bz, 0.1)), camera.bz, camera.by);
+		placecamera(&camera, subpt3(camera.p, mulpt3(camera.bz, speed)), camera.bz, camera.by);
 	if(kdown & 1<<K↓)
-		placecamera(&camera, addpt3(camera.p, mulpt3(camera.bz, 0.1)), camera.bz, camera.by);
+		placecamera(&camera, addpt3(camera.p, mulpt3(camera.bz, speed)), camera.bz, camera.by);
 	if(kdown & 1<<K←)
-		placecamera(&camera, subpt3(camera.p, mulpt3(camera.bx, 0.1)), camera.bz, camera.by);
+		placecamera(&camera, subpt3(camera.p, mulpt3(camera.bx, speed)), camera.bz, camera.by);
 	if(kdown & 1<<K→)
-		placecamera(&camera, addpt3(camera.p, mulpt3(camera.bx, 0.1)), camera.bz, camera.by);
+		placecamera(&camera, addpt3(camera.p, mulpt3(camera.bx, speed)), camera.bz, camera.by);
 	if(kdown & 1<<Krise)
-		placecamera(&camera, addpt3(camera.p, mulpt3(camera.by, 0.1)), camera.bz, camera.by);
+		placecamera(&camera, addpt3(camera.p, mulpt3(camera.by, speed)), camera.bz, camera.by);
 	if(kdown & 1<<Kfall)
-		placecamera(&camera, subpt3(camera.p, mulpt3(camera.by, 0.1)), camera.bz, camera.by);
+		placecamera(&camera, subpt3(camera.p, mulpt3(camera.by, speed)), camera.bz, camera.by);
 	if(kdown & 1<<KR↑)
 		aimcamera(&camera, qrotate(camera.bz, camera.bx, 1*DEG));
 	if(kdown & 1<<KR↓)
@@ -618,7 +635,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s\n", argv0);
+	fprint(2, "usage: %s [-m]\n", argv0);
 	exits("usage");
 }
 
@@ -636,6 +653,7 @@ threadmain(int argc, char *argv[])
 	tmfmtinstall();
 	GEOMfmtinstall();
 	ARGBEGIN{
+	case 'm': museummode++; break;
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
@@ -649,6 +667,15 @@ threadmain(int argc, char *argv[])
 	model = newmodel();
 	loadobjmodel(model, obj);
 	objfree(obj);
+	/*
+	 * normalize the vertices so that we can scale
+	 * each planet based on its radius
+	 */
+	for(i = 0; i < model->nprims; i++)
+		for(j = 0; j < model->prims[i].type+1; j++){
+			model->prims[i].v[j].p = normvec3(model->prims[i].v[j].p);
+			model->prims[i].v[j].p.w = 1;
+		}
 	scene = newscene(nil);
 	for(i = 0; i < nelem(planets); i++){
 		subject = newentity(model);
@@ -660,11 +687,13 @@ threadmain(int argc, char *argv[])
 		if(i == 0){
 			subject->p = Pt3(0,0,0,1);
 			continue;
-		}
+		}else if(museummode)
+			subject->p.x = planets[i-1].body->p.x + 1.5*planets[i-1].scale + planets[i].scale;
 	}
 	tmnow(&date, nil);
 	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
-	updateplanets();
+	if(!museummode)
+		updateplanets();
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");

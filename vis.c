@@ -50,7 +50,7 @@ Shadertab *shader;
 Model *model;
 Entity *subject;
 Scene *scene;
-double θ, ω = 0;
+Quaternion orient = {1,0,0,0};
 
 Camera cams[4], *maincam;
 Camcfg camcfgs[4] = {
@@ -94,21 +94,17 @@ max(int a, int b)
 	return a > b? a: b;
 }
 
-//void
-//drawaxis(void)
-//{
-//	Point3	op = Pt3(0,0,0,1),
-//		px = Pt3(1,0,0,1),
-//		py = Pt3(0,1,0,1),
-//		pz = Pt3(0,0,1,1);
-//
-//	line3(maincam, op, px, 0, Endarrow, display->black);
-//	string3(maincam, px, display->black, font, "x");
-//	line3(maincam, op, py, 0, Endarrow, display->black);
-//	string3(maincam, py, display->black, font, "y");
-//	line3(maincam, op, pz, 0, Endarrow, display->black);
-//	string3(maincam, pz, display->black, font, "z");
-//}
+static Point3
+Vecquat(Quaternion q)
+{
+	return Vec3(q.i, q.j, q.k);
+}
+
+static Point3
+Ptquat(Quaternion q, double w)
+{
+	return Pt3(q.i, q.j, q.k, w);
+}
 
 Point3
 gouraudvshader(VSparams *sp)
@@ -121,8 +117,8 @@ gouraudvshader(VSparams *sp)
 	Material m;
 	Color ambient, diffuse, specular;
 
-	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
+	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
 	pos = model2world(sp->su->entity, sp->v->p);
 	if(sp->v->mtl != nil){
 		m = *sp->v->mtl;
@@ -182,8 +178,8 @@ phongvshader(VSparams *sp)
 	Color a, d, s;
 	double ss;
 
-	sp->v->n = qrotate(sp->v->n, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
-	sp->v->p = qrotate(sp->v->p, Vec3(0,1,0), θ+fmod(ω*sp->su->uni_time/1e9, 2*PI));
+	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
+	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
 	pos = model2world(sp->su->entity, sp->v->p);
 	addvattr(sp->v, "pos", VAPoint, &pos);
 	if(sp->v->mtl != nil){
@@ -268,6 +264,8 @@ identvshader(VSparams *sp)
 	Point3 pos, lightdir;
 	double intens;
 
+	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
+	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
 	pos = model2world(sp->su->entity, sp->v->p);
 	lightdir = normvec3(subpt3(light.p, pos));
 	intens = fmax(0, dotvec3(sp->v->n, lightdir));
@@ -313,6 +311,8 @@ identshader(FSparams *sp)
 Point3
 ivshader(VSparams *sp)
 {
+	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
+	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
 	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
 }
 
@@ -468,7 +468,6 @@ redraw(void)
 	maincam->vp->draw(maincam->vp, screenb);
 	draw(screen, screen->r, bg, nil, ZP);
 	draw(screen, screen->r, screenb, nil, ZP);
-//	drawaxis();
 	if(showhud)
 		drawstats();
 	flushimage(display, 1);
@@ -512,9 +511,19 @@ drawproc(void *)
 				if((model->tex = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
-			light.p = qrotate(light.p, Vec3(0,1,0), θ+fmod(ω*Δt/1e9, 2*PI));
 		}
 	}
+}
+
+void
+lmb(void)
+{
+	static Mouse om;
+
+	if((om.buttons^mctl->buttons) == 0)
+		qb(screen->r, om.xy, mctl->xy, &orient, nil);
+
+	om = mctl->Mouse;
 }
 
 void
@@ -583,6 +592,8 @@ rmb(void)
 void
 mouse(void)
 {
+	if((mctl->buttons & 1) != 0)
+		lmb();
 	if((mctl->buttons & 2) != 0)
 		mmb();
 	if((mctl->buttons & 4) != 0)
@@ -732,7 +743,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-t texture] [-n normals] [-s shader] [-ω yrot] model...\n", argv0);
+	fprint(2, "usage: %s [-t texture] [-n normals] [-s shader] model...\n", argv0);
 	exits("usage");
 }
 
@@ -754,7 +765,6 @@ threadmain(int argc, char *argv[])
 	case 't': texpath = EARGF(usage()); break;
 	case 'n': norpath = EARGF(usage()); break;
 	case 's': sname = EARGF(usage()); break;
-	case L'ω': ω = strtod(EARGF(usage()), nil)*DEG; break;
 	case L'ι': inception++; break;
 	case 'p': doprof++; break;
 	default: usage();
