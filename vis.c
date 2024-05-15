@@ -50,6 +50,7 @@ Shadertab *shader;
 Model *model;
 Entity *subject;
 Scene *scene;
+Mouse om;
 Quaternion orient = {1,0,0,0};
 
 Camera cams[4], *maincam;
@@ -452,6 +453,7 @@ drawstats(void)
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", maincam->bz);
 	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !maincam->stats.max? 0: 1e9/maincam->stats.max, !maincam->stats.avg? 0: 1e9/maincam->stats.avg, !maincam->stats.min? 0: 1e9/maincam->stats.min, !maincam->stats.v? 0: 1e9/maincam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", maincam->stats.nframes);
+	snprint(stats[Sorient], sizeof(stats[Sorient]), "ℍ %V", (Point3)orient);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -518,12 +520,8 @@ drawproc(void *)
 void
 lmb(void)
 {
-	static Mouse om;
-
 	if((om.buttons^mctl->buttons) == 0)
-		qb(screen->r, om.xy, mctl->xy, &orient, nil);
-
-	om = mctl->Mouse;
+		qball(screen->r, om.xy, mctl->xy, &orient, nil);
 }
 
 void
@@ -602,6 +600,7 @@ mouse(void)
 		zoomin();
 	if((mctl->buttons & 16) != 0)
 		zoomout();
+	om = mctl->Mouse;
 }
 
 void

@@ -28,5 +28,6 @@ enum {
 	Scambx, Scamby, Scambz,
 	Sfps,
 	Sframes,
+	Sorient,
 	Se
 };

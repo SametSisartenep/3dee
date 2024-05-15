@@ -15,11 +15,7 @@
 #include "libgraphics/graphics.h"
 #include "fns.h"
 
-static int
-min(int a, int b)
-{
-	return a < b? a: b;
-}
+#define MIN(a, b)	((a)<(b)?(a):(b))
 
 /*
  * Convert a mouse point into a unit quaternion, flattening if
@@ -32,14 +28,13 @@ mouseq(Point2 p, Quaternion *axis)
 	Quaternion q;
 	double rsq = p.x*p.x + p.y*p.y;	/* quadrance */
 
+	q.r = 0;
 	if(rsq > 1){	/* outside the sphere */
-		rsq = sqrt(rsq);
-		q.r = 0;
-		q.i = p.x/rsq;
-		q.j = p.y/rsq;
+		rsq = 1/sqrt(rsq);
+		q.i = p.x*rsq;
+		q.j = p.y*rsq;
 		q.k = 0;
-	}else{		/* within the sphere */
-		q.r = 0;
+	}else{
 		q.i = p.x;
 		q.j = p.y;
 		q.k = sqrt(1 - rsq);
@@ -62,25 +57,24 @@ mouseq(Point2 p, Quaternion *axis)
 }
 
 void
-qb(Rectangle r, Point p0, Point p1, Quaternion *orient, Quaternion *axis)
+qball(Rectangle r, Point p0, Point p1, Quaternion *orient, Quaternion *axis)
 {
-	Quaternion q, down;
+	Quaternion qdown, qdrag;
 	Point2 rmin, rmax;
-	Point2 s0, s1;	/* screen coords */
 	Point2 v0, v1;	/* unit sphere coords */
 	Point2 ctlcen;	/* controller center */
 	double ctlrad;	/* controller radius */
 
+	if(orient == nil)
+		return;
+
 	rmin = Vec2(r.min.x, r.min.y);
 	rmax = Vec2(r.max.x, r.max.y);
-	s0 = Vec2(p0.x, p0.y);
-	s1 = Vec2(p1.x, p1.y);
 	ctlcen = divpt2(addpt2(rmin, rmax), 2);
-	ctlrad = min(Dx(r), Dy(r));
-	v0 = divpt2(subpt2(s0, ctlcen), ctlrad);
-	down = invq(mouseq(v0, axis));
-
-	q = *orient;
-	v1 = divpt2(subpt2(s1, ctlcen), ctlrad);
-	*orient = mulq(q, mulq(down, mouseq(v1, axis)));
+	ctlrad = MIN(Dx(r)/2, Dy(r)/2);
+	v0 = divpt2(Vec2(p0.x-ctlcen.x, ctlcen.y-p0.y), ctlrad);
+	v1 = divpt2(Vec2(p1.x-ctlcen.x, ctlcen.y-p1.y), ctlrad);
+	qdown = mouseq(v0, axis);
+	qdrag = mulq(mouseq(v1, axis), qdown);
+	*orient = mulq(qdrag, *orient);
 }
