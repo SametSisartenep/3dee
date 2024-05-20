@@ -36,6 +36,7 @@ enum {
 	Scambx, Scamby, Scambz,
 	Sfps,
 	Sframes,
+	Splanet,
 	Se
 };
 
@@ -121,6 +122,7 @@ Planet planets[] = {
 	{ .id = 8,	.name = "Neptune",	.scale = 24622 },
 	{ .id = 9,	.name = "Pluto",	.scale = 1188.3 },
 };
+Planet *selplanet;
 char stats[Se][256];
 char datefmt[] = "YYYY-MM-DD";
 Rectangle viewr, cmdr;
@@ -133,12 +135,11 @@ Mouse om;
 int kdown;
 Tm date;
 char datestr[16];
-Model *model;
 Scene *scene;
 
 Camera camera;
 Camcfg cameracfg = {
-	2,0,4,1,
+	0,0,0,1,
 	0,0,0,1,
 	0,1,0,0,
 	80*DEG, 0.01, 1e12, PERSPECTIVE
@@ -250,7 +251,18 @@ updateplanets(void)
 }
 
 static Planet *
-getplanet(Entity *e)
+getplanet(char *name)
+{
+	int i;
+
+	for(i = 0; i < nelem(planets); i++)
+		if(strcmp(planets[i].name, name) == 0)
+			return &planets[i];
+	return nil;
+}
+
+static Planet *
+getentityplanet(Entity *e)
 {
 	int i;
 
@@ -260,13 +272,55 @@ getplanet(Entity *e)
 	return nil;
 }
 
+static void
+gotoplanet(Planet *p)
+{
+	placecamera(&camera, addpt3(p->body->p, Vec3(0,0,1.5*p->scale)), p->body->p, cameracfg.up);
+}
+
+/*
+ * ray-sphere (planet) intersection
+ */
+int
+rayXsphere(Point3 *rp, Point3 p0, Point3 u, Point3 c, double r)
+{
+	Point3 dp;
+	double u·dp, Δ, d;
+	int n;
+
+	dp = subpt3(p0, c);
+	u·dp = dotvec3(u, dp);
+	if(u·dp > 0)	/* ignore what's behind */
+		return 0;
+
+	Δ = u·dp*u·dp - dotvec3(dp, dp) + r*r;
+	if(Δ < 0)		/* no intersection */
+		n = 0;
+	else if(Δ == 0){	/* tangent */
+		if(rp != nil){
+			d = -u·dp;
+			rp[0] = addpt3(p0, mulpt3(u, d));
+		}
+		n = 1;
+	}else{			/* secant */
+		if(rp != nil){
+			d = -u·dp + sqrt(Δ);
+			rp[0] = addpt3(p0, mulpt3(u, d));
+			d = -u·dp - sqrt(Δ);
+			rp[1] = addpt3(p0, mulpt3(u, d));
+		}
+		n = 2;
+	}
+	return n;
+}
+
 Point3
 identvshader(VSparams *sp)
 {
 	Planet *p;
 	Point3 pos;
 
-	p = getplanet(sp->su->entity);
+	p = getentityplanet(sp->su->entity);
 	assert(p != nil);
 
 	Matrix3 S = {
@@ -290,7 +344,7 @@ identshader(FSparams *sp)
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
 		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
 	else
-		tc = Pt3(1,1,1,1);
+		tc = sp->v.c;
 
 	c.a = 1;
 	c.b = fclamp(tc.b, 0, 1);
@@ -328,6 +382,7 @@ drawstats(void)
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", camera.bz);
 	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !camera.stats.max? 0: 1e9/camera.stats.max, !camera.stats.avg? 0: 1e9/camera.stats.avg, !camera.stats.min? 0: 1e9/camera.stats.min, !camera.stats.v? 0: 1e9/camera.stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", camera.stats.nframes);
+	snprint(stats[Splanet], sizeof(stats[Splanet]), "%s", selplanet == nil? "": selplanet->name);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -403,14 +458,12 @@ void
 goto_cmd(Cmdbut *)
 {
 	static Menu menu = { .gen = genplanetmenu };
-	Planet *p;
 	int idx;
 
 	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx < 0)
 		return;
-	p = &planets[idx];
-	placecamera(&camera, addpt3(p->body->p, Vec3(0,0,1.5*p->scale)), p->body->p, cameracfg.up);
+	gotoplanet(&planets[idx]);
 	nbsend(drawc, nil);
 }
 
@@ -442,19 +495,40 @@ Cmdbut cmds[] = {
 void
 lmb(void)
 {
+	Point3 p0, u;
+	Point mp;
+	Planet *p;
 	Cmdbut *cmd;
+	double lastz, z;
 	int i;
-
-	if(ptinrect(subpt(mctl->xy, screen->r.min), viewr) && (om.buttons^mctl->buttons) == 0){
-		return;
-	}
 
 	if((om.buttons ^ mctl->buttons) == 0)
 		return;
 
+	mp = subpt(mctl->xy, screen->r.min);
+	if(ptinrect(mp, viewr)){
+		p0 = viewport2world(&camera, Pt3(mp.x,mp.y,1,1));
+		u = normvec3(subpt3(p0, camera.p));
+		p = nil;
+		lastz = Inf(1);
+
+		for(i = 0; i < nelem(planets); i++)
+			if(rayXsphere(nil, p0, u, planets[i].body->p, planets[i].scale) > 0){
+				z = vec3len(subpt3(planets[i].body->p, camera.p));
+				/* select the closest one */
+				if(z < lastz){
+					lastz = z;
+					p = &planets[i];
+				}
+			}
+		if(p != nil)
+			selplanet = p;
+		return;
+	}
+
 	cmd = nil;
 	for(i = 0; i < cmdbox.ncmds; i++)
-		if(ptinrect(subpt(mctl->xy, screen->r.min), cmdbox.cmds[i].r))
+		if(ptinrect(mp, cmdbox.cmds[i].r))
 			cmd = &cmdbox.cmds[i];
 
 	if(cmd == nil)
@@ -646,6 +720,7 @@ threadmain(int argc, char *argv[])
 	Renderer *rctl;
 	Channel *keyc;
 	Entity *subject;
+	Model *model;
 	OBJ *obj;
 	Point lblsiz;
 	int i, j;
@@ -722,6 +797,7 @@ threadmain(int argc, char *argv[])
 	configcamera(&camera, v, cameracfg.fov, cameracfg.clipn, cameracfg.clipf, cameracfg.ptype);
 	camera.s = scene;
 	camera.rctl = rctl;
+	gotoplanet(getplanet("Sol"));
 
 	kctl = emalloc(sizeof *kctl);
 	kctl->c = chancreate(sizeof(Rune), 16);
