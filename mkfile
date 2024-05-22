@@ -3,7 +3,9 @@
 BIN=$home/bin/$objtype
 TARG=\
 	vis\
+	med\
 	solar\
+	projtest\
 
 OFILES=\
 	alloc.$O\
