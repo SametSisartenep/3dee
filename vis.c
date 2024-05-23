@@ -50,6 +50,7 @@ Shadertab *shader;
 Model *model;
 Entity *subject;
 Scene *scene;
+QLock drawlk;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 
@@ -481,12 +482,12 @@ redraw(void)
 }
 
 void
-drawproc(void *)
+renderproc(void *)
 {
 	uvlong t0, Δt;
 	int fd;
 
-	threadsetname("drawproc");
+	threadsetname("renderproc");
 
 	fd = -1;
 	if(inception){
@@ -522,6 +523,18 @@ drawproc(void *)
 }
 
 void
+drawproc(void *)
+{
+	threadsetname("drawproc");
+
+	for(;;)
+		if(recv(drawc, nil) && canqlock(&drawlk)){
+			redraw();
+			qunlock(&drawlk);
+		}
+}
+
+void
 lmb(void)
 {
 	if((om.buttons^mctl->buttons) == 0)
@@ -546,14 +559,15 @@ mmb(void)
 	char buf[256], *f[3];
 	int nf;
 
+	qlock(&drawlk);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
 		snprint(buf, sizeof buf, "%g %g %g", light.p.x, light.p.y, light.p.z);
 		if(enter("light pos", buf, sizeof buf, mctl, kctl, nil) <= 0)
-			return;
+			break;
 		nf = tokenize(buf, f, 3);
 		if(nf != 3)
-			return;
+			break;
 		light.p.x = strtod(f[0], nil);
 		light.p.y = strtod(f[1], nil);
 		light.p.z = strtod(f[2], nil);
@@ -565,6 +579,7 @@ mmb(void)
 		tsampler = bilitexsampler;
 		break;
 	}
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
@@ -582,12 +597,14 @@ rmb(void)
 	static Menu menu = { .gen = genrmbmenuitem };
 	int idx;
 
+	qlock(&drawlk);
 	idx = menuhit(3, mctl, &menu, _screen);
-	if(idx < 0)
-		return;
-	shader = &shadertab[idx];
-	for(idx = 0; idx < nelem(cams); idx++)
-		memset(&cams[idx].stats, 0, sizeof(cams[idx].stats));
+	if(idx >= 0){
+		shader = &shadertab[idx];
+		for(idx = 0; idx < nelem(cams); idx++)
+			memset(&cams[idx].stats, 0, sizeof(cams[idx].stats));
+	}
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
@@ -843,22 +860,21 @@ threadmain(int argc, char *argv[])
 
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
+	proccreate(renderproc, nil, mainstacksize);
 	proccreate(drawproc, nil, mainstacksize);
 
 	for(;;){
-		enum {MOUSE, RESIZE, KEY, DRAW};
+		enum {MOUSE, RESIZE, KEY};
 		Alt a[] = {
 			{mctl->c, &mctl->Mouse, CHANRCV},
 			{mctl->resizec, nil, CHANRCV},
 			{keyc, nil, CHANRCV},
-			{drawc, nil, CHANRCV},
 			{nil, nil, CHANEND}
 		};
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
 		case KEY: handlekeys(); break;
-		case DRAW: redraw(); break;
 		}
 	}
 }

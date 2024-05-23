@@ -136,6 +136,7 @@ int kdown;
 Tm date;
 char datestr[16];
 Scene *scene;
+QLock drawlk;
 
 Camera camera;
 Camcfg cameracfg = {
@@ -408,11 +409,11 @@ redraw(void)
 }
 
 void
-drawproc(void *)
+renderproc(void *)
 {
 	uvlong t0, Δt;
 
-	threadsetname("drawproc");
+	threadsetname("renderproc");
 
 	t0 = nsec();
 	for(;;){
@@ -431,6 +432,18 @@ drawproc(void *)
 	}
 }
 
+void
+drawproc(void *)
+{
+	threadsetname("drawproc");
+
+	for(;;)
+		if(recv(drawc, nil) && canqlock(&drawlk)){
+			redraw();
+			qunlock(&drawlk);
+		}
+}
+
 static char *
 genplanetmenu(int idx)
 {
@@ -446,11 +459,13 @@ lookat_cmd(Cmdbut *)
 	Planet *p;
 	int idx;
 
+	qlock(&drawlk);
 	idx = menuhit(1, mctl, &menu, _screen);
-	if(idx < 0)
-		return;
-	p = &planets[idx];
-	placecamera(&camera, camera.p, p->body->p, cameracfg.up);
+	if(idx >= 0){
+		p = &planets[idx];
+		placecamera(&camera, camera.p, p->body->p, cameracfg.up);
+	}
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
@@ -460,10 +475,11 @@ goto_cmd(Cmdbut *)
 	static Menu menu = { .gen = genplanetmenu };
 	int idx;
 
+	qlock(&drawlk);
 	idx = menuhit(1, mctl, &menu, _screen);
-	if(idx < 0)
-		return;
-	gotoplanet(&planets[idx]);
+	if(idx >= 0)
+		gotoplanet(&planets[idx]);
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
@@ -477,13 +493,17 @@ date_cmd(Cmdbut *)
 		return;
 
 	memmove(buf, datestr, sizeof buf);
+	qlock(&drawlk);
 	if(enter("new date", buf, sizeof buf, mctl, kctl, nil) <= 0)
-		return;
+		goto nodate;
 	if(tmparse(&t, datefmt, buf, nil, nil) == nil)
-		return;
+		goto nodate;
 	date = t;
 	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
 	updateplanets();
+nodate:
+	qunlock(&drawlk);
+	nbsend(drawc, nil);
 }
 
 Cmdbut cmds[] = {
@@ -554,16 +574,17 @@ mmb(void)
 	if((om.buttons ^ mctl->buttons) == 0)
 		return;
 
+	qlock(&drawlk);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case CHGSPEED:
 		snprint(buf, sizeof buf, "%g", speed);
-		if(enter("speed (km)", buf, sizeof buf, mctl, kctl, nil) <= 0)
-			return;
-		speed = fabs(strtod(buf, nil));
+		if(enter("speed (km)", buf, sizeof buf, mctl, kctl, nil) > 0)
+			speed = fabs(strtod(buf, nil));
 		break;
 	case QUIT:
 		threadexitsall(nil);
 	}
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
@@ -808,22 +829,21 @@ threadmain(int argc, char *argv[])
 
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
+	proccreate(renderproc, nil, mainstacksize);
 	proccreate(drawproc, nil, mainstacksize);
 
 	for(;;){
-		enum {MOUSE, RESIZE, KEY, DRAW};
+		enum {MOUSE, RESIZE, KEY};
 		Alt a[] = {
 			{mctl->c, &mctl->Mouse, CHANRCV},
 			{mctl->resizec, nil, CHANRCV},
 			{keyc, nil, CHANRCV},
-			{drawc, nil, CHANRCV},
 			{nil, nil, CHANEND}
 		};
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
 		case KEY: handlekeys(); break;
-		case DRAW: redraw(); break;
 		}
 	}
 }

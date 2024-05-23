@@ -76,6 +76,7 @@ Entity *subject;
 Model *model;
 Shadertab *shader;
 QLock scenelk;
+QLock drawlk;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 
@@ -466,11 +467,11 @@ redraw(void)
 }
 
 void
-drawproc(void *)
+renderproc(void *)
 {
 	uvlong t0, Δt;
 
-	threadsetname("drawproc");
+	threadsetname("renderproc");
 
 	t0 = nsec();
 	for(;;){
@@ -489,6 +490,18 @@ drawproc(void *)
 			t0 += Δt;
 		}
 	}
+}
+
+void
+drawproc(void *)
+{
+	threadsetname("drawproc");
+
+	for(;;)
+		if(recv(drawc, nil) && canqlock(&drawlk)){
+			redraw();
+			qunlock(&drawlk);
+		}
 }
 
 void
@@ -516,6 +529,7 @@ mmb(void)
 	};
 	static Menu menu = { .item = items };
 
+	qlock(&drawlk);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case TSNEAREST:
 		tsampler = neartexsampler;
@@ -526,35 +540,50 @@ mmb(void)
 	case QUIT:
 		threadexitsall(nil);
 	}
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
 static char *
 genrmbmenuitem(int idx)
 {
+	static char *items[] = {
+		"",
+		"add cube",
+		nil
+	};
 	if(idx < nelem(shadertab))
 		return shadertab[idx].name;
-	else if(idx == nelem(shadertab))
-		return "";
-	else if(idx == nelem(shadertab)+1)
-		return "add cube";
-	return nil;
+	idx -= nelem(shadertab);
+	return items[idx];
 }
 
 void
 rmb(void)
 {
+	enum {
+		SP,
+		ADDCUBE,
+	};
 	static Menu menu = { .gen = genrmbmenuitem };
 	int idx;
 
+	qlock(&drawlk);
 	idx = menuhit(3, mctl, &menu, _screen);
 	if(idx < 0)
-		return;
+		goto nohit;
 	if(idx < nelem(shadertab)){
 		shader = &shadertab[idx];
 		memset(&cam.stats, 0, sizeof(cam.stats));
-	}else if(idx == nelem(shadertab)+1)
+	}
+	idx -= nelem(shadertab);
+	switch(idx){
+	case ADDCUBE:
 		addcube();
+		break;
+	}
+nohit:
+	qunlock(&drawlk);
 	nbsend(drawc, nil);
 }
 
@@ -763,22 +792,21 @@ threadmain(int argc, char *argv[])
 
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
+	proccreate(renderproc, nil, mainstacksize);
 	proccreate(drawproc, nil, mainstacksize);
 
 	for(;;){
-		enum {MOUSE, RESIZE, KEY, DRAW};
+		enum {MOUSE, RESIZE, KEY};
 		Alt a[] = {
 			{mctl->c, &mctl->Mouse, CHANRCV},
 			{mctl->resizec, nil, CHANRCV},
 			{keyc, nil, CHANRCV},
-			{drawc, nil, CHANRCV},
 			{nil, nil, CHANEND}
 		};
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
 		case KEY: handlekeys(); break;
-		case DRAW: redraw(); break;
 		}
 	}
 }
