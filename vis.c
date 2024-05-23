@@ -115,40 +115,44 @@ gouraudvshader(VSparams *sp)
 	double Kd;		/* diffuse factor */
 	double spec;
 	Point3 pos, lightdir, lookdir;
-	Material m;
+	Material *m;
 	Color ambient, diffuse, specular;
 
 	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
 	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
 	pos = model2world(sp->su->entity, sp->v->p);
-	if(sp->v->mtl != nil){
-		m = *sp->v->mtl;
+	m = sp->v->mtl;
 
-		ambient = mulpt3(light.c, Ka);
-		ambient.r *= m.ambient.r;
-		ambient.g *= m.ambient.g;
-		ambient.b *= m.ambient.b;
-		ambient.a *= m.ambient.a;
-
-		lightdir = normvec3(subpt3(light.p, pos));
-		Kd = fmax(0, dotvec3(sp->v->n, lightdir));
-		diffuse = mulpt3(light.c, Kd);
-		diffuse.r *= m.diffuse.r;
-		diffuse.g *= m.diffuse.g;
-		diffuse.b *= m.diffuse.b;
-		diffuse.a *= m.diffuse.a;
-
-		lookdir = normvec3(subpt3(maincam->p, pos));
-		lightdir = qrotate(lightdir, sp->v->n, PI);
-		spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
-		specular = mulpt3(light.c, spec*Ks);
-		specular.r *= m.specular.r;
-		specular.g *= m.specular.g;
-		specular.b *= m.specular.b;
-		specular.a *= m.specular.a;
-
-		sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
+	ambient = mulpt3(light.c, Ka);
+	if(m != nil){
+		ambient.r *= m->ambient.r;
+		ambient.g *= m->ambient.g;
+		ambient.b *= m->ambient.b;
+		ambient.a *= m->ambient.a;
 	}
+
+	lightdir = normvec3(subpt3(light.p, pos));
+	Kd = fmax(0, dotvec3(sp->v->n, lightdir));
+	diffuse = mulpt3(light.c, Kd);
+	if(m != nil){
+		diffuse.r *= m->diffuse.r;
+		diffuse.g *= m->diffuse.g;
+		diffuse.b *= m->diffuse.b;
+		diffuse.a *= m->diffuse.a;
+	}
+
+	lookdir = normvec3(subpt3(maincam->p, pos));
+	lightdir = qrotate(lightdir, sp->v->n, PI);
+	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m? m->shininess: 1);
+	specular = mulpt3(light.c, spec*Ks);
+	if(m != nil){
+		specular.r *= m->specular.r;
+		specular.g *= m->specular.g;
+		specular.b *= m->specular.b;
+		specular.a *= m->specular.a;
+	}
+
+	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
 	return world2clip(maincam, pos);
 }
 

@@ -182,19 +182,23 @@ addcube(void)
 	v1 = Vec3(1,0,0);
 	v2 = Vec3(0,1,0);
 	t[0].v[0].p = addpt3(center, p);
+	t[0].v[0].n = p;
 	t[0].v[1].p = addpt3(center, addpt3(p, v1));
+	t[0].v[1].n = addpt3(p, v1);
 	t[0].v[2].p = addpt3(center, addpt3(p, addpt3(v1, v2)));
-	t[1].v[0].p = t[0].v[0].p;
-	t[1].v[1].p = t[0].v[2].p;
+	t[0].v[2].n = addpt3(p, addpt3(v1, v2));
+	t[1].v[0] = t[0].v[0];
+	t[1].v[1] = t[0].v[2];
 	t[1].v[2].p = addpt3(center, addpt3(p, v2));
+	t[1].v[2].n = addpt3(p, v2);
 
 	for(i = 0; i < 6; i++){
 		for(j = 0; j < 2; j++)
-			for(k = 0; k < 3; k++){
-				if(i > 0)
+			for(k = 0; k < 3; k++)
+				if(i > 0){
 					t[j].v[k].p = qrotate(t[j].v[k].p, axis[i%3], PI/2);
-				t[j].v[k].n = normvec3(subpt3(t[j].v[k].p, center));
-			}
+					t[j].v[k].n = qrotate(t[j].v[k].n, axis[i%3], PI/2);
+				}
 
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, (model->nprims += 2)*sizeof(*model->prims));
@@ -212,40 +216,44 @@ gouraudvshader(VSparams *sp)
 	double Kd;		/* diffuse factor */
 	double spec;
 	Point3 pos, lightdir, lookdir;
-	Material m;
+	Material *m;
 	Color ambient, diffuse, specular;
 
 	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
 	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
 	pos = model2world(sp->su->entity, sp->v->p);
-	if(sp->v->mtl != nil){
-		m = *sp->v->mtl;
+	m = sp->v->mtl;
 
-		ambient = mulpt3(light.c, Ka);
-		ambient.r *= m.ambient.r;
-		ambient.g *= m.ambient.g;
-		ambient.b *= m.ambient.b;
-		ambient.a *= m.ambient.a;
-
-		lightdir = normvec3(subpt3(light.p, pos));
-		Kd = fmax(0, dotvec3(sp->v->n, lightdir));
-		diffuse = mulpt3(light.c, Kd);
-		diffuse.r *= m.diffuse.r;
-		diffuse.g *= m.diffuse.g;
-		diffuse.b *= m.diffuse.b;
-		diffuse.a *= m.diffuse.a;
-
-		lookdir = normvec3(subpt3(cam.p, pos));
-		lightdir = qrotate(lightdir, sp->v->n, PI);
-		spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
-		specular = mulpt3(light.c, spec*Ks);
-		specular.r *= m.specular.r;
-		specular.g *= m.specular.g;
-		specular.b *= m.specular.b;
-		specular.a *= m.specular.a;
-
-		sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
+	ambient = mulpt3(light.c, Ka);
+	if(m != nil){
+		ambient.r *= m->ambient.r;
+		ambient.g *= m->ambient.g;
+		ambient.b *= m->ambient.b;
+		ambient.a *= m->ambient.a;
 	}
+
+	lightdir = normvec3(subpt3(light.p, pos));
+	Kd = fmax(0, dotvec3(sp->v->n, lightdir));
+	diffuse = mulpt3(light.c, Kd);
+	if(m != nil){
+		diffuse.r *= m->diffuse.r;
+		diffuse.g *= m->diffuse.g;
+		diffuse.b *= m->diffuse.b;
+		diffuse.a *= m->diffuse.a;
+	}
+
+	lookdir = normvec3(subpt3(cam.p, pos));
+	lightdir = qrotate(lightdir, sp->v->n, PI);
+	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m? m->shininess: 1);
+	specular = mulpt3(light.c, spec*Ks);
+	if(m != nil){
+		specular.r *= m->specular.r;
+		specular.g *= m->specular.g;
+		specular.b *= m->specular.b;
+		specular.a *= m->specular.a;
+	}
+
+	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
 	return world2clip(&cam, pos);
 }
  
