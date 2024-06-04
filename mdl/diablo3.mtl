@@ -1,0 +1,8 @@
+newmtl diablo3
+Ns 250
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+map_Kd diablo3_diffuse.tga
+norm diablo3_nm_tangent.tga
+illum 2
