@@ -136,31 +136,31 @@ materializefrustum(void)
 	for(i = 0; i < nelem(p); i++){
 		/* front frame */
 		l.type = PLine;
-		l.v[0].p = viewport2world(&cam, p[i]);
-		l.v[1].p = viewport2world(&cam, p[(i+1)%nelem(p)]);
+		l.v[0].p = world2model(subject, viewport2world(&cam, p[i]));
+		l.v[1].p = world2model(subject, viewport2world(&cam, p[(i+1)%nelem(p)]));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
 		qunlock(&scenelk);
 
 		/* middle frame */
-		l.v[0].p = viewport2world(&cam, subpt3(p[i], Vec3(0,0,0.5)));
-		l.v[1].p = viewport2world(&cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,0.5)));
+		l.v[0].p = world2model(subject, viewport2world(&cam, subpt3(p[i], Vec3(0,0,0.5))));
+		l.v[1].p = world2model(subject, viewport2world(&cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,0.5))));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
 		qunlock(&scenelk);
 
 		/* back frame */
-		l.v[0].p = viewport2world(&cam, subpt3(p[i], Vec3(0,0,1)));
-		l.v[1].p = viewport2world(&cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,1)));
+		l.v[0].p = world2model(subject, viewport2world(&cam, subpt3(p[i], Vec3(0,0,1))));
+		l.v[1].p = world2model(subject, viewport2world(&cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,1))));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
 		qunlock(&scenelk);
 
 		/* struts */
-		l.v[1].p = viewport2world(&cam, p[i]);
+		l.v[1].p = world2model(subject, viewport2world(&cam, p[i]));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
@@ -220,9 +220,9 @@ gouraudvshader(VSparams *sp)
 	Material *m;
 	Color ambient, diffuse, specular;
 
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	pos = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	pos = sp->v->p;
 	m = sp->v->mtl;
 
 	ambient = mulpt3(light.c, Ka);
@@ -285,9 +285,9 @@ phongvshader(VSparams *sp)
 	Color a, d, s;
 	double ss;
 
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	pos = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	pos = sp->v->p;
 	addvattr(sp->v, "pos", VAPoint, &pos);
 	if(sp->v->mtl != nil){
 		a = sp->v->mtl->ambient;
@@ -368,18 +368,11 @@ phongshader(FSparams *sp)
 Point3
 identvshader(VSparams *sp)
 {
-	Point3 pos, lightdir;
-	double intens;
-
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	pos = model2world(sp->su->entity, sp->v->p);
-	lightdir = normvec3(subpt3(light.p, pos));
-	intens = fmax(0, dotvec3(sp->v->n, lightdir));
-	addvattr(sp->v, "intensity", VANumber, &intens);
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(&cam, pos);
+	return world2clip(&cam, sp->v->p);
 }
 
 Color
@@ -507,8 +500,16 @@ drawproc(void *)
 void
 lmb(void)
 {
-	if((om.buttons^mctl->buttons) == 0)
+	Quaternion Δorient;
+
+	if((om.buttons^mctl->buttons) == 0){
+		Δorient = orient;
 		qball(screen->r, om.xy, mctl->xy, &orient, nil);
+		Δorient = mulq(orient, invq(Δorient));
+		subject->bx = Vecquat(mulq(mulq(Δorient, Quatvec(0, subject->bx)), invq(Δorient)));
+		subject->by = Vecquat(mulq(mulq(Δorient, Quatvec(0, subject->by)), invq(Δorient)));
+		subject->bz = Vecquat(mulq(mulq(Δorient, Quatvec(0, subject->bz)), invq(Δorient)));
+	}
 }
 
 void
