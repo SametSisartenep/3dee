@@ -48,7 +48,6 @@ Channel *drawc;
 int kdown;
 Shadertab *shader;
 Model *model;
-Entity *subject;
 Scene *scene;
 QLock drawlk;
 Mouse om;
@@ -119,9 +118,9 @@ gouraudvshader(VSparams *sp)
 	Material *m;
 	Color ambient, diffuse, specular;
 
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	pos = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	pos = sp->v->p;
 	m = sp->v->mtl;
 
 	ambient = mulpt3(light.c, Ka);
@@ -184,10 +183,14 @@ phongvshader(VSparams *sp)
 	Color a, d, s;
 	double ss;
 
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	pos = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	pos = sp->v->p;
 	addvattr(sp->v, "pos", VAPoint, &pos);
+	if(sp->v->mtl != nil && sp->v->mtl->normalmap != nil && sp->v->uv.w != 0){
+		sp->v->tangent = model2world(sp->su->entity, sp->v->tangent);
+		addvattr(sp->v, "tangent", VAPoint, &sp->v->tangent);
+	}
 	if(sp->v->mtl != nil){
 		a = sp->v->mtl->ambient;
 		d = sp->v->mtl->diffuse;
@@ -209,8 +212,9 @@ phongshader(FSparams *sp)
 	double Kd;		/* diffuse factor */
 	double spec;
 	Color ambient, diffuse, specular, tc, c;
-	Point3 pos, lookdir, lightdir;
+	Point3 pos, n, lightdir, lookdir;
 	Material m;
+	RFrame3 TBN;
 	Vertexattr *va;
 
 	va = getvattr(&sp->v, "pos");
@@ -231,8 +235,25 @@ phongshader(FSparams *sp)
 	ambient.b *= m.ambient.b;
 	ambient.a *= m.ambient.a;
 
+	/* normal mapping */
+	va = getvattr(&sp->v, "tangent");
+	if(va == nil)
+		n = sp->v.n;
+	else{
+		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
+		n = texture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
+		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
+
+		TBN.p = Pt3(0,0,0,1);
+		TBN.bx = va->p;				/* T */
+		TBN.bz = sp->v.n;			/* N */
+		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
+
+		n = normvec3(invrframexform3(n, TBN));
+	}
+
 	lightdir = normvec3(subpt3(light.p, pos));
-	Kd = fmax(0, dotvec3(sp->v.n, lightdir));
+	Kd = fmax(0, dotvec3(n, lightdir));
 	diffuse = mulpt3(light.c, Kd);
 	diffuse.r *= m.diffuse.r;
 	diffuse.g *= m.diffuse.g;
@@ -240,7 +261,7 @@ phongshader(FSparams *sp)
 	diffuse.a *= m.diffuse.a;
 
 	lookdir = normvec3(subpt3(maincam->p, pos));
-	lightdir = qrotate(lightdir, sp->v.n, PI);
+	lightdir = qrotate(lightdir, n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(light.c, spec*Ks);
 	specular.r *= m.specular.r;
@@ -270,9 +291,9 @@ identvshader(VSparams *sp)
 	Point3 pos, lightdir;
 	double intens;
 
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	pos = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	pos = sp->v->p;
 	lightdir = normvec3(subpt3(light.p, pos));
 	intens = fmax(0, dotvec3(sp->v->n, lightdir));
 	addvattr(sp->v, "intensity", VANumber, &intens);
@@ -317,9 +338,9 @@ identshader(FSparams *sp)
 Point3
 ivshader(VSparams *sp)
 {
-	sp->v->n = Vecquat(mulq(mulq(orient, Quatvec(0, sp->v->n)), invq(orient)));
-	sp->v->p = Ptquat(mulq(mulq(orient, Quatvec(0, sp->v->p)), invq(orient)), sp->v->p.w);
-	return world2clip(maincam, model2world(sp->su->entity, sp->v->p));
+	sp->v->n = model2world(sp->su->entity, sp->v->n);
+	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	return world2clip(maincam, sp->v->p);
 }
 
 Color
@@ -537,8 +558,20 @@ drawproc(void *)
 void
 lmb(void)
 {
-	if((om.buttons^mctl->buttons) == 0)
+	Entity *e;
+	Quaternion Δorient;
+
+	if((om.buttons^mctl->buttons) == 0){
+		Δorient = orient;
 		qball(screen->r, om.xy, mctl->xy, &orient, nil);
+		Δorient = mulq(orient, invq(Δorient));
+
+		for(e = scene->ents.next; e != &scene->ents; e = e->next){
+			e->bx = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->bx)), invq(Δorient)));
+			e->by = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->by)), invq(Δorient)));
+			e->bz = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->bz)), invq(Δorient)));
+		}
+	}
 }
 
 void
@@ -763,7 +796,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-t texture] [-n normals] [-s shader] model...\n", argv0);
+	fprint(2, "usage: %s [-t texture] [-s shader] model...\n", argv0);
 	exits("usage");
 }
 
@@ -773,17 +806,16 @@ threadmain(int argc, char *argv[])
 	Viewport *v;
 	Renderer *rctl;
 	Channel *keyc;
+	Entity *subject;
 	OBJ *obj;
-	char *texpath, *norpath, *sname, *mdlpath;
+	char *texpath, *sname, *mdlpath;
 	int i, fd;
 
 	GEOMfmtinstall();
 	texpath = nil;
-	norpath = nil;
 	sname = "gouraud";
 	ARGBEGIN{
 	case 't': texpath = EARGF(usage()); break;
-	case 'n': norpath = EARGF(usage()); break;
 	case 's': sname = EARGF(usage()); break;
 	case L'ι': inception++; break;
 	case 'p': doprof++; break;
@@ -815,14 +847,6 @@ threadmain(int argc, char *argv[])
 			if(fd < 0)
 				sysfatal("open: %r");
 			if((model->tex = readmemimage(fd)) == nil)
-				sysfatal("readmemimage: %r");
-			close(fd);
-		}
-		if(argc == 0 && norpath != nil){
-			fd = open(norpath, OREAD);
-			if(fd < 0)
-				sysfatal("open: %r");
-			if((model->nor = readmemimage(fd)) == nil)
 				sysfatal("readmemimage: %r");
 			close(fd);
 		}
