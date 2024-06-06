@@ -243,7 +243,7 @@ gouraudvshader(VSparams *sp)
 		diffuse.a *= m->diffuse.a;
 	}
 
-	lookdir = normvec3(subpt3(cam.p, pos));
+	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v->n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m? m->shininess: 1);
 	specular = mulpt3(light.c, spec*Ks);
@@ -255,7 +255,7 @@ gouraudvshader(VSparams *sp)
 	}
 
 	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
-	return world2clip(&cam, pos);
+	return world2clip(sp->su->camera, pos);
 }
  
 Color
@@ -299,7 +299,7 @@ phongvshader(VSparams *sp)
 		addvattr(sp->v, "specular", VAPoint, &s);
 		addvattr(sp->v, "shininess", VANumber, &ss);
 	}
-	return world2clip(&cam, pos);
+	return world2clip(sp->su->camera, pos);
 }
 
 Color
@@ -340,7 +340,7 @@ phongshader(FSparams *sp)
 	diffuse.b *= m.diffuse.b;
 	diffuse.a *= m.diffuse.a;
 
-	lookdir = normvec3(subpt3(cam.p, pos));
+	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v.n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(light.c, spec*Ks);
@@ -372,7 +372,7 @@ identvshader(VSparams *sp)
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(&cam, sp->v->p);
+	return world2clip(sp->su->camera, sp->v->p);
 }
 
 Color
@@ -777,7 +777,7 @@ threadmain(int argc, char *argv[])
 	v = mkviewport(screenb->r);
 	placecamera(&cam, camcfg.p, camcfg.lookat, camcfg.up);
 	configcamera(&cam, v, camcfg.fov, camcfg.clipn, camcfg.clipf, camcfg.ptype);
-	cam.s = scene;
+	cam.scene = scene;
 	cam.rctl = rctl;
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);

@@ -109,6 +109,14 @@ Rune keys[Ke] = {
  [Kzoomout]	= 'x',
  [Khud]		= 'h',
 };
+char *skyboxpaths[] = {
+	"cubemap/solar/left.pic",
+	"cubemap/solar/right.pic",
+	"cubemap/solar/bottom.pic",
+	"cubemap/solar/top.pic",
+	"cubemap/solar/front.pic",
+	"cubemap/solar/back.pic",
+};
 Planet planets[] = {
 	{ .id = 10,	.name = "Sol",		.scale = 695700 },
 	{ .id = 1,	.name = "Mercury",	.scale = 2439.4 },
@@ -149,6 +157,7 @@ Point3 center = {0,0,0,1};
 double speed = 10;
 
 static int museummode;
+static int showskybox;
 static int doprof;
 static int showhud;
 
@@ -334,7 +343,7 @@ identvshader(VSparams *sp)
 
 	sp->v->mtl = p->mtl;
 	sp->v->c = p->mtl->diffuse;
-	return world2clip(&camera, model2world(sp->su->entity, pos));
+	return world2clip(sp->su->camera, model2world(sp->su->entity, pos));
 }
 
 Color
@@ -730,7 +739,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-m]\n", argv0);
+	fprint(2, "usage: %s [-ms]\n", argv0);
 	exits("usage");
 }
 
@@ -750,6 +759,7 @@ threadmain(int argc, char *argv[])
 	GEOMfmtinstall();
 	ARGBEGIN{
 	case 'm': museummode++; break;
+	case 's': showskybox++; break;
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
@@ -790,6 +800,8 @@ threadmain(int argc, char *argv[])
 	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
 	if(!museummode)
 		updateplanets();
+	if(showskybox)
+		scene->skybox = readcubemap(skyboxpaths);
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
@@ -816,7 +828,7 @@ threadmain(int argc, char *argv[])
 	v = mkviewport(screenb->r);
 	placecamera(&camera, cameracfg.p, cameracfg.lookat, cameracfg.up);
 	configcamera(&camera, v, cameracfg.fov, cameracfg.clipn, cameracfg.clipf, cameracfg.ptype);
-	camera.s = scene;
+	camera.scene = scene;
 	camera.rctl = rctl;
 	gotoplanet(getplanet("Sol"));
 

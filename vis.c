@@ -40,6 +40,14 @@ Rune keys[Ke] = {
  [Kcam3]	= KF|4,
  [Khud]		= 'h',
 };
+char *skyboxpaths[] = {
+	"cubemap/skybox/left.pic",
+	"cubemap/skybox/right.pic",
+	"cubemap/skybox/bottom.pic",
+	"cubemap/skybox/top.pic",
+	"cubemap/skybox/front.pic",
+	"cubemap/skybox/back.pic",
+};
 char stats[Se][256];
 Image *screenb;
 Mousectl *mctl;
@@ -78,6 +86,7 @@ Camcfg camcfgs[4] = {
 Point3 center = {0,0,0,1};
 LightSource light;		/* global point light */
 
+static int showskybox;
 static int doprof;
 static int inception;
 static int showhud;
@@ -141,7 +150,7 @@ gouraudvshader(VSparams *sp)
 		diffuse.a *= m->diffuse.a;
 	}
 
-	lookdir = normvec3(subpt3(maincam->p, pos));
+	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v->n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m? m->shininess: 1);
 	specular = mulpt3(light.c, spec*Ks);
@@ -153,7 +162,7 @@ gouraudvshader(VSparams *sp)
 	}
 
 	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
-	return world2clip(maincam, pos);
+	return world2clip(sp->su->camera, pos);
 }
 
 Color
@@ -201,7 +210,7 @@ phongvshader(VSparams *sp)
 		addvattr(sp->v, "specular", VAPoint, &s);
 		addvattr(sp->v, "shininess", VANumber, &ss);
 	}
-	return world2clip(maincam, pos);
+	return world2clip(sp->su->camera, pos);
 }
 
 Color
@@ -260,7 +269,7 @@ phongshader(FSparams *sp)
 	diffuse.b *= m.diffuse.b;
 	diffuse.a *= m.diffuse.a;
 
-	lookdir = normvec3(subpt3(maincam->p, pos));
+	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(light.c, spec*Ks);
@@ -299,7 +308,7 @@ identvshader(VSparams *sp)
 	addvattr(sp->v, "intensity", VANumber, &intens);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(maincam, pos);
+	return world2clip(sp->su->camera, pos);
 }
 
 Color
@@ -340,7 +349,7 @@ ivshader(VSparams *sp)
 {
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
-	return world2clip(maincam, sp->v->p);
+	return world2clip(sp->su->camera, sp->v->p);
 }
 
 Color
@@ -796,7 +805,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-t texture] [-s shader] model...\n", argv0);
+	fprint(2, "usage: %s [-s] [-t texture] model...\n", argv0);
 	exits("usage");
 }
 
@@ -808,15 +817,14 @@ threadmain(int argc, char *argv[])
 	Channel *keyc;
 	Entity *subject;
 	OBJ *obj;
-	char *texpath, *sname, *mdlpath;
+	char *texpath, *mdlpath;
 	int i, fd;
 
 	GEOMfmtinstall();
 	texpath = nil;
-	sname = "gouraud";
 	ARGBEGIN{
+	case 's': showskybox++; break;
 	case 't': texpath = EARGF(usage()); break;
-	case 's': sname = EARGF(usage()); break;
 	case L'ι': inception++; break;
 	case 'p': doprof++; break;
 	default: usage();
@@ -826,15 +834,15 @@ threadmain(int argc, char *argv[])
 
 	confproc();
 
-	if((shader = getshader(sname)) == nil)
-		sysfatal("couldn't find %s shader", sname);
+	if((shader = getshader("gouraud")) == nil)
+		sysfatal("couldn't find gouraud shader");
 
 	scene = newscene(nil);
 	while(argc--){
 		mdlpath = argv[argc];
 		model = newmodel();
 		subject = newentity(model);
-		subject->p.x = argc*4;
+//		subject->p.x = argc*4;
 		scene->addent(scene, subject);
 
 		if((obj = objparse(mdlpath)) == nil)
@@ -851,6 +859,8 @@ threadmain(int argc, char *argv[])
 			close(fd);
 		}
 	}
+	if(showskybox)
+		scene->skybox = readcubemap(skyboxpaths);
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
@@ -866,7 +876,7 @@ threadmain(int argc, char *argv[])
 		v = mkviewport(screenb->r);
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
-		cams[i].s = scene;
+		cams[i].scene = scene;
 		cams[i].rctl = rctl;
 	}
 	maincam = &cams[3];

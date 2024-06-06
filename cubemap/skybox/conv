@@ -1,0 +1,3 @@
+#!/bin/rc
+for(f in *.jpg) <$f jpg -t9 >`{echo $f | sed 's/jpg/pic/g'}
+chmod +t *.pic
