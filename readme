@@ -36,6 +36,9 @@ USAGE
 	- holding down the LMB while moving the cursor will change the scene orientation.
 	- to quit press Del.
 
+	Vis also has a hidden option, ι, which enables inception mode.
+	Use it wisely, or you might never come back.
+
 
 	med
 
@@ -79,3 +82,11 @@ USAGE
 		the current date.  Click on it and enter a new date—with the same
 		format—to grab the ephemerides from that date and update planet
 		positions.
+
+CUBEMAPS
+
+	The skyboxes for vis and solar are stored in the cubemap/ folder.  To use
+	them you first have to convert them from JPEG to image(6), using the
+	helper script (conv) available in each of them.
+
+	% for(d in cubemap/*)@{ cd $d && conv }
