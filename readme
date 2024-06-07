@@ -2,9 +2,80 @@
 
 You will need:
 
-• libgeometry (ships with 9front)
-• libgraphics
+	• libgeometry (ships with 9front)
+	• libgraphics
 and
-• libobj
+	• libobj
 
 `mk pulldeps` should take care of everything.
+
+TOOLS
+
+	- vis: a scene visualizer
+	- med: a model editor (WIP)
+	- solar: a solar system planetarium (WIP)
+
+USAGE
+
+	vis [-s] [-t picfile] model...
+
+	The s option will switch the skybox on (performance will drop
+	considerably).
+	The t flag takes as input an image(6) file used to texture the first model
+	(if it happens to have no materials).
+	The models supported by the program are OBJ files with material data (MTL
+	files).  You can find examples in the mdl/ folder.
+
+	- move camera with ↑↓ ((for|back)ward), ←→ (horizontally), PgUp and PgDn (vertically).
+	- rotate camera with AD (yaw), WS (pitch), QE (roll).
+	- change cameras with F[1-4]. cameras 1 and 3 are orthographic, 2 and 4 perspective.
+	- to zoom in and out use Z and X respectively, also mouse ScrUp and ScrDn.
+	- to show the HUD with stats and context information press H.
+	- pressing RMB shows a shader selection menu.
+	- pressing MMB shows a menu to control the main light position and texture samplers.
+	- holding down the LMB while moving the cursor will change the scene orientation.
+	- to quit press Del.
+
+
+	med
+
+	- move camera with ↑↓ ((for|back)ward), ←→ (horizontally), PgUp and PgDn (vertically).
+	- rotate camera with AD (yaw), WS (pitch), QE (roll).
+	- to zoom in and out use Z and X respectively, also mouse ScrUp and ScrDn.
+	- to show the HUD with stats and context information press H.
+	- pressing RMB shows a menu to select shaders and add primitives/solids.
+	- pressing MMB shows a menu to control the texture samplers.
+	- holding down the LMB while moving the cursor will change the scene orientation.
+	- to quit press Del or select "quit" from the MMB menu.
+
+
+	solar [-ms]
+
+	The m option enables museum mode.  In this mode the planets and sun will
+	spawn along the x-axis, as close to each other as their sizes allow, so
+	you can move through them more easily.
+	The s option will switch the skybox on (performance will drop
+	considerably).
+
+	- move camera with ↑↓ ((for|back)ward), ←→ (horizontally), PgUp and PgDn (vertically).
+	- rotate camera with AD (yaw), WS (pitch), QE (roll).
+	- to zoom in and out use Z and X respectively, also mouse ScrUp and ScrDn.
+	- to show the HUD with stats and context information press H.
+	- pressing MMB shows a menu to control the movement speed.
+	- point at a body and click LMB to select it.
+	- to quit press Del or select "quit" from the MMB menu.
+
+	In addition to the key controls, there are three buttons in the command
+	box, at the bottom of the screen:
+
+	- look at: pressing LMB will show a menu with a list of
+		planets to choose from.  Select one and release, and the camera
+		will focus on it.
+	- go to: pressing LMB will show a menu with a list of planets
+		to choose from.  Select one and release, and the camera will go to
+		a close enough point outside of it.
+	- date: when not in museum mode, the location for each of the
+		planets will be pulled from NASA's Horizons API ephemerides for
+		the current date.  Click on it and enter a new date—with the same
+		format—to grab the ephemerides from that date and update planet
+		positions.
