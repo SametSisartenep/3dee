@@ -151,7 +151,7 @@ Camcfg cameracfg = {
 	0,0,0,1,
 	0,0,0,1,
 	0,1,0,0,
-	80*DEG, 0.01, 1e12, PERSPECTIVE
+	80*DEG, 1, 1e12, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
 double speed = 10;
@@ -349,19 +349,9 @@ identvshader(VSparams *sp)
 Color
 identshader(FSparams *sp)
 {
-	Color tc, c;
-
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
-	else
-		tc = sp->v.c;
-
-	c.a = 1;
-	c.b = fclamp(tc.b, 0, 1);
-	c.g = fclamp(tc.g, 0, 1);
-	c.r = fclamp(tc.r, 0, 1);
-
-	return c;
+		return texture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
+	return sp->v.c;
 }
 
 Shadertab shader = { "ident", identvshader, identshader };

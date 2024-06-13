@@ -125,41 +125,31 @@ gouraudvshader(VSparams *sp)
 	double spec;
 	Point3 pos, lightdir, lookdir;
 	Material *m;
-	Color ambient, diffuse, specular;
+	Color ambient, diffuse, specular, lightc;
 
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	pos = sp->v->p;
 	m = sp->v->mtl;
 
-	ambient = mulpt3(light.c, Ka);
-	if(m != nil){
-		ambient.r *= m->ambient.r;
-		ambient.g *= m->ambient.g;
-		ambient.b *= m->ambient.b;
-		ambient.a *= m->ambient.a;
-	}
-
 	lightdir = normvec3(subpt3(light.p, pos));
+	lightc = getlightcolor(&light, lightdir);
+
+	ambient = mulpt3(lightc, Ka);
+	if(m != nil)
+		ambient = modulapt3(ambient, m->ambient);
+
 	Kd = fmax(0, dotvec3(sp->v->n, lightdir));
-	diffuse = mulpt3(light.c, Kd);
-	if(m != nil){
-		diffuse.r *= m->diffuse.r;
-		diffuse.g *= m->diffuse.g;
-		diffuse.b *= m->diffuse.b;
-		diffuse.a *= m->diffuse.a;
-	}
+	diffuse = mulpt3(lightc, Kd);
+	if(m != nil)
+		diffuse = modulapt3(diffuse, m->diffuse);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v->n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m? m->shininess: 1);
-	specular = mulpt3(light.c, spec*Ks);
-	if(m != nil){
-		specular.r *= m->specular.r;
-		specular.g *= m->specular.g;
-		specular.b *= m->specular.b;
-		specular.a *= m->specular.a;
-	}
+	specular = mulpt3(lightc, spec*Ks);
+	if(m != nil)
+		specular = modulapt3(specular, m->specular);
 
 	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
 	return world2clip(sp->su->camera, pos);
@@ -177,10 +167,8 @@ gouraudshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
+	c = modulapt3(sp->v.c, tc);
 	c.a = 1;
-	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
-	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
-	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
 
 	return c;
 }
@@ -220,7 +208,7 @@ phongshader(FSparams *sp)
 	static double Ks = 0.5;	/* specular factor */
 	double Kd;		/* diffuse factor */
 	double spec;
-	Color ambient, diffuse, specular, tc, c;
+	Color ambient, diffuse, specular, tc, c, lightc;
 	Point3 pos, n, lightdir, lookdir;
 	Material m;
 	RFrame3 TBN;
@@ -238,11 +226,11 @@ phongshader(FSparams *sp)
 	va = getvattr(&sp->v, "shininess");
 	m.shininess = va != nil? va->n: 1;
 
-	ambient = mulpt3(light.c, Ka);
-	ambient.r *= m.ambient.r;
-	ambient.g *= m.ambient.g;
-	ambient.b *= m.ambient.b;
-	ambient.a *= m.ambient.a;
+	lightdir = normvec3(subpt3(light.p, pos));
+	lightc = getlightcolor(&light, lightdir);
+
+	ambient = mulpt3(lightc, Ka);
+	ambient = modulapt3(ambient, m.ambient);
 
 	/* normal mapping */
 	va = getvattr(&sp->v, "tangent");
@@ -261,22 +249,15 @@ phongshader(FSparams *sp)
 		n = normvec3(invrframexform3(n, TBN));
 	}
 
-	lightdir = normvec3(subpt3(light.p, pos));
 	Kd = fmax(0, dotvec3(n, lightdir));
-	diffuse = mulpt3(light.c, Kd);
-	diffuse.r *= m.diffuse.r;
-	diffuse.g *= m.diffuse.g;
-	diffuse.b *= m.diffuse.b;
-	diffuse.a *= m.diffuse.a;
+	diffuse = mulpt3(lightc, Kd);
+	diffuse = modulapt3(diffuse, m.diffuse);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
 	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
-	specular = mulpt3(light.c, spec*Ks);
-	specular.r *= m.specular.r;
-	specular.g *= m.specular.g;
-	specular.b *= m.specular.b;
-	specular.a *= m.specular.a;
+	specular = mulpt3(lightc, spec*Ks);
+	specular = modulapt3(specular, m.specular);
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
 		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
@@ -286,10 +267,8 @@ phongshader(FSparams *sp)
 		tc = Pt3(1,1,1,1);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
+	c = modulapt3(c, tc);
 	c.a = 1;
-	c.b = fclamp(c.b*tc.b, 0, 1);
-	c.g = fclamp(c.g*tc.g, 0, 1);
-	c.r = fclamp(c.r*tc.r, 0, 1);
 
 	return c;
 }
@@ -336,10 +315,8 @@ identshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
+	c = modulapt3(sp->v.c, tc);
 	c.a = 1;
-	c.b = fclamp(sp->v.c.b*tc.b, 0, 1);
-	c.g = fclamp(sp->v.c.g*tc.g, 0, 1);
-	c.r = fclamp(sp->v.c.r*tc.r, 0, 1);
 
 	return c;
 }
@@ -881,8 +858,12 @@ threadmain(int argc, char *argv[])
 	}
 	maincam = &cams[3];
 	light.p = Pt3(0,100,100,1);
+//	light.dir = Vec3(0,-1,0);
 	light.c = Pt3(1,1,1,1);
 	light.type = LIGHT_POINT;
+//	light.type = LIGHT_SPOT;
+//	light.θu = 30*DEG;
+//	light.θp = 5*DEG;
 	tsampler = neartexsampler;
 
 	kctl = emalloc(sizeof *kctl);
