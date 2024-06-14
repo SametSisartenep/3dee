@@ -29,5 +29,7 @@ enum {
 	Sfps,
 	Sframes,
 	Sorient,
+	Spixcol,
+	Snorcol,
 	Se
 };

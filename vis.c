@@ -90,6 +90,7 @@ static int showskybox;
 static int doprof;
 static int inception;
 static int showhud;
+static int shownormals;
 Color (*tsampler)(Memimage*,Point2);
 
 static int
@@ -479,7 +480,10 @@ redraw(void)
 		bg = eallocimage(display, UR, RGB24, 1, 0x888888FF);
 
 	lockdisplay(display);
-	maincam->vp->draw(maincam->vp, screenb);
+	if(shownormals)
+		maincam->vp->fbctl->drawnormals(maincam->vp->fbctl, screenb);
+	else
+		maincam->vp->draw(maincam->vp, screenb);
 	draw(screen, screen->r, bg, nil, ZP);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
@@ -541,6 +545,18 @@ drawproc(void *)
 		}
 }
 
+static Color
+ul2col(ulong l)
+{
+	Color c;
+
+	c.a = (l     & 0xff)/255.0;
+	c.b = (l>>8  & 0xff)/255.0;
+	c.g = (l>>16 & 0xff)/255.0;
+	c.r = (l>>24 & 0xff)/255.0;
+	return c;
+}
+
 void
 lmb(void)
 {
@@ -557,6 +573,21 @@ lmb(void)
 			e->by = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->by)), invq(Δorient)));
 			e->bz = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->bz)), invq(Δorient)));
 		}
+	}else{
+		Framebuf *fb;
+		Point p;
+		Color c, n;
+		double z;
+
+		p = subpt(mctl->xy, screen->r.min);
+		qlock(maincam->vp->fbctl);
+		fb = maincam->vp->getfb(maincam->vp);
+		c = ul2col(fb->cb[p.y*Dx(fb->r) + p.x]);
+		n = ul2col(fb->nb[p.y*Dx(fb->r) + p.x]);
+		z = fb->zb[p.y*Dx(fb->r) + p.x];
+		qunlock(maincam->vp->fbctl);
+		snprint(stats[Spixcol], sizeof(stats[Spixcol]), "c %V z %g", c, z);
+		snprint(stats[Snorcol], sizeof(stats[Snorcol]), "n %V", n);
 	}
 }
 
@@ -567,11 +598,13 @@ mmb(void)
 		MOVELIGHT,
 		TSNEAREST,
 		TSBILINEAR,
+		SHOWNORMALS,
 	};
 	static char *items[] = {
 	 [MOVELIGHT]	"move light",
 	 [TSNEAREST]	"use nearest sampler",
 	 [TSBILINEAR]	"use bilinear sampler",
+	 [SHOWNORMALS]	"show normals",
 		nil,
 	};
 	static Menu menu = { .item = items };
@@ -596,6 +629,9 @@ mmb(void)
 		break;
 	case TSBILINEAR:
 		tsampler = bilitexsampler;
+		break;
+	case SHOWNORMALS:
+		shownormals ^= 1;
 		break;
 	}
 	qunlock(&drawlk);
