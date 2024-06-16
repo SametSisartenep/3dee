@@ -569,9 +569,9 @@ lmb(void)
 		Δorient = mulq(orient, invq(Δorient));
 
 		for(e = scene->ents.next; e != &scene->ents; e = e->next){
-			e->bx = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->bx)), invq(Δorient)));
-			e->by = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->by)), invq(Δorient)));
-			e->bz = Vecquat(mulq(mulq(Δorient, Quatvec(0, e->bz)), invq(Δorient)));
+			e->bx = vcs2world(maincam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(maincam, e->bx))), invq(Δorient))));
+			e->by = vcs2world(maincam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(maincam, e->by))), invq(Δorient))));
+			e->bz = vcs2world(maincam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(maincam, e->bz))), invq(Δorient))));
 		}
 	}else{
 		Framebuf *fb;

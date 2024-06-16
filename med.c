@@ -179,6 +179,7 @@ addcube(void)
 	memset(t, 0, sizeof t);
 	t[0].type = t[1].type = PTriangle;
 
+	/* build the first face/quad, facing the positive z axis */
 	p = Vec3(-0.5,-0.5,0.5);
 	v1 = Vec3(1,0,0);
 	v2 = Vec3(0,1,0);
@@ -193,10 +194,11 @@ addcube(void)
 	t[1].v[2].p = addpt3(center, addpt3(p, v2));
 	t[1].v[2].n = addpt3(p, v2);
 
+	/* make a cube by rotating the reference face */
 	for(i = 0; i < 6; i++){
-		for(j = 0; j < 2; j++)
-			for(k = 0; k < 3; k++)
-				if(i > 0){
+		if(i > 0)
+			for(j = 0; j < 2; j++)
+				for(k = 0; k < 3; k++){
 					t[j].v[k].p = qrotate(t[j].v[k].p, axis[i%3], PI/2);
 					t[j].v[k].n = qrotate(t[j].v[k].n, axis[i%3], PI/2);
 				}
@@ -207,6 +209,34 @@ addcube(void)
 		model->prims[model->nprims-1] = t[1];
 		qunlock(&scenelk);
 	}
+}
+
+static void
+addbasis(void)
+{
+	Entity *e;
+	Model *m;
+	Primitive prims[3];
+
+	m = newmodel();
+	e = newentity(m);
+	e->RFrame3 = subject->RFrame3;
+
+	memset(prims, 0, sizeof prims);
+	prims[0].type = prims[1].type = prims[2].type = PLine;
+	prims[0].v[0].p = prims[1].v[0].p = prims[2].v[0].p = center;
+	prims[0].v[0].c = prims[1].v[0].c = prims[2].v[0].c = Pt3(0,0,0,1);
+	prims[0].v[1].p = addpt3(center, e->bx);
+	prims[0].v[1].c = Pt3(1,0,0,1);
+	prims[1].v[1].p = addpt3(center, e->by);
+	prims[1].v[1].c = Pt3(0,1,0,1);
+	prims[2].v[1].p = addpt3(center, e->bz);
+	prims[2].v[1].c = Pt3(0,0,1,1);
+
+	m->prims = erealloc(m->prims, (m->nprims += 3)*sizeof(*m->prims));
+	memmove(m->prims, prims, sizeof prims);
+
+	scene->addent(scene, e);
 }
 
 Point3
@@ -496,14 +526,18 @@ void
 lmb(void)
 {
 	Quaternion Δorient;
+	Entity *e;
 
 	if((om.buttons^mctl->buttons) == 0){
 		Δorient = orient;
 		qball(screen->r, om.xy, mctl->xy, &orient, nil);
 		Δorient = mulq(orient, invq(Δorient));
-		subject->bx = Vecquat(mulq(mulq(Δorient, Quatvec(0, subject->bx)), invq(Δorient)));
-		subject->by = Vecquat(mulq(mulq(Δorient, Quatvec(0, subject->by)), invq(Δorient)));
-		subject->bz = Vecquat(mulq(mulq(Δorient, Quatvec(0, subject->bz)), invq(Δorient)));
+
+		for(e = scene->ents.next; e != &scene->ents; e = e->next){
+			e->bx = vcs2world(&cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(&cam, e->bx))), invq(Δorient))));
+			e->by = vcs2world(&cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(&cam, e->by))), invq(Δorient))));
+			e->bz = vcs2world(&cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(&cam, e->bz))), invq(Δorient))));
+		}
 	}
 }
 
@@ -758,6 +792,7 @@ threadmain(int argc, char *argv[])
 	model = newmodel();
 	subject = newentity(model);
 	scene->addent(scene, subject);
+	addbasis();
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
