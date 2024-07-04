@@ -161,9 +161,9 @@ gouraudshader(FSparams *sp)
 {
 	Color tc, c;
 
-	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0){
+	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
 		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
-	}else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
@@ -240,6 +240,7 @@ phongshader(FSparams *sp)
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
 		n = texture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
+		n = linear2srgb(n);	/* TODO not all textures require color space conversion */
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
