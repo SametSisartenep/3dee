@@ -92,7 +92,7 @@ LightSource light;		/* global point light */
 
 static int doprof;
 static int showhud;
-Color (*tsampler)(Memimage*,Point2);
+Color (*tsampler)(Texture*,Point2);
 
 static int
 min(int a, int b)
@@ -358,7 +358,6 @@ phongshader(FSparams *sp)
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
 		n = texture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
-		n = linear2srgb(n);	/* TODO not all textures require color space conversion */
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
@@ -396,11 +395,9 @@ phongshader(FSparams *sp)
 Point3
 identvshader(VSparams *sp)
 {
-	sp->v->n = model2world(sp->su->entity, sp->v->n);
-	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(sp->su->camera, sp->v->p);
+	return world2clip(sp->su->camera, model2world(sp->su->entity, sp->v->p));
 }
 
 Color

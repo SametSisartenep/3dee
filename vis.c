@@ -91,7 +91,7 @@ static int doprof;
 static int inception;
 static int showhud;
 static int shownormals;
-Color (*tsampler)(Memimage*,Point2);
+Color (*tsampler)(Texture*,Point2);
 
 static int
 min(int a, int b)
@@ -240,7 +240,6 @@ phongshader(FSparams *sp)
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
 		n = texture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
-		n = linear2srgb(n);	/* TODO not all textures require color space conversion */
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
@@ -276,14 +275,13 @@ phongshader(FSparams *sp)
 }
 
 Point3
-identvshader(VSparams *sp)
+toonvshader(VSparams *sp)
 {
 	Point3 pos, lightdir;
 	double intens;
 
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
-	sp->v->p = model2world(sp->su->entity, sp->v->p);
-	pos = sp->v->p;
+	pos = model2world(sp->su->entity, sp->v->p);
 	lightdir = normvec3(subpt3(light.p, pos));
 	intens = fmax(0, dotvec3(sp->v->n, lightdir));
 	addvattr(sp->v, "intensity", VANumber, &intens);
@@ -303,6 +301,14 @@ toonshader(FSparams *sp)
 	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
 
 	return Pt3(intens, 0.6*intens, 0, 1);
+}
+
+Point3
+identvshader(VSparams *sp)
+{
+	if(sp->v->mtl != nil)
+		sp->v->c = sp->v->mtl->diffuse;
+	return world2clip(sp->su->camera, model2world(sp->su->entity, sp->v->p));
 }
 
 Color
@@ -424,7 +430,7 @@ Shadertab shadertab[] = {
 	{ "circle", ivshader, circleshader },
 	{ "box", ivshader, boxshader },
 	{ "sf", ivshader, sfshader },
-	{ "toon", identvshader, toonshader },
+	{ "toon", toonvshader, toonshader },
 	{ "ident", identvshader, identshader },
 	{ "gouraud", gouraudvshader, gouraudshader },
 	{ "phong", phongvshader, phongshader },
@@ -506,8 +512,8 @@ renderproc(void *)
 		fd = open("/dev/screen", OREAD);
 		if(fd < 0)
 			sysfatal("open: %r");
-		freememimage(model->tex);
-		if((model->tex = readmemimage(fd)) == nil)
+		model->tex = alloctexture(sRGBTexture, nil);
+		if((model->tex->image = readmemimage(fd)) == nil)
 			sysfatal("readmemimage: %r");
 	}
 
@@ -525,9 +531,9 @@ renderproc(void *)
 			nbsend(drawc, nil);
 			t0 += Δt;
 			if(inception){
-				freememimage(model->tex);
+				freememimage(model->tex->image);
 				seek(fd, 0, 0);
-				if((model->tex = readmemimage(fd)) == nil)
+				if((model->tex->image = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
 		}
@@ -868,7 +874,8 @@ threadmain(int argc, char *argv[])
 			fd = open(texpath, OREAD);
 			if(fd < 0)
 				sysfatal("open: %r");
-			if((model->tex = readmemimage(fd)) == nil)
+			model->tex = alloctexture(sRGBTexture, nil);
+			if((model->tex->image = readmemimage(fd)) == nil)
 				sysfatal("readmemimage: %r");
 			close(fd);
 		}
