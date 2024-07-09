@@ -162,9 +162,9 @@ gouraudshader(FSparams *sp)
 	Color tc, c;
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
@@ -239,7 +239,7 @@ phongshader(FSparams *sp)
 		n = sp->v.n;
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
-		n = texture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
+		n = sampletexture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
@@ -248,6 +248,7 @@ phongshader(FSparams *sp)
 		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
 
 		n = normvec3(invrframexform3(n, TBN));
+		sp->v.n = n;
 	}
 
 	Kd = fmax(0, dotvec3(n, lightdir));
@@ -261,9 +262,9 @@ phongshader(FSparams *sp)
 	specular = modulapt3(specular, m.specular);
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
@@ -317,9 +318,9 @@ identshader(FSparams *sp)
 	Color tc, c;
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = texture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = texture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
@@ -481,17 +482,11 @@ drawstats(void)
 void
 redraw(void)
 {
-	static Image *bg;
-
-	if(bg == nil)
-		bg = eallocimage(display, UR, RGB24, 1, 0x888888FF);
-
 	lockdisplay(display);
 	if(shownormals)
 		maincam->vp->fbctl->drawnormals(maincam->vp->fbctl, screenb);
 	else
 		maincam->vp->draw(maincam->vp, screenb);
-	draw(screen, screen->r, bg, nil, ZP);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
@@ -892,7 +887,7 @@ threadmain(int argc, char *argv[])
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
 
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 	for(i = 0; i < nelem(cams); i++){
 		v = mkviewport(screenb->r);
 		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);

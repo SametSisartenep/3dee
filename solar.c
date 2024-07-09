@@ -350,7 +350,7 @@ Color
 identshader(FSparams *sp)
 {
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		return texture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
+		return sampletexture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
 	return sp->v.c;
 }
 
@@ -814,7 +814,7 @@ threadmain(int argc, char *argv[])
 		else
 			cmds[i].r = rectaddpt(cmds[i].r, Pt(cmds[i-1].r.max.x+Cmdmargin,cmds[i-1].r.min.y));
 	}
-	screenb = eallocimage(display, viewr, RGBA32, 0, DNofill);
+	screenb = eallocimage(display, viewr, XRGB32, 0, DNofill);
 	v = mkviewport(screenb->r);
 	placecamera(&camera, cameracfg.p, cameracfg.lookat, cameracfg.up);
 	configcamera(&camera, v, cameracfg.fov, cameracfg.clipn, cameracfg.clipf, cameracfg.ptype);
