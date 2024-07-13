@@ -144,7 +144,6 @@ int kdown;
 Tm date;
 char datestr[16];
 Scene *scene;
-QLock drawlk;
 
 Camera camera;
 Camcfg cameracfg = {
@@ -271,17 +270,6 @@ getplanet(char *name)
 	return nil;
 }
 
-static Planet *
-getentityplanet(Entity *e)
-{
-	int i;
-
-	for(i = 0; i < nelem(planets); i++)
-		if(e == planets[i].body)
-			return &planets[i];
-	return nil;
-}
-
 static void
 gotoplanet(Planet *p)
 {
@@ -330,7 +318,7 @@ identvshader(VSparams *sp)
 	Planet *p;
 	Point3 pos;
 
-	p = getentityplanet(sp->su->entity);
+	p = getplanet(sp->su->entity->name);
 	assert(p != nil);
 
 	Matrix3 S = {
@@ -436,11 +424,10 @@ drawproc(void *)
 {
 	threadsetname("drawproc");
 
-	for(;;)
-		if(recv(drawc, nil) && canqlock(&drawlk)){
-			redraw();
-			qunlock(&drawlk);
-		}
+	for(;;){
+		recv(drawc, nil);
+		redraw();
+	}
 }
 
 static char *
@@ -458,13 +445,13 @@ lookat_cmd(Cmdbut *)
 	Planet *p;
 	int idx;
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx >= 0){
 		p = &planets[idx];
 		placecamera(&camera, camera.p, p->body->p, cameracfg.up);
 	}
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -474,11 +461,11 @@ goto_cmd(Cmdbut *)
 	static Menu menu = { .gen = genplanetmenu };
 	int idx;
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx >= 0)
 		gotoplanet(&planets[idx]);
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -492,7 +479,7 @@ date_cmd(Cmdbut *)
 		return;
 
 	memmove(buf, datestr, sizeof buf);
-	qlock(&drawlk);
+	lockdisplay(display);
 	if(enter("new date", buf, sizeof buf, mctl, kctl, nil) <= 0)
 		goto nodate;
 	if(tmparse(&t, datefmt, buf, nil, nil) == nil)
@@ -501,7 +488,7 @@ date_cmd(Cmdbut *)
 	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
 	updateplanets();
 nodate:
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -573,7 +560,7 @@ mmb(void)
 	if((om.buttons ^ mctl->buttons) == 0)
 		return;
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case CHGSPEED:
 		snprint(buf, sizeof buf, "%g", speed);
@@ -583,7 +570,7 @@ mmb(void)
 	case QUIT:
 		threadexitsall(nil);
 	}
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -774,7 +761,7 @@ threadmain(int argc, char *argv[])
 		}
 	scene = newscene(nil);
 	for(i = 0; i < nelem(planets); i++){
-		subject = newentity(model);
+		subject = newentity(planets[i].name, model);
 		scene->addent(scene, subject);
 		planets[i].body = subject;
 		for(j = 0; j < model->nmaterials; j++)

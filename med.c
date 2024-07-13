@@ -76,7 +76,6 @@ Entity *subject;
 Model *model;
 Shadertab *shader;
 QLock scenelk;
-QLock drawlk;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 
@@ -219,7 +218,7 @@ addbasis(void)
 	Primitive prims[3];
 
 	m = newmodel();
-	e = newentity(m);
+	e = newentity("basis", m);
 	e->RFrame3 = subject->RFrame3;
 
 	memset(prims, 0, sizeof prims);
@@ -508,11 +507,10 @@ drawproc(void *)
 {
 	threadsetname("drawproc");
 
-	for(;;)
-		if(recv(drawc, nil) && canqlock(&drawlk)){
-			redraw();
-			qunlock(&drawlk);
-		}
+	for(;;){
+		recv(drawc, nil);
+		redraw();
+	}
 }
 
 void
@@ -552,7 +550,7 @@ mmb(void)
 	};
 	static Menu menu = { .item = items };
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case TSNEAREST:
 		tsampler = neartexsampler;
@@ -563,7 +561,7 @@ mmb(void)
 	case QUIT:
 		threadexitsall(nil);
 	}
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -591,7 +589,7 @@ rmb(void)
 	static Menu menu = { .gen = genrmbmenuitem };
 	int idx;
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	idx = menuhit(3, mctl, &menu, _screen);
 	if(idx < 0)
 		goto nohit;
@@ -606,7 +604,7 @@ rmb(void)
 		break;
 	}
 nohit:
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -783,7 +781,7 @@ threadmain(int argc, char *argv[])
 
 	scene = newscene(nil);
 	model = newmodel();
-	subject = newentity(model);
+	subject = newentity("main", model);
 	scene->addent(scene, subject);
 	addbasis();
 

@@ -57,7 +57,6 @@ int kdown;
 Shadertab *shader;
 Model *model;
 Scene *scene;
-QLock drawlk;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 
@@ -540,11 +539,10 @@ drawproc(void *)
 {
 	threadsetname("drawproc");
 
-	for(;;)
-		if(recv(drawc, nil) && canqlock(&drawlk)){
-			redraw();
-			qunlock(&drawlk);
-		}
+	for(;;){
+		recv(drawc, nil);
+		redraw();
+	}
 }
 
 static Color
@@ -613,7 +611,7 @@ mmb(void)
 	char buf[256], *f[3];
 	int nf;
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
 		snprint(buf, sizeof buf, "%g %g %g", light.p.x, light.p.y, light.p.z);
@@ -636,7 +634,7 @@ mmb(void)
 		shownormals ^= 1;
 		break;
 	}
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -654,14 +652,14 @@ rmb(void)
 	static Menu menu = { .gen = genrmbmenuitem };
 	int idx;
 
-	qlock(&drawlk);
+	lockdisplay(display);
 	idx = menuhit(3, mctl, &menu, _screen);
 	if(idx >= 0){
 		shader = &shadertab[idx];
 		for(idx = 0; idx < nelem(cams); idx++)
 			memset(&cams[idx].stats, 0, sizeof(cams[idx].stats));
 	}
-	qunlock(&drawlk);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -856,7 +854,7 @@ threadmain(int argc, char *argv[])
 	while(argc--){
 		mdlpath = argv[argc];
 		model = newmodel();
-		subject = newentity(model);
+		subject = newentity(mdlpath, model);
 //		subject->p.x = argc*4;
 		scene->addent(scene, subject);
 
