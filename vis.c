@@ -600,15 +600,27 @@ mmb(void)
 {
 	enum {
 		MOVELIGHT,
+		SP0,
 		TSNEAREST,
 		TSBILINEAR,
+		SP1,
 		SHOWNORMALS,
+		SP2,
+		CULLFRONT,
+		CULLBACK,
+		CULLNO,
 	};
 	static char *items[] = {
 	 [MOVELIGHT]	"move light",
+			"",
 	 [TSNEAREST]	"use nearest sampler",
 	 [TSBILINEAR]	"use bilinear sampler",
+			"",
 	 [SHOWNORMALS]	"show normals",
+			"",
+	 [CULLFRONT]	"cull front faces",
+	 [CULLBACK]	"cull back faces",
+	 [CULLNO]	"no culling",
 		nil,
 	};
 	static Menu menu = { .item = items };
@@ -636,6 +648,15 @@ mmb(void)
 		break;
 	case SHOWNORMALS:
 		shownormals ^= 1;
+		break;
+	case CULLFRONT:
+		maincam->cullmode = CullFront;
+		break;
+	case CULLBACK:
+		maincam->cullmode = CullBack;
+		break;
+	case CULLNO:
+		maincam->cullmode = CullNone;
 		break;
 	}
 	unlockdisplay(display);
