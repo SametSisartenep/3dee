@@ -298,7 +298,11 @@ toonshader(FSparams *sp)
 
 	va = getvattr(&sp->v, "intensity");
 	intens = va->n;
-	intens = intens > 0.85? 1: intens > 0.60? 0.80: intens > 0.45? 0.60: intens > 0.30? 0.45: intens > 0.15? 0.30: 0;
+	intens = intens > 0.85? 1:
+		 intens > 0.60? 0.80:
+		 intens > 0.45? 0.60:
+		 intens > 0.30? 0.45:
+		 intens > 0.15? 0.30: 0.15;
 
 	return Pt3(intens, 0.6*intens, 0, 1);
 }
