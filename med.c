@@ -79,7 +79,7 @@ QLock scenelk;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 
-Camera cam;
+Camera *cam;
 Camcfg camcfg = {
 	0,2,4,1,
 	0,0,0,1,
@@ -121,45 +121,43 @@ void
 materializefrustum(void)
 {
 	Primitive l;
-	Framebuf *fb;
 	Point3 p[4];
 	int i;
 
-	fb = cam.vp->getfb(cam.vp);
 	p[0] = Pt3(0,0,1,1);
-	p[1] = Pt3(Dx(fb->r),0,1,1);
-	p[2] = Pt3(Dx(fb->r),Dy(fb->r),1,1);
-	p[3] = Pt3(0,Dy(fb->r),1,1);
+	p[1] = Pt3(Dx(cam->vp->r),0,1,1);
+	p[2] = Pt3(Dx(cam->vp->r),Dy(cam->vp->r),1,1);
+	p[3] = Pt3(0,Dy(cam->vp->r),1,1);
 	memset(&l, 0, sizeof l);
 
 	for(i = 0; i < nelem(p); i++){
 		/* front frame */
 		l.type = PLine;
-		l.v[0].p = world2model(subject, viewport2world(&cam, p[i]));
-		l.v[1].p = world2model(subject, viewport2world(&cam, p[(i+1)%nelem(p)]));
+		l.v[0].p = world2model(subject, viewport2world(cam, p[i]));
+		l.v[1].p = world2model(subject, viewport2world(cam, p[(i+1)%nelem(p)]));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
 		qunlock(&scenelk);
 
 		/* middle frame */
-		l.v[0].p = world2model(subject, viewport2world(&cam, subpt3(p[i], Vec3(0,0,0.5))));
-		l.v[1].p = world2model(subject, viewport2world(&cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,0.5))));
+		l.v[0].p = world2model(subject, viewport2world(cam, subpt3(p[i], Vec3(0,0,0.5))));
+		l.v[1].p = world2model(subject, viewport2world(cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,0.5))));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
 		qunlock(&scenelk);
 
 		/* back frame */
-		l.v[0].p = world2model(subject, viewport2world(&cam, subpt3(p[i], Vec3(0,0,1))));
-		l.v[1].p = world2model(subject, viewport2world(&cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,1))));
+		l.v[0].p = world2model(subject, viewport2world(cam, subpt3(p[i], Vec3(0,0,1))));
+		l.v[1].p = world2model(subject, viewport2world(cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,1))));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
 		qunlock(&scenelk);
 
 		/* struts */
-		l.v[1].p = world2model(subject, viewport2world(&cam, p[i]));
+		l.v[1].p = world2model(subject, viewport2world(cam, p[i]));
 		qlock(&scenelk);
 		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
 		model->prims[model->nprims-1] = l;
@@ -437,15 +435,15 @@ getshader(char *name)
 void
 zoomin(void)
 {
-	cam.fov = fclamp(cam.fov - 1*DEG, 1*DEG, 180*DEG);
-	reloadcamera(&cam);
+	cam->fov = fclamp(cam->fov - 1*DEG, 1*DEG, 180*DEG);
+	reloadcamera(cam);
 }
 
 void
 zoomout(void)
 {
-	cam.fov = fclamp(cam.fov + 1*DEG, 1*DEG, 180*DEG);
-	reloadcamera(&cam);
+	cam->fov = fclamp(cam->fov + 1*DEG, 1*DEG, 180*DEG);
+	reloadcamera(cam);
 }
 
 void
@@ -453,13 +451,13 @@ drawstats(void)
 {
 	int i;
 
-	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", cam.fov/DEG);
-	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", cam.p);
-	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", cam.bx);
-	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", cam.by);
-	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", cam.bz);
-	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !cam.stats.max? 0: 1e9/cam.stats.max, !cam.stats.avg? 0: 1e9/cam.stats.avg, !cam.stats.min? 0: 1e9/cam.stats.min, !cam.stats.v? 0: 1e9/cam.stats.v);
-	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", cam.stats.nframes);
+	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", cam->fov/DEG);
+	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", cam->p);
+	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", cam->bx);
+	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", cam->by);
+	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", cam->bz);
+	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !cam->stats.max? 0: 1e9/cam->stats.max, !cam->stats.avg? 0: 1e9/cam->stats.avg, !cam->stats.min? 0: 1e9/cam->stats.min, !cam->stats.v? 0: 1e9/cam->stats.v);
+	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", cam->stats.nframes);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -468,7 +466,7 @@ void
 redraw(void)
 {
 	lockdisplay(display);
-	cam.vp->draw(cam.vp, screenb);
+	cam->vp->draw(cam->vp, screenb);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
@@ -486,14 +484,14 @@ renderproc(void *)
 	t0 = nsec();
 	for(;;){
 		qlock(&scenelk);
-		shootcamera(&cam, shader);
+		shootcamera(cam, shader);
 		qunlock(&scenelk);
 		if(doprof)
 		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
-			cam.times.R[cam.times.cur-1].t0, cam.times.R[cam.times.cur-1].t1,
-			cam.times.E[cam.times.cur-1].t0, cam.times.E[cam.times.cur-1].t1,
-			cam.times.Tn[cam.times.cur-1].t0, cam.times.Tn[cam.times.cur-1].t1,
-			cam.times.Rn[cam.times.cur-1].t0, cam.times.Rn[cam.times.cur-1].t1);
+			cam->times.R[cam->times.cur-1].t0, cam->times.R[cam->times.cur-1].t1,
+			cam->times.E[cam->times.cur-1].t0, cam->times.E[cam->times.cur-1].t1,
+			cam->times.Tn[cam->times.cur-1].t0, cam->times.Tn[cam->times.cur-1].t1,
+			cam->times.Rn[cam->times.cur-1].t0, cam->times.Rn[cam->times.cur-1].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			nbsend(drawc, nil);
@@ -525,9 +523,9 @@ lmb(void)
 		Δorient = mulq(orient, invq(Δorient));
 
 		for(e = scene->ents.next; e != &scene->ents; e = e->next){
-			e->bx = vcs2world(&cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(&cam, e->bx))), invq(Δorient))));
-			e->by = vcs2world(&cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(&cam, e->by))), invq(Δorient))));
-			e->bz = vcs2world(&cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(&cam, e->bz))), invq(Δorient))));
+			e->bx = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, e->bx))), invq(Δorient))));
+			e->by = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, e->by))), invq(Δorient))));
+			e->bz = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, e->bz))), invq(Δorient))));
 		}
 	}
 }
@@ -595,7 +593,7 @@ rmb(void)
 		goto nohit;
 	if(idx < nelem(shadertab)){
 		shader = &shadertab[idx];
-		memset(&cam.stats, 0, sizeof(cam.stats));
+		memset(&cam->stats, 0, sizeof(cam->stats));
 	}
 	idx -= nelem(shadertab);
 	switch(idx){
@@ -688,29 +686,29 @@ handlekeys(void)
 	static int okdown;
 
 	if(kdown & 1<<K↑)
-		placecamera(&cam, subpt3(cam.p, mulpt3(cam.bz, 0.1)), cam.bz, cam.by);
+		movecamera(cam, mulpt3(cam->bz, -0.1));
 	if(kdown & 1<<K↓)
-		placecamera(&cam, addpt3(cam.p, mulpt3(cam.bz, 0.1)), cam.bz, cam.by);
+		movecamera(cam, mulpt3(cam->bz, 0.1));
 	if(kdown & 1<<K←)
-		placecamera(&cam, subpt3(cam.p, mulpt3(cam.bx, 0.1)), cam.bz, cam.by);
+		movecamera(cam, mulpt3(cam->bx, -0.1));
 	if(kdown & 1<<K→)
-		placecamera(&cam, addpt3(cam.p, mulpt3(cam.bx, 0.1)), cam.bz, cam.by);
+		movecamera(cam, mulpt3(cam->bx, 0.1));
 	if(kdown & 1<<Krise)
-		placecamera(&cam, addpt3(cam.p, mulpt3(cam.by, 0.1)), cam.bz, cam.by);
+		movecamera(cam, mulpt3(cam->by, 0.1));
 	if(kdown & 1<<Kfall)
-		placecamera(&cam, subpt3(cam.p, mulpt3(cam.by, 0.1)), cam.bz, cam.by);
+		movecamera(cam, mulpt3(cam->by, -0.1));
 	if(kdown & 1<<KR↑)
-		aimcamera(&cam, qrotate(cam.bz, cam.bx, 1*DEG));
+		rotatecamera(cam, cam->bx, 1*DEG);
 	if(kdown & 1<<KR↓)
-		aimcamera(&cam, qrotate(cam.bz, cam.bx, -1*DEG));
+		rotatecamera(cam, cam->bx, -1*DEG);
 	if(kdown & 1<<KR←)
-		aimcamera(&cam, qrotate(cam.bz, cam.by, 1*DEG));
+		rotatecamera(cam, cam->by, 1*DEG);
 	if(kdown & 1<<KR→)
-		aimcamera(&cam, qrotate(cam.bz, cam.by, -1*DEG));
+		rotatecamera(cam, cam->by, -1*DEG);
 	if(kdown & 1<<KR↺)
-		placecamera(&cam, cam.p, cam.bz, qrotate(cam.by, cam.bz, 1*DEG));
+		rotatecamera(cam, cam->bz, 1*DEG);
 	if(kdown & 1<<KR↻)
-		placecamera(&cam, cam.p, cam.bz, qrotate(cam.by, cam.bz, -1*DEG));
+		rotatecamera(cam, cam->bz, -1*DEG);
 	if(kdown & 1<<Kzoomin)
 		zoomin();
 	if(kdown & 1<<Kzoomout)
@@ -762,7 +760,6 @@ usage(void)
 void
 threadmain(int argc, char *argv[])
 {
-	Viewport *v;
 	Renderer *rctl;
 	Channel *keyc;
 
@@ -795,11 +792,8 @@ threadmain(int argc, char *argv[])
 		sysfatal("initmouse: %r");
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
-	v = mkviewport(screenb->r);
-	placecamera(&cam, camcfg.p, camcfg.lookat, camcfg.up);
-	configcamera(&cam, v, camcfg.fov, camcfg.clipn, camcfg.clipf, camcfg.ptype);
-	cam.scene = scene;
-	cam.rctl = rctl;
+	cam = Cam(screenb->r, rctl, camcfg.ptype, camcfg.fov, camcfg.clipn, camcfg.clipf);
+	placecamera(cam, scene, camcfg.p, camcfg.lookat, camcfg.up);
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
 	light.type = LIGHT_POINT;

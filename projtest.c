@@ -10,7 +10,7 @@
 #include "libgraphics/graphics.h"
 #include "fns.h"
 
-Camera cam;
+Camera *cam;
 
 void
 usage(void)
@@ -35,15 +35,15 @@ threadmain(int argc, char *argv[])
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
 
-	placecamera(&cam, Pt3(0,0,1,1), Vec3(0,0,0), Vec3(0,1,0));
-	configcamera(&cam, mkviewport(Rect(0,0,640,480)), 40*DEG, 0.01, 10, PERSPECTIVE);
+	cam = Cam(Rect(0,0,640,480), nil, PERSPECTIVE, 40*DEG, 0.01, 10);
+	placecamera(cam, nil, Pt3(0,0,1,1), Vec3(0,0,0), Vec3(0,1,0));
 
-	fb = cam.vp->getfb(cam.vp);
+	fb = cam->vp->getfb(cam->vp);
 	np = Pt3(0,0,-0.01,1);
 	fp = Pt3(0,0,-10,1);
 	fprint(2, "near %V\nfar %V\n", np, fp);
-	np = vcs2clip(&cam, np);
-	fp = vcs2clip(&cam, fp);
+	np = vcs2clip(cam, np);
+	fp = vcs2clip(cam, fp);
 	fprint(2, "E → C\n");
 	fprint(2, "near %V\n", np);
 	fprint(2, "far %V\n", fp);
@@ -62,8 +62,8 @@ threadmain(int argc, char *argv[])
 	fprint(2, "V → N\n");
 	fprint(2, "near %V\n", np);
 	fprint(2, "far %V\n", fp);
-	np = ndc2vcs(&cam, np);
-	fp = ndc2vcs(&cam, fp);
+	np = ndc2vcs(cam, np);
+	fp = ndc2vcs(cam, fp);
 	fprint(2, "N → E\n");
 	fprint(2, "near %V\n", np);
 	fprint(2, "far %V\n", fp);
@@ -78,13 +78,13 @@ threadmain(int argc, char *argv[])
 	fprint(2, "V → N\n");
 	fprint(2, "near %V\n", np);
 	fprint(2, "far %V\n", fp);
-	np = ndc2vcs(&cam, np);
-	fp = ndc2vcs(&cam, fp);
+	np = ndc2vcs(cam, np);
+	fp = ndc2vcs(cam, fp);
 	fprint(2, "N → E\n");
 	fprint(2, "near %V\n", np);
 	fprint(2, "far %V\n", fp);
-	np = vcs2clip(&cam, np);
-	fp = vcs2clip(&cam, fp);
+	np = vcs2clip(cam, np);
+	fp = vcs2clip(cam, fp);
 	fprint(2, "E → C\n");
 	fprint(2, "near %V\n", np);
 	fprint(2, "far %V\n", fp);

@@ -60,7 +60,7 @@ Scene *scene;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 
-Camera cams[4], *maincam;
+Camera *cams[4], *maincam;
 Camcfg camcfgs[4] = {
 	2,0,-4,1,
 	0,0,0,1,
@@ -467,9 +467,14 @@ zoomout(void)
 void
 drawstats(void)
 {
-	int i;
+	int i, camno;
 
-	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %lld", maincam-cams+1);
+	camno = -1;
+	for(i = 0; i < nelem(cams); i++)
+		if(maincam == cams[i])
+			camno = i+1;
+
+	snprint(stats[Scamno], sizeof(stats[Scamno]), "CAM %d", camno);
 	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", maincam->fov/DEG);
 	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", maincam->p);
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", maincam->bx);
@@ -682,7 +687,7 @@ rmb(void)
 	if(idx >= 0){
 		shader = &shadertab[idx];
 		for(idx = 0; idx < nelem(cams); idx++)
-			memset(&cams[idx].stats, 0, sizeof(cams[idx].stats));
+			memset(&cams[idx]->stats, 0, sizeof(cams[idx]->stats));
 	}
 	unlockdisplay(display);
 	nbsend(drawc, nil);
@@ -768,41 +773,41 @@ handlekeys(void)
 	static int okdown;
 
 	if(kdown & 1<<K↑)
-		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->bz, 0.1)), maincam->bz, maincam->by);
+		movecamera(maincam, mulpt3(maincam->bz, -0.1));
 	if(kdown & 1<<K↓)
-		placecamera(maincam, addpt3(maincam->p, mulpt3(maincam->bz, 0.1)), maincam->bz, maincam->by);
+		movecamera(maincam, mulpt3(maincam->bz, 0.1));
 	if(kdown & 1<<K←)
-		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->bx, 0.1)), maincam->bz, maincam->by);
+		movecamera(maincam, mulpt3(maincam->bx, -0.1));
 	if(kdown & 1<<K→)
-		placecamera(maincam, addpt3(maincam->p, mulpt3(maincam->bx, 0.1)), maincam->bz, maincam->by);
+		movecamera(maincam, mulpt3(maincam->bx, 0.1));
 	if(kdown & 1<<Krise)
-		placecamera(maincam, addpt3(maincam->p, mulpt3(maincam->by, 0.1)), maincam->bz, maincam->by);
+		movecamera(maincam, mulpt3(maincam->by, 0.1));
 	if(kdown & 1<<Kfall)
-		placecamera(maincam, subpt3(maincam->p, mulpt3(maincam->by, 0.1)), maincam->bz, maincam->by);
+		movecamera(maincam, mulpt3(maincam->by, -0.1));
 	if(kdown & 1<<KR↑)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->bx, 1*DEG));
+		rotatecamera(maincam, maincam->bx, 1*DEG);
 	if(kdown & 1<<KR↓)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->bx, -1*DEG));
+		rotatecamera(maincam, maincam->bx, -1*DEG);
 	if(kdown & 1<<KR←)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->by, 1*DEG));
+		rotatecamera(maincam, maincam->by, 1*DEG);
 	if(kdown & 1<<KR→)
-		aimcamera(maincam, qrotate(maincam->bz, maincam->by, -1*DEG));
+		rotatecamera(maincam, maincam->by, -1*DEG);
 	if(kdown & 1<<KR↺)
-		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, 1*DEG));
+		rotatecamera(maincam, maincam->bz, 1*DEG);
 	if(kdown & 1<<KR↻)
-		placecamera(maincam, maincam->p, maincam->bz, qrotate(maincam->by, maincam->bz, -1*DEG));
+		rotatecamera(maincam, maincam->bz, -1*DEG);
 	if(kdown & 1<<Kzoomin)
 		zoomin();
 	if(kdown & 1<<Kzoomout)
 		zoomout();
 	if(kdown & 1<<Kcam0)
-		maincam = &cams[0];
+		maincam = cams[0];
 	if(kdown & 1<<Kcam1)
-		maincam = &cams[1];
+		maincam = cams[1];
 	if(kdown & 1<<Kcam2)
-		maincam = &cams[2];
+		maincam = cams[2];
 	if(kdown & 1<<Kcam3)
-		maincam = &cams[3];
+		maincam = cams[3];
 
 	if((okdown & 1<<Khud) == 0 && (kdown & 1<<Khud) != 0)
 		showhud ^= 1;
@@ -850,7 +855,6 @@ usage(void)
 void
 threadmain(int argc, char *argv[])
 {
-	Viewport *v;
 	Renderer *rctl;
 	Channel *keyc;
 	Entity *subject;
@@ -912,13 +916,11 @@ threadmain(int argc, char *argv[])
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 	for(i = 0; i < nelem(cams); i++){
-		v = mkviewport(screenb->r);
-		placecamera(&cams[i], camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
-		configcamera(&cams[i], v, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf, camcfgs[i].ptype);
-		cams[i].scene = scene;
-		cams[i].rctl = rctl;
+		cams[i] = Cam(screenb->r, rctl,
+				camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
+		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 	}
-	maincam = &cams[3];
+	maincam = cams[3];
 	light.p = Pt3(0,100,100,1);
 //	light.dir = Vec3(0,-1,0);
 	light.c = Pt3(1,1,1,1);

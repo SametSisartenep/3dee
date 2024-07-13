@@ -145,10 +145,10 @@ Tm date;
 char datestr[16];
 Scene *scene;
 
-Camera camera;
+Camera *camera;
 Camcfg cameracfg = {
 	0,0,0,1,
-	0,0,0,1,
+	0,0,1,0,
 	0,1,0,0,
 	80*DEG, 1, 1e12, PERSPECTIVE
 };
@@ -273,7 +273,8 @@ getplanet(char *name)
 static void
 gotoplanet(Planet *p)
 {
-	placecamera(&camera, addpt3(p->body->p, Vec3(0,0,1.5*p->scale)), p->body->p, cameracfg.up);
+	movecamera(camera, addpt3(p->body->p, Vec3(0,0,1.5*p->scale)));
+	aimcamera(camera, p->body->p);
 }
 
 /*
@@ -347,15 +348,15 @@ Shadertab shader = { "ident", identvshader, identshader };
 void
 zoomin(void)
 {
-	camera.fov = fclamp(camera.fov - 1*DEG, 1*DEG, 180*DEG);
-	reloadcamera(&camera);
+	camera->fov = fclamp(camera->fov - 1*DEG, 1*DEG, 180*DEG);
+	reloadcamera(camera);
 }
 
 void
 zoomout(void)
 {
-	camera.fov = fclamp(camera.fov + 1*DEG, 1*DEG, 180*DEG);
-	reloadcamera(&camera);
+	camera->fov = fclamp(camera->fov + 1*DEG, 1*DEG, 180*DEG);
+	reloadcamera(camera);
 }
 
 void
@@ -363,13 +364,13 @@ drawstats(void)
 {
 	int i;
 
-	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", camera.fov/DEG);
-	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", camera.p);
-	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", camera.bx);
-	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", camera.by);
-	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", camera.bz);
-	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !camera.stats.max? 0: 1e9/camera.stats.max, !camera.stats.avg? 0: 1e9/camera.stats.avg, !camera.stats.min? 0: 1e9/camera.stats.min, !camera.stats.v? 0: 1e9/camera.stats.v);
-	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", camera.stats.nframes);
+	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", camera->fov/DEG);
+	snprint(stats[Scampos], sizeof(stats[Scampos]), "%V", camera->p);
+	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", camera->bx);
+	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", camera->by);
+	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", camera->bz);
+	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !camera->stats.max? 0: 1e9/camera->stats.max, !camera->stats.avg? 0: 1e9/camera->stats.avg, !camera->stats.min? 0: 1e9/camera->stats.min, !camera->stats.v? 0: 1e9/camera->stats.v);
+	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", camera->stats.nframes);
 	snprint(stats[Splanet], sizeof(stats[Splanet]), "%s", selplanet == nil? "": selplanet->name);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
@@ -381,8 +382,7 @@ redraw(void)
 	int i;
 
 	lockdisplay(display);
-	camera.vp->draw(camera.vp, screenb);
-	draw(screen, rectaddpt(viewr, screen->r.min), display->black, nil, ZP);
+	camera->vp->draw(camera->vp, screenb);
 	draw(screen, rectaddpt(viewr, screen->r.min), screenb, nil, ZP);
 	draw(screen, rectaddpt(cmdbox.r, screen->r.min), display->white, nil, ZP);
 	for(i = 0; i < cmdbox.ncmds; i++){
@@ -404,13 +404,13 @@ renderproc(void *)
 
 	t0 = nsec();
 	for(;;){
-		shootcamera(&camera, &shader);
+		shootcamera(camera, &shader);
 		if(doprof)
 		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
-			camera.times.R[camera.times.cur-1].t0, camera.times.R[camera.times.cur-1].t1,
-			camera.times.E[camera.times.cur-1].t0, camera.times.E[camera.times.cur-1].t1,
-			camera.times.Tn[camera.times.cur-1].t0, camera.times.Tn[camera.times.cur-1].t1,
-			camera.times.Rn[camera.times.cur-1].t0, camera.times.Rn[camera.times.cur-1].t1);
+			camera->times.R[camera->times.cur-1].t0, camera->times.R[camera->times.cur-1].t1,
+			camera->times.E[camera->times.cur-1].t0, camera->times.E[camera->times.cur-1].t1,
+			camera->times.Tn[camera->times.cur-1].t0, camera->times.Tn[camera->times.cur-1].t1,
+			camera->times.Rn[camera->times.cur-1].t0, camera->times.Rn[camera->times.cur-1].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			nbsend(drawc, nil);
@@ -449,7 +449,7 @@ lookat_cmd(Cmdbut *)
 	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx >= 0){
 		p = &planets[idx];
-		placecamera(&camera, camera.p, p->body->p, cameracfg.up);
+		aimcamera(camera, p->body->p);
 	}
 	unlockdisplay(display);
 	nbsend(drawc, nil);
@@ -513,14 +513,14 @@ lmb(void)
 
 	mp = subpt(mctl->xy, screen->r.min);
 	if(ptinrect(mp, viewr)){
-		p0 = viewport2world(&camera, Pt3(mp.x,mp.y,1,1));
-		u = normvec3(subpt3(p0, camera.p));
+		p0 = viewport2world(camera, Pt3(mp.x,mp.y,1,1));
+		u = normvec3(subpt3(p0, camera->p));
 		p = nil;
 		lastz = Inf(1);
 
 		for(i = 0; i < nelem(planets); i++)
 			if(rayXsphere(nil, p0, u, planets[i].body->p, planets[i].scale) > 0){
-				z = vec3len(subpt3(planets[i].body->p, camera.p));
+				z = vec3len(subpt3(planets[i].body->p, camera->p));
 				/* select the closest one */
 				if(z < lastz){
 					lastz = z;
@@ -653,29 +653,29 @@ handlekeys(void)
 	static int okdown;
 
 	if(kdown & 1<<K↑)
-		placecamera(&camera, subpt3(camera.p, mulpt3(camera.bz, speed)), camera.bz, camera.by);
+		movecamera(camera, mulpt3(camera->bz, -speed));
 	if(kdown & 1<<K↓)
-		placecamera(&camera, addpt3(camera.p, mulpt3(camera.bz, speed)), camera.bz, camera.by);
+		movecamera(camera, mulpt3(camera->bz, speed));
 	if(kdown & 1<<K←)
-		placecamera(&camera, subpt3(camera.p, mulpt3(camera.bx, speed)), camera.bz, camera.by);
+		movecamera(camera, mulpt3(camera->bx, -speed));
 	if(kdown & 1<<K→)
-		placecamera(&camera, addpt3(camera.p, mulpt3(camera.bx, speed)), camera.bz, camera.by);
+		movecamera(camera, mulpt3(camera->bx, speed));
 	if(kdown & 1<<Krise)
-		placecamera(&camera, addpt3(camera.p, mulpt3(camera.by, speed)), camera.bz, camera.by);
+		movecamera(camera, mulpt3(camera->by, speed));
 	if(kdown & 1<<Kfall)
-		placecamera(&camera, subpt3(camera.p, mulpt3(camera.by, speed)), camera.bz, camera.by);
+		movecamera(camera, mulpt3(camera->by, -speed));
 	if(kdown & 1<<KR↑)
-		aimcamera(&camera, qrotate(camera.bz, camera.bx, 1*DEG));
+		rotatecamera(camera, camera->bx, 1*DEG);
 	if(kdown & 1<<KR↓)
-		aimcamera(&camera, qrotate(camera.bz, camera.bx, -1*DEG));
+		rotatecamera(camera, camera->bx, -1*DEG);
 	if(kdown & 1<<KR←)
-		aimcamera(&camera, qrotate(camera.bz, camera.by, 1*DEG));
+		rotatecamera(camera, camera->by, 1*DEG);
 	if(kdown & 1<<KR→)
-		aimcamera(&camera, qrotate(camera.bz, camera.by, -1*DEG));
+		rotatecamera(camera, camera->by, -1*DEG);
 	if(kdown & 1<<KR↺)
-		placecamera(&camera, camera.p, camera.bz, qrotate(camera.by, camera.bz, 1*DEG));
+		rotatecamera(camera, camera->bz, 1*DEG);
 	if(kdown & 1<<KR↻)
-		placecamera(&camera, camera.p, camera.bz, qrotate(camera.by, camera.bz, -1*DEG));
+		rotatecamera(camera, camera->bz, -1*DEG);
 	if(kdown & 1<<Kzoomin)
 		zoomin();
 	if(kdown & 1<<Kzoomout)
@@ -723,7 +723,6 @@ usage(void)
 void
 threadmain(int argc, char *argv[])
 {
-	Viewport *v;
 	Renderer *rctl;
 	Channel *keyc;
 	Entity *subject;
@@ -802,11 +801,9 @@ threadmain(int argc, char *argv[])
 			cmds[i].r = rectaddpt(cmds[i].r, Pt(cmds[i-1].r.max.x+Cmdmargin,cmds[i-1].r.min.y));
 	}
 	screenb = eallocimage(display, viewr, XRGB32, 0, DNofill);
-	v = mkviewport(screenb->r);
-	placecamera(&camera, cameracfg.p, cameracfg.lookat, cameracfg.up);
-	configcamera(&camera, v, cameracfg.fov, cameracfg.clipn, cameracfg.clipf, cameracfg.ptype);
-	camera.scene = scene;
-	camera.rctl = rctl;
+	camera = Cam(screenb->r, rctl, cameracfg.ptype, cameracfg.fov, cameracfg.clipn, cameracfg.clipf);
+	placecamera(camera, scene, cameracfg.p, cameracfg.lookat, cameracfg.up);
+	camera->cullmode = CullBack;
 	gotoplanet(getplanet("Sol"));
 
 	kctl = emalloc(sizeof *kctl);
