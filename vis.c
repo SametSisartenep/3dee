@@ -563,10 +563,10 @@ ul2col(ulong l)
 {
 	Color c;
 
-	c.a = (l     & 0xff)/255.0;
-	c.b = (l>>8  & 0xff)/255.0;
-	c.g = (l>>16 & 0xff)/255.0;
-	c.r = (l>>24 & 0xff)/255.0;
+	c.b = (l     & 0xff)/255.0;
+	c.g = (l>>8  & 0xff)/255.0;
+	c.r = (l>>16 & 0xff)/255.0;
+	c.a = (l>>24 & 0xff)/255.0;
 	return c;
 }
 
@@ -586,13 +586,17 @@ lmb(void)
 			e->by = vcs2world(maincam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(maincam, e->by))), invq(Δorient))));
 			e->bz = vcs2world(maincam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(maincam, e->bz))), invq(Δorient))));
 		}
-	}else{
+	}else{	/* DBG only */
 		Framebuf *fb;
+		Point2 p₂;
 		Point p;
 		Color c, n;
 		double z;
 
 		p = subpt(mctl->xy, screen->r.min);
+		p₂ = Pt2(p.x, p.y, 1);
+		p₂ = rframexform(p₂, *maincam->view);
+		p = Pt(p₂.x, p₂.y);
 		qlock(maincam->view->fbctl);
 		fb = maincam->view->getfb(maincam->view);
 		c = ul2col(fb->cb[p.y*Dx(fb->r) + p.x]);
@@ -852,7 +856,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-s] [-t texture] model...\n", argv0);
+	fprint(2, "usage: %s [-s] [-t texture] [-g wxh] model...\n", argv0);
 	exits("usage");
 }
 
@@ -863,14 +867,24 @@ threadmain(int argc, char *argv[])
 	Channel *keyc;
 	Entity *subject;
 	OBJ *obj;
-	char *texpath, *mdlpath;
-	int i, fd;
+	char *texpath, *mdlpath, *wxh, *s;
+	int i, fd, fbw, fbh;
 
 	GEOMfmtinstall();
 	texpath = nil;
+	fbw = fbh = 0;
 	ARGBEGIN{
 	case 's': showskybox++; break;
 	case 't': texpath = EARGF(usage()); break;
+	case 'g':
+		wxh = EARGF(usage());
+		s = strchr(wxh, 'x');
+		if(s == nil || *wxh == 'x' || s[1] == 0)
+			usage();
+		*s++ = 0;
+		fbw = strtoul(wxh, nil, 10);
+		fbh = strtoul(s, nil, 10);
+		break;
 	case L'ι': inception++; break;
 	case 'p': doprof++; break;
 	default: usage();
@@ -918,11 +932,18 @@ threadmain(int argc, char *argv[])
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
 
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, 0x888888FF);
 	for(i = 0; i < nelem(cams); i++){
-		cams[i] = Cam(screenb->r, rctl,
-				camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
+		/* no downsampling support */
+		if(fbw == 0 || fbh == 0 || Dx(screenb->r)/fbw < 1 || Dy(screenb->r)/fbh < 1)
+			cams[i] = Cam(screenb->r, rctl,
+					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
+		else
+			cams[i] = Cam(Rect(0,0,fbw,fbh), rctl,
+					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
 		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
+		cams[i]->view->bx.x = Dx(screenb->r)/Dx(cams[i]->view->r);
+		cams[i]->view->by.y = Dy(screenb->r)/Dy(cams[i]->view->r);
 	}
 	maincam = cams[3];
 	light.p = Pt3(0,100,100,1);
