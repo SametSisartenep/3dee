@@ -480,7 +480,11 @@ drawstats(void)
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", maincam->bx);
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", maincam->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", maincam->bz);
-	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !maincam->stats.max? 0: 1e9/maincam->stats.max, !maincam->stats.avg? 0: 1e9/maincam->stats.avg, !maincam->stats.min? 0: 1e9/maincam->stats.min, !maincam->stats.v? 0: 1e9/maincam->stats.v);
+	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f",
+		!maincam->stats.max? 0: 1e9/maincam->stats.max,
+		!maincam->stats.avg? 0: 1e9/maincam->stats.avg,
+		!maincam->stats.min? 0: 1e9/maincam->stats.min,
+		!maincam->stats.v? 0: 1e9/maincam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", maincam->stats.nframes);
 	snprint(stats[Sorient], sizeof(stats[Sorient]), "ℍ %V", (Point3)orient);
 	for(i = 0; i < Se; i++)
@@ -492,9 +496,9 @@ redraw(void)
 {
 	lockdisplay(display);
 	if(shownormals)
-		maincam->vp->fbctl->drawnormals(maincam->vp->fbctl, screenb);
+		maincam->view->fbctl->drawnormals(maincam->view->fbctl, screenb);
 	else
-		maincam->vp->draw(maincam->vp, screenb);
+		maincam->view->draw(maincam->view, screenb);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
@@ -589,12 +593,12 @@ lmb(void)
 		double z;
 
 		p = subpt(mctl->xy, screen->r.min);
-		qlock(maincam->vp->fbctl);
-		fb = maincam->vp->getfb(maincam->vp);
+		qlock(maincam->view->fbctl);
+		fb = maincam->view->getfb(maincam->view);
 		c = ul2col(fb->cb[p.y*Dx(fb->r) + p.x]);
 		n = ul2col(fb->nb[p.y*Dx(fb->r) + p.x]);
 		z = fb->zb[p.y*Dx(fb->r) + p.x];
-		qunlock(maincam->vp->fbctl);
+		qunlock(maincam->view->fbctl);
 		snprint(stats[Spixcol], sizeof(stats[Spixcol]), "c %V z %g", c, z);
 		snprint(stats[Snorcol], sizeof(stats[Snorcol]), "n %V", n);
 	}

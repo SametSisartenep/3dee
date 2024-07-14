@@ -125,9 +125,9 @@ materializefrustum(void)
 	int i;
 
 	p[0] = Pt3(0,0,1,1);
-	p[1] = Pt3(Dx(cam->vp->r),0,1,1);
-	p[2] = Pt3(Dx(cam->vp->r),Dy(cam->vp->r),1,1);
-	p[3] = Pt3(0,Dy(cam->vp->r),1,1);
+	p[1] = Pt3(Dx(cam->view->r),0,1,1);
+	p[2] = Pt3(Dx(cam->view->r),Dy(cam->view->r),1,1);
+	p[3] = Pt3(0,Dy(cam->view->r),1,1);
 	memset(&l, 0, sizeof l);
 
 	for(i = 0; i < nelem(p); i++){
@@ -456,7 +456,11 @@ drawstats(void)
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", cam->bx);
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", cam->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", cam->bz);
-	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !cam->stats.max? 0: 1e9/cam->stats.max, !cam->stats.avg? 0: 1e9/cam->stats.avg, !cam->stats.min? 0: 1e9/cam->stats.min, !cam->stats.v? 0: 1e9/cam->stats.v);
+	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f",
+		!cam->stats.max? 0: 1e9/cam->stats.max,
+		!cam->stats.avg? 0: 1e9/cam->stats.avg,
+		!cam->stats.min? 0: 1e9/cam->stats.min,
+		!cam->stats.v? 0: 1e9/cam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", cam->stats.nframes);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
@@ -466,7 +470,7 @@ void
 redraw(void)
 {
 	lockdisplay(display);
-	cam->vp->draw(cam->vp, screenb);
+	cam->view->draw(cam->view, screenb);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();

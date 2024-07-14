@@ -38,7 +38,7 @@ threadmain(int argc, char *argv[])
 	cam = Cam(Rect(0,0,640,480), nil, PERSPECTIVE, 40*DEG, 0.01, 10);
 	placecamera(cam, nil, Pt3(0,0,1,1), Vec3(0,0,0), Vec3(0,1,0));
 
-	fb = cam->vp->getfb(cam->vp);
+	fb = cam->view->getfb(cam->view);
 	np = Pt3(0,0,-0.01,1);
 	fp = Pt3(0,0,-10,1);
 	fprint(2, "near %V\nfar %V\n", np, fp);

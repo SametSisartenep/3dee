@@ -369,7 +369,11 @@ drawstats(void)
 	snprint(stats[Scambx], sizeof(stats[Scambx]), "bx %V", camera->bx);
 	snprint(stats[Scamby], sizeof(stats[Scamby]), "by %V", camera->by);
 	snprint(stats[Scambz], sizeof(stats[Scambz]), "bz %V", camera->bz);
-	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f", !camera->stats.max? 0: 1e9/camera->stats.max, !camera->stats.avg? 0: 1e9/camera->stats.avg, !camera->stats.min? 0: 1e9/camera->stats.min, !camera->stats.v? 0: 1e9/camera->stats.v);
+	snprint(stats[Sfps], sizeof(stats[Sfps]), "FPS %.0f/%.0f/%.0f/%.0f",
+		!camera->stats.max? 0: 1e9/camera->stats.max,
+		!camera->stats.avg? 0: 1e9/camera->stats.avg,
+		!camera->stats.min? 0: 1e9/camera->stats.min,
+		!camera->stats.v? 0: 1e9/camera->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", camera->stats.nframes);
 	snprint(stats[Splanet], sizeof(stats[Splanet]), "%s", selplanet == nil? "": selplanet->name);
 	for(i = 0; i < Se; i++)
@@ -382,7 +386,7 @@ redraw(void)
 	int i;
 
 	lockdisplay(display);
-	camera->vp->draw(camera->vp, screenb);
+	camera->view->draw(camera->view, screenb);
 	draw(screen, rectaddpt(viewr, screen->r.min), screenb, nil, ZP);
 	draw(screen, rectaddpt(cmdbox.r, screen->r.min), display->white, nil, ZP);
 	for(i = 0; i < cmdbox.ncmds; i++){
