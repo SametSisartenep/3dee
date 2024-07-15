@@ -17,12 +17,15 @@ TOOLS
 
 USAGE
 
-	vis [-s] [-t picfile] model...
+	vis [-s] [-t picfile] [-g wxh] model...
 
 	The s option will switch the skybox on (performance will drop
 	considerably).
 	The t flag takes as input an image(6) file used to texture the first model
 	(if it happens to have no materials).
+	The g flag takes as input the dimensions of the camera viewport.  If it's
+	smaller than screen the image will be upscaled to fit it as much as
+	possible, otherwise it will default to the screen dimensions.
 	The models supported by the program are OBJ files with material data (MTL
 	files).  You can find examples in the mdl/ folder.
 
@@ -32,7 +35,7 @@ USAGE
 	- to zoom in and out use Z and X respectively, also mouse ScrUp and ScrDn.
 	- to show the HUD with stats and context information press H.
 	- pressing RMB shows a shader selection menu.
-	- pressing MMB shows a menu to control the main light position and texture samplers.
+	- pressing MMB shows a menu with a variety of controls.
 	- holding down the LMB while moving the cursor will change the scene orientation.
 	- to quit press Del.
 
