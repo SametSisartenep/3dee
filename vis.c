@@ -597,6 +597,8 @@ lmb(void)
 		p₂ = Pt2(p.x, p.y, 1);
 		p₂ = rframexform(p₂, *maincam->view);
 		p = Pt(p₂.x, p₂.y);
+		if(!ptinrect(p, maincam->view->r))
+			return;
 		qlock(maincam->view->fbctl);
 		fb = maincam->view->getfb(maincam->view);
 		c = ul2col(fb->cb[p.y*Dx(fb->r) + p.x]);
