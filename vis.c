@@ -495,10 +495,6 @@ void
 redraw(void)
 {
 	lockdisplay(display);
-	if(shownormals)
-		maincam->view->fbctl->drawnormals(maincam->view->fbctl, screenb);
-	else
-		maincam->view->draw(maincam->view, screenb);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
@@ -529,12 +525,18 @@ renderproc(void *)
 		shootcamera(maincam, shader);
 		if(doprof)
 		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
-			maincam->times.R[maincam->times.cur-1].t0, maincam->times.R[maincam->times.cur-1].t1,
-			maincam->times.E[maincam->times.cur-1].t0, maincam->times.E[maincam->times.cur-1].t1,
-			maincam->times.Tn[maincam->times.cur-1].t0, maincam->times.Tn[maincam->times.cur-1].t1,
-			maincam->times.Rn[maincam->times.cur-1].t0, maincam->times.Rn[maincam->times.cur-1].t1);
+			maincam->times.R[maincam->times.last].t0, maincam->times.R[maincam->times.last].t1,
+			maincam->times.E[maincam->times.last].t0, maincam->times.E[maincam->times.last].t1,
+			maincam->times.Tn[maincam->times.last].t0, maincam->times.Tn[maincam->times.last].t1,
+			maincam->times.Rn[maincam->times.last].t0, maincam->times.Rn[maincam->times.last].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
+			lockdisplay(display);
+			if(shownormals)
+				maincam->view->fbctl->drawnormals(maincam->view->fbctl, screenb);
+			else
+				maincam->view->draw(maincam->view, screenb);
+			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
 			if(inception){
@@ -946,6 +948,7 @@ threadmain(int argc, char *argv[])
 		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		cams[i]->view->bx.x = Dx(screenb->r)/Dx(cams[i]->view->r);
 		cams[i]->view->by.y = Dy(screenb->r)/Dy(cams[i]->view->r);
+fprint(2, "scalex %g scaley %g\n", cams[i]->view->bx.x, cams[i]->view->by.y);
 	}
 	maincam = cams[3];
 	light.p = Pt3(0,100,100,1);

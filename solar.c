@@ -386,7 +386,6 @@ redraw(void)
 	int i;
 
 	lockdisplay(display);
-	camera->view->draw(camera->view, screenb);
 	draw(screen, rectaddpt(viewr, screen->r.min), screenb, nil, ZP);
 	draw(screen, rectaddpt(cmdbox.r, screen->r.min), display->white, nil, ZP);
 	for(i = 0; i < cmdbox.ncmds; i++){
@@ -417,6 +416,9 @@ renderproc(void *)
 			camera->times.Rn[camera->times.cur-1].t0, camera->times.Rn[camera->times.cur-1].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
+			lockdisplay(display);
+			camera->view->draw(camera->view, screenb);
+			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
 		}

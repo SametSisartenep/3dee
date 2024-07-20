@@ -470,7 +470,6 @@ void
 redraw(void)
 {
 	lockdisplay(display);
-	cam->view->draw(cam->view, screenb);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
@@ -498,6 +497,9 @@ renderproc(void *)
 			cam->times.Rn[cam->times.cur-1].t0, cam->times.Rn[cam->times.cur-1].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
+			lockdisplay(display);
+			cam->view->draw(cam->view, screenb);
+			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
 		}
