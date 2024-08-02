@@ -11,6 +11,8 @@
 #include "dat.h"
 #include "fns.h"
 
+#define isdigit(c) ((c) >= '0' && (c) <= '9')
+
 typedef struct Camcfg Camcfg;
 struct Camcfg
 {
@@ -860,7 +862,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-s] [-t texture] [-g wxh] model...\n", argv0);
+	fprint(2, "usage: %s [-s] [-t texture] [-g wxh[xs]] model...\n", argv0);
 	exits("usage");
 }
 
@@ -871,23 +873,26 @@ threadmain(int argc, char *argv[])
 	Channel *keyc;
 	Entity *subject;
 	OBJ *obj;
-	char *texpath, *mdlpath, *wxh, *s;
-	int i, fd, fbw, fbh;
+	char *texpath, *mdlpath, *s;
+	int i, fd, fbw, fbh, scale;
 
 	GEOMfmtinstall();
 	texpath = nil;
 	fbw = fbh = 0;
+	scale = 1;
 	ARGBEGIN{
 	case 's': showskybox++; break;
 	case 't': texpath = EARGF(usage()); break;
 	case 'g':
-		wxh = EARGF(usage());
-		s = strchr(wxh, 'x');
-		if(s == nil || *wxh == 'x' || s[1] == 0)
+		s = EARGF(usage());
+		fbw = strtoul(s, &s, 10);
+		if(fbw == 0 || *s++ != 'x')
 			usage();
-		*s++ = 0;
-		fbw = strtoul(wxh, nil, 10);
-		fbh = strtoul(s, nil, 10);
+		fbh = strtoul(s, &s, 10);
+		if(fbh == 0)
+			usage();
+		if(*s++ == 'x' && isdigit(*s))
+			scale = strtoul(s, nil, 10);
 		break;
 	case L'ι': inception++; break;
 	case 'p': doprof++; break;
@@ -938,16 +943,20 @@ threadmain(int argc, char *argv[])
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, 0x888888FF);
 	for(i = 0; i < nelem(cams); i++){
-		/* no downsampling support */
-		if(fbw == 0 || fbh == 0 || Dx(screenb->r)/fbw < 1 || Dy(screenb->r)/fbh < 1)
+		if(fbw == 0 || fbh == 0)
 			cams[i] = Cam(screenb->r, rctl,
 					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
 		else
 			cams[i] = Cam(Rect(0,0,fbw,fbh), rctl,
 					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
+
 		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
-		cams[i]->view->bx.x = Dx(screenb->r)/Dx(cams[i]->view->r);
-		cams[i]->view->by.y = Dy(screenb->r)/Dy(cams[i]->view->r);
+		cams[i]->view->setscale(cams[i]->view, scale, scale);
+
+		if(scale == 2)
+			cams[i]->view->setscalefilter(cams[i]->view, UFScale2x);
+		else if(scale == 3)
+			cams[i]->view->setscalefilter(cams[i]->view, UFScale3x);
 fprint(2, "scalex %g scaley %g\n", cams[i]->view->bx.x, cams[i]->view->by.y);
 	}
 	maincam = cams[3];
