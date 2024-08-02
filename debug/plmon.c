@@ -106,7 +106,7 @@ initcolors(void)
 {
 	pal[CMain] = display->black;
 	pal[CBack] = display->white;
-	pal[CTdelim] = eallocimage(display, UR, screen->chan, 1, 0xEEEEEEff);
+	pal[CTdelim] = eallocimage(display, UR, screen->chan, 1, 0xEEEEEEFF);
 	pal[CSelect] = eallocimage(display, Rect(0,0,2,2), screen->chan, 1, DWhite);
 	draw(pal[CSelect], UR, display->black, nil, ZP);
 	draw(pal[CSelect], rectaddpt(UR, Pt(1,1)), display->black, nil, ZP);
@@ -330,6 +330,7 @@ threadmain(int argc, char *argv[])
 	Rune r;
 	char *line, *f[3];
 	ulong nf;
+	int i;
 
 	ARGBEGIN{
 	default: usage();
@@ -352,6 +353,10 @@ threadmain(int argc, char *argv[])
 		addt(f[0], s);
 	}
 	Bterm(bin);
+
+	print("loaded %lud tasks:\n", sched.ntask);
+	for(i = 0; i < sched.ntask; i++)
+		print("\t%s with %lud times\n", sched.tasks[i].name, sched.tasks[i].ntime);
 
 	if(initdraw(nil, nil, "plmon") < 0)
 		sysfatal("initdraw: %r");
