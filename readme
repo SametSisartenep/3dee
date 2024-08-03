@@ -17,7 +17,7 @@ TOOLS
 
 USAGE
 
-	vis [-s] [-t picfile] [-g wxh] model...
+	vis [-s] [-t picfile] [-g wxh[xs]] model...
 
 	The s option will switch the skybox on (performance will drop
 	considerably).
