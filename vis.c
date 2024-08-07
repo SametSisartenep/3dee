@@ -872,7 +872,6 @@ threadmain(int argc, char *argv[])
 	Renderer *rctl;
 	Channel *keyc;
 	Entity *subject;
-	OBJ *obj;
 	char *texpath, *mdlpath, *s;
 	int i, fd, fbw, fbh, scale;
 
@@ -909,15 +908,10 @@ threadmain(int argc, char *argv[])
 	scene = newscene(nil);
 	while(argc--){
 		mdlpath = argv[argc];
-		model = newmodel();
+		model = readobjmodel(mdlpath);
 		subject = newentity(mdlpath, model);
 //		subject->p.x = argc*4;
 		scene->addent(scene, subject);
-
-		if((obj = objparse(mdlpath)) == nil)
-			sysfatal("objparse: %r");
-		loadobjmodel(model, obj);
-		objfree(obj);
 
 		if(argc == 0 && texpath != nil){
 			fd = open(texpath, OREAD);
@@ -957,7 +951,9 @@ threadmain(int argc, char *argv[])
 			cams[i]->view->setscalefilter(cams[i]->view, UFScale2x);
 		else if(scale == 3)
 			cams[i]->view->setscalefilter(cams[i]->view, UFScale3x);
-fprint(2, "scalex %g scaley %g\n", cams[i]->view->bx.x, cams[i]->view->by.y);
+		cams[i]->view->p.x = (Dx(screenb->r) - cams[i]->view->getwidth(cams[i]->view))/2;
+		cams[i]->view->p.y = (Dy(screenb->r) - cams[i]->view->getheight(cams[i]->view))/2;
+fprint(2, "off %v scalex %g scaley %g\n", cams[i]->view->p, cams[i]->view->bx.x, cams[i]->view->by.y);
 	}
 	maincam = cams[3];
 	light.p = Pt3(0,100,100,1);

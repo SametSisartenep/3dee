@@ -14,8 +14,8 @@ OFILES=\
 HFILES=dat.h fns.h
 
 LIB=\
-	libobj/libobj.a$O\
 	libgraphics/libgraphics.a$O\
+	libobj/libobj.a$O\
 
 </sys/src/cmd/mkmany
 

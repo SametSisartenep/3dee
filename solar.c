@@ -733,7 +733,6 @@ threadmain(int argc, char *argv[])
 	Channel *keyc;
 	Entity *subject;
 	Model *model;
-	OBJ *obj;
 	Point lblsiz;
 	int i, j;
 
@@ -750,11 +749,7 @@ threadmain(int argc, char *argv[])
 
 	confproc();
 
-	if((obj = objparse("mdl/planet.obj")) == nil)
-		sysfatal("objparse: %r");
-	model = newmodel();
-	loadobjmodel(model, obj);
-	objfree(obj);
+	model = readobjmodel("mdl/planet.obj");
 	/*
 	 * normalize the vertices so that we can scale
 	 * each planet based on its radius
