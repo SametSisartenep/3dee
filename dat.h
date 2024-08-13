@@ -31,5 +31,6 @@ enum {
 	Sorient,
 	Spixcol,
 	Snorcol,
+	Sextra,
 	Se
 };

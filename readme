@@ -29,6 +29,13 @@ USAGE
 	The models supported by the program are OBJ files with material data (MTL
 	files).  You can find examples in the mdl/ folder.
 
+	NOTE:	Now two visibility determination technologies are available: the
+		Z-buffer and the A-buffer. To get the best results out of them the
+		following configurations are recommended:
+
+		- z-buffer: blend OFF | z-buf (depth testing) ON  | a-buf OFF
+		- a-buffer: blend ON  | z-buf (depth testing) OFF | a-buf ON
+
 	- move camera with ↑↓ ((for|back)ward), ←→ (horizontally), PgUp and PgDn (vertically).
 	- rotate camera with AD (yaw), WS (pitch), QE (roll).
 	- change cameras with F[1-4]. cameras 1 and 3 are orthographic, 2 and 4 perspective.

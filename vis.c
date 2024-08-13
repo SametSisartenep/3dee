@@ -92,6 +92,9 @@ static int doprof;
 static int inception;
 static int showhud;
 static int shownormals;
+static int blendon;
+static int depthon;
+static int abuffon;
 Color (*tsampler)(Texture*,Point2);
 
 static int
@@ -160,7 +163,7 @@ gouraudvshader(VSparams *sp)
 Color
 gouraudshader(FSparams *sp)
 {
-	Color tc, c;
+	Color tc;
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
@@ -169,10 +172,7 @@ gouraudshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
-	c = modulapt3(sp->v.c, tc);
-	c.a = 1;
-
-	return c;
+	return modulapt3(sp->v.c, tc);
 }
 
 Point3
@@ -271,7 +271,6 @@ phongshader(FSparams *sp)
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c = modulapt3(c, tc);
-	c.a = 1;
 
 	return c;
 }
@@ -320,7 +319,7 @@ identvshader(VSparams *sp)
 Color
 identshader(FSparams *sp)
 {
-	Color tc, c;
+	Color tc;
 
 	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
@@ -329,10 +328,7 @@ identshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
-	c = modulapt3(sp->v.c, tc);
-	c.a = 1;
-
-	return c;
+	return modulapt3(sp->v.c, tc);
 }
 
 Point3
@@ -489,6 +485,10 @@ drawstats(void)
 		!maincam->stats.v? 0: 1e9/maincam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", maincam->stats.nframes);
 	snprint(stats[Sorient], sizeof(stats[Sorient]), "ℍ %V", (Point3)orient);
+	snprint(stats[Sextra], sizeof(stats[Sextra]), "blend %s z-buf %s a-buf %s",
+		maincam->enableblend? "on": "off",
+		maincam->enabledepth? "on": "off",
+		maincam->enableAbuff? "on": "off");
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -625,9 +625,15 @@ mmb(void)
 		SP1,
 		SHOWNORMALS,
 		SP2,
+		SETCLRCOL,
+		SP3,
 		CULLFRONT,
 		CULLBACK,
 		CULLNO,
+		SP4,
+		TGLBLEND,
+		TGLDEPTH,
+		TGLABUFF,
 	};
 	static char *items[] = {
 	 [MOVELIGHT]	"move light",
@@ -637,9 +643,15 @@ mmb(void)
 			"",
 	 [SHOWNORMALS]	"show normals",
 			"",
+	 [SETCLRCOL]	"set clear color",
+			"",
 	 [CULLFRONT]	"cull front faces",
 	 [CULLBACK]	"cull back faces",
 	 [CULLNO]	"no culling",
+			"",
+	 [TGLBLEND]	"toggle blending",
+	 [TGLDEPTH]	"toggle depth testing",
+	 [TGLABUFF]	"toggle the A-buffer",
 		nil,
 	};
 	static Menu menu = { .item = items };
@@ -668,6 +680,15 @@ mmb(void)
 	case SHOWNORMALS:
 		shownormals ^= 1;
 		break;
+	case SETCLRCOL:
+		snprint(buf, sizeof buf, "0x%08lux", maincam->clearcolor);
+		if(enter("clear color", buf, sizeof buf, mctl, kctl, nil) <= 0)
+			break;
+		nf = tokenize(buf, f, 1);
+		if(nf != 1)
+			break;
+		maincam->clearcolor = strtoul(buf, nil, 0);
+		break;
 	case CULLFRONT:
 		maincam->cullmode = CullFront;
 		break;
@@ -676,6 +697,15 @@ mmb(void)
 		break;
 	case CULLNO:
 		maincam->cullmode = CullNone;
+		break;
+	case TGLBLEND:
+		maincam->enableblend ^= 1;
+		break;
+	case TGLDEPTH:
+		maincam->enabledepth ^= 1;
+		break;
+	case TGLABUFF:
+		maincam->enableAbuff ^= 1;
 		break;
 	}
 	unlockdisplay(display);
@@ -829,6 +859,51 @@ handlekeys(void)
 	okdown = kdown;
 }
 
+static void
+mkblendtestscene(void)
+{
+	static Color cols[] = {{1,0,0,0.5}, {0,1,0,0.5}, {0,0,1,0.5}};
+	Entity *ent;
+	Model *mdl;
+	Primitive t[2];
+	Point3 p, v1, v2;
+	int i, j, k;
+
+	memset(t, 0, sizeof t);
+	t[0].type = t[1].type = PTriangle;
+
+	/* build the first face/quad, facing the positive z axis */
+	p = Vec3(-0.5,-0.5,0);
+	v1 = Vec3(1,0,0);
+	v2 = Vec3(0,1,0);
+	t[0].v[0].p = addpt3(center, p);
+	t[0].v[1].p = addpt3(center, addpt3(p, v1));
+	t[0].v[2].p = addpt3(center, addpt3(p, addpt3(v1, v2)));
+	t[0].v[0].n = t[0].v[1].n = t[0].v[2].n = Vec3(0,0,1);
+	t[1].v[0] = t[0].v[0];
+	t[1].v[1] = t[0].v[2];
+	t[1].v[2].p = addpt3(center, addpt3(p, v2));
+	t[1].v[2].n = Vec3(0,0,1);
+
+	for(i = 0; i < nelem(cols); i++){
+		for(j = 0; j < 2; j++)
+			for(k = 0; k < 3; k++){
+				if(i != 0){
+					t[j].v[k].p = qrotate(t[j].v[k].p, Vec3(0,1,0), PI/nelem(cols));
+					t[j].v[k].n = qrotate(t[j].v[k].n, Vec3(0,1,0), PI/nelem(cols));
+				}
+				t[j].v[k].c = cols[i];
+			}
+
+		mdl = newmodel();
+		mdl->prims = erealloc(mdl->prims, (mdl->nprims += 2)*sizeof(*mdl->prims));
+		mdl->prims[mdl->nprims-2] = t[0];
+		mdl->prims[mdl->nprims-1] = t[1];
+		ent = newentity(nil, mdl);
+		scene->addent(scene, ent);
+	}
+}
+
 void
 resize(void)
 {
@@ -874,6 +949,7 @@ threadmain(int argc, char *argv[])
 	Entity *subject;
 	char *texpath, *mdlpath, *s;
 	int i, fd, fbw, fbh, scale;
+	int blendtest = 0;
 
 	GEOMfmtinstall();
 	texpath = nil;
@@ -898,7 +974,7 @@ threadmain(int argc, char *argv[])
 	default: usage();
 	}ARGEND;
 	if(argc < 1)
-		usage();
+		blendtest++;
 
 	confproc();
 
@@ -906,6 +982,9 @@ threadmain(int argc, char *argv[])
 		sysfatal("couldn't find gouraud shader");
 
 	scene = newscene(nil);
+	if(blendtest)
+		mkblendtestscene();
+	else
 	while(argc--){
 		mdlpath = argv[argc];
 		model = readobjmodel(mdlpath);
@@ -936,6 +1015,7 @@ threadmain(int argc, char *argv[])
 		sysfatal("initmouse: %r");
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, 0x888888FF);
+fprint(2, "screen %R\n", screenb->r);
 	for(i = 0; i < nelem(cams); i++){
 		if(fbw == 0 || fbh == 0)
 			cams[i] = Cam(screenb->r, rctl,
@@ -953,7 +1033,7 @@ threadmain(int argc, char *argv[])
 			cams[i]->view->setscalefilter(cams[i]->view, UFScale3x);
 		cams[i]->view->p.x = (Dx(screenb->r) - cams[i]->view->getwidth(cams[i]->view))/2;
 		cams[i]->view->p.y = (Dy(screenb->r) - cams[i]->view->getheight(cams[i]->view))/2;
-fprint(2, "off %v scalex %g scaley %g\n", cams[i]->view->p, cams[i]->view->bx.x, cams[i]->view->by.y);
+fprint(2, "cam%d off %v scalex %g scaley %g\n", i+1, cams[i]->view->p, cams[i]->view->bx.x, cams[i]->view->by.y);
 	}
 	maincam = cams[3];
 	light.p = Pt3(0,100,100,1);
