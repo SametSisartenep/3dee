@@ -280,10 +280,10 @@ gouraudshader(FSparams *sp)
 {
 	Color tc, c;
 
-	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
-	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
+		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
@@ -376,10 +376,10 @@ phongshader(FSparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
-	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
-	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
+		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
@@ -403,10 +403,10 @@ identshader(FSparams *sp)
 {
 	Color tc, c;
 
-	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
-	else if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
+		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
