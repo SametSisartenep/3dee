@@ -802,7 +802,7 @@ threadmain(int argc, char *argv[])
 	placecamera(cam, scene, camcfg.p, camcfg.lookat, camcfg.up);
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
-	light.type = LIGHT_POINT;
+	light.type = LightPoint;
 	tsampler = neartexsampler;
 
 	kctl = emalloc(sizeof *kctl);

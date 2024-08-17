@@ -733,6 +733,13 @@ rmb(void)
 		for(idx = 0; idx < nelem(cams); idx++)
 			memset(&cams[idx]->stats, 0, sizeof(cams[idx]->stats));
 	}
+//	if(om.buttons == mctl->buttons){
+//		Point p;
+//
+//		p = subpt(mctl->xy, om.xy);
+//		maincam->view->p.x += p.x;
+//		maincam->view->p.y += p.y;
+//	}
 	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
@@ -1023,7 +1030,8 @@ fprint(2, "screen %R\n", screenb->r);
 		else
 			cams[i] = Cam(Rect(0,0,fbw,fbh), rctl,
 					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
-
+		if(cams[i] == nil)
+			sysfatal("Cam: %r");
 		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		cams[i]->view->setscale(cams[i]->view, scale, scale);
 
@@ -1039,8 +1047,8 @@ fprint(2, "cam%d off %v scalex %g scaley %g\n", i+1, cams[i]->view->p, cams[i]->
 	light.p = Pt3(0,100,100,1);
 //	light.dir = Vec3(0,-1,0);
 	light.c = Pt3(1,1,1,1);
-	light.type = LIGHT_POINT;
-//	light.type = LIGHT_SPOT;
+	light.type = LightPoint;
+//	light.type = LightSpot;
 //	light.θu = 30*DEG;
 //	light.θp = 5*DEG;
 	tsampler = neartexsampler;
