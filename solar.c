@@ -277,42 +277,6 @@ gotoplanet(Planet *p)
 	aimcamera(camera, p->body->p);
 }
 
-/*
- * ray-sphere (planet) intersection
- */
-int
-rayXsphere(Point3 *rp, Point3 p0, Point3 u, Point3 c, double r)
-{
-	Point3 dp;
-	double u·dp, Δ, d;
-	int n;
-
-	dp = subpt3(p0, c);
-	u·dp = dotvec3(u, dp);
-	if(u·dp > 0)	/* ignore what's behind */
-		return 0;
-
-	Δ = u·dp*u·dp - dotvec3(dp, dp) + r*r;
-	if(Δ < 0)		/* no intersection */
-		n = 0;
-	else if(Δ == 0){	/* tangent */
-		if(rp != nil){
-			d = -u·dp;
-			rp[0] = addpt3(p0, mulpt3(u, d));
-		}
-		n = 1;
-	}else{			/* secant */
-		if(rp != nil){
-			d = -u·dp + sqrt(Δ);
-			rp[0] = addpt3(p0, mulpt3(u, d));
-			d = -u·dp - sqrt(Δ);
-			rp[1] = addpt3(p0, mulpt3(u, d));
-		}
-		n = 2;
-	}
-	return n;
-}
-
 Point3
 identvshader(VSparams *sp)
 {
@@ -507,7 +471,7 @@ Cmdbut cmds[] = {
 void
 lmb(void)
 {
-	Point3 p0, u;
+	Point3 p0;
 	Point mp;
 	Planet *p;
 	Cmdbut *cmd;
@@ -520,12 +484,11 @@ lmb(void)
 	mp = subpt(mctl->xy, screen->r.min);
 	if(ptinrect(mp, viewr)){
 		p0 = viewport2world(camera, Pt3(mp.x,mp.y,1,1));
-		u = normvec3(subpt3(p0, camera->p));
 		p = nil;
 		lastz = Inf(1);
 
 		for(i = 0; i < nelem(planets); i++)
-			if(rayXsphere(nil, p0, u, planets[i].body->p, planets[i].scale) > 0){
+			if(lineXsphere(nil, camera->p, p0, planets[i].body->p, planets[i].scale, 1) > 0){
 				z = vec3len(subpt3(planets[i].body->p, camera->p));
 				/* select the closest one */
 				if(z < lastz){
