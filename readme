@@ -21,8 +21,7 @@ USAGE
 
 	The s option will switch the skybox on (performance will drop
 	considerably).
-	The t flag takes as input an image(6) file used to texture the first model
-	(if it happens to have no materials).
+	The t flag takes as input an image(6) file used to texture the first model.
 	The g flag takes as input the dimensions of the camera viewport.  If it's
 	smaller than screen the image will be upscaled to fit it as much as
 	possible, otherwise it will default to the screen dimensions.

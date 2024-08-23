@@ -136,31 +136,27 @@ materializefrustum(void)
 		l.v[0].p = world2model(subject, viewport2world(cam, p[i]));
 		l.v[1].p = world2model(subject, viewport2world(cam, p[(i+1)%nelem(p)]));
 		qlock(&scenelk);
-		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
-		model->prims[model->nprims-1] = l;
+		model->addprim(model, l);
 		qunlock(&scenelk);
 
 		/* middle frame */
 		l.v[0].p = world2model(subject, viewport2world(cam, subpt3(p[i], Vec3(0,0,0.5))));
 		l.v[1].p = world2model(subject, viewport2world(cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,0.5))));
 		qlock(&scenelk);
-		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
-		model->prims[model->nprims-1] = l;
+		model->addprim(model, l);
 		qunlock(&scenelk);
 
 		/* back frame */
 		l.v[0].p = world2model(subject, viewport2world(cam, subpt3(p[i], Vec3(0,0,1))));
 		l.v[1].p = world2model(subject, viewport2world(cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,1))));
 		qlock(&scenelk);
-		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
-		model->prims[model->nprims-1] = l;
+		model->addprim(model, l);
 		qunlock(&scenelk);
 
 		/* struts */
 		l.v[1].p = world2model(subject, viewport2world(cam, p[i]));
 		qlock(&scenelk);
-		model->prims = erealloc(model->prims, ++model->nprims*sizeof(*model->prims));
-		model->prims[model->nprims-1] = l;
+		model->addprim(model, l);
 		qunlock(&scenelk);
 	}
 }
@@ -186,10 +182,12 @@ addcube(void)
 	t[0].v[1].n = addpt3(p, v1);
 	t[0].v[2].p = addpt3(center, addpt3(p, addpt3(v1, v2)));
 	t[0].v[2].n = addpt3(p, addpt3(v1, v2));
+	t[0].v[0].c = t[0].v[1].c = t[0].v[2].c = Pt3(1,1,1,1);
 	t[1].v[0] = t[0].v[0];
 	t[1].v[1] = t[0].v[2];
 	t[1].v[2].p = addpt3(center, addpt3(p, v2));
 	t[1].v[2].n = addpt3(p, v2);
+	t[1].v[2].c = Pt3(1,1,1,1);
 
 	/* make a cube by rotating the reference face */
 	for(i = 0; i < 6; i++){
@@ -201,9 +199,8 @@ addcube(void)
 				}
 
 		qlock(&scenelk);
-		model->prims = erealloc(model->prims, (model->nprims += 2)*sizeof(*model->prims));
-		model->prims[model->nprims-2] = t[0];
-		model->prims[model->nprims-1] = t[1];
+		model->addprim(model, t[0]);
+		model->addprim(model, t[1]);
 		qunlock(&scenelk);
 	}
 }
@@ -230,8 +227,9 @@ addbasis(void)
 	prims[2].v[1].p = addpt3(center, e->bz);
 	prims[2].v[1].c = Pt3(0,0,1,1);
 
-	m->prims = erealloc(m->prims, (m->nprims += 3)*sizeof(*m->prims));
-	memmove(m->prims, prims, sizeof prims);
+	m->addprim(m, prims[0]);
+	m->addprim(m, prims[1]);
+	m->addprim(m, prims[2]);
 
 	scene->addent(scene, e);
 }
@@ -244,41 +242,47 @@ gouraudvshader(VSparams *sp)
 	double Kd;		/* diffuse factor */
 	double spec;
 	Point3 pos, lightdir, lookdir;
-	Material *m;
+	Material m;
 	Color ambient, diffuse, specular, lightc;
 
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	pos = sp->v->p;
-	m = sp->v->mtl;
+
+	if(sp->v->mtl != nil)
+		m = *sp->v->mtl;
+	else{
+		memset(&m, 0, sizeof m);
+		m.diffuse = sp->v->c;
+		m.specular = Pt3(1,1,1,1);
+		m.shininess = 1;
+	}
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	lightc = getlightcolor(&light, lightdir);
 
 	ambient = mulpt3(lightc, Ka);
-	if(m != nil)
-		ambient = modulapt3(ambient, m->ambient);
+	ambient = modulapt3(ambient, m.diffuse);
 
 	Kd = fmax(0, dotvec3(sp->v->n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
-	if(m != nil)
-		diffuse = modulapt3(diffuse, m->diffuse);
+	diffuse = modulapt3(diffuse, m.diffuse);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v->n, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m? m->shininess: 1);
+	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(lightc, spec*Ks);
-	if(m != nil)
-		specular = modulapt3(specular, m->specular);
+	specular = modulapt3(specular, m.specular);
 
 	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
+	sp->v->c.a = m.diffuse.a;
 	return world2clip(sp->su->camera, pos);
 }
  
 Color
 gouraudshader(FSparams *sp)
 {
-	Color tc, c;
+	Color tc;
 
 	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
@@ -287,10 +291,7 @@ gouraudshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
-	c = modulapt3(sp->v.c, tc);
-	c.a = 1;
-
-	return c;
+	return modulapt3(sp->v.c, tc);
 }
 
 Point3
@@ -304,6 +305,10 @@ phongvshader(VSparams *sp)
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	pos = sp->v->p;
 	addvattr(sp->v, "pos", VAPoint, &pos);
+	if(sp->v->mtl != nil && sp->v->mtl->normalmap != nil && sp->v->uv.w != 0){
+		sp->v->tangent = model2world(sp->su->entity, sp->v->tangent);
+		addvattr(sp->v, "tangent", VAPoint, &sp->v->tangent);
+	}
 	if(sp->v->mtl != nil){
 		a = sp->v->mtl->ambient;
 		d = sp->v->mtl->diffuse;
@@ -324,7 +329,7 @@ phongshader(FSparams *sp)
 	static double Ks = 0.5;	/* specular factor */
 	double Kd;		/* diffuse factor */
 	double spec;
-	Color ambient, diffuse, specular, tc, c, lightc;
+	Color ambient, diffuse, specular, lightc, c;
 	Point3 pos, n, lightdir, lookdir;
 	Material m;
 	RFrame3 TBN;
@@ -336,7 +341,7 @@ phongshader(FSparams *sp)
 	va = getvattr(&sp->v, "ambient");
 	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
 	va = getvattr(&sp->v, "diffuse");
-	m.diffuse = va != nil? va->p: Pt3(1,1,1,1);
+	m.diffuse = va != nil? va->p: sp->v.c;
 	va = getvattr(&sp->v, "specular");
 	m.specular = va != nil? va->p: Pt3(1,1,1,1);
 	va = getvattr(&sp->v, "shininess");
@@ -344,9 +349,6 @@ phongshader(FSparams *sp)
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	lightc = getlightcolor(&light, lightdir);
-
-	ambient = mulpt3(lightc, Ka);
-	ambient = modulapt3(ambient, m.ambient);
 
 	/* normal mapping */
 	va = getvattr(&sp->v, "tangent");
@@ -366,9 +368,20 @@ phongshader(FSparams *sp)
 		sp->v.n = n;
 	}
 
+	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
+		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
+	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
+		m.diffuse = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+
+	ambient = mulpt3(lightc, Ka);
+	ambient = modulapt3(ambient, m.diffuse);
+
 	Kd = fmax(0, dotvec3(n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
+
+	if(sp->v.mtl != nil && sp->v.mtl->specularmap != nil && sp->v.uv.w != 0)
+		m.specular = sampletexture(sp->v.mtl->specularmap, sp->v.uv, tsampler);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
@@ -376,17 +389,8 @@ phongshader(FSparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
-	else
-		tc = Pt3(1,1,1,1);
-
 	c = addpt3(ambient, addpt3(diffuse, specular));
-	c = modulapt3(c, tc);
-	c.a = 1;
-
+	c.a = m.diffuse.a;
 	return c;
 }
 
