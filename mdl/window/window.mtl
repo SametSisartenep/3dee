@@ -1,0 +1,4 @@
+newmtl window
+Ns 32
+Kd 1 1 1
+map_Kd window_diffuse.png
