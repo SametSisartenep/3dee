@@ -47,6 +47,14 @@ struct Camcfg
 	int ptype;
 };
 
+typedef struct Compass Compass;
+struct Compass
+{
+	Camera	*cam;
+	Scene	*scn;
+};
+Compass compass;	/* 3d compass */
+
 Rune keys[Ke] = {
  [K↑]		= Kup,
  [K↓]		= Kdown,
@@ -77,7 +85,6 @@ Model *model;
 Shadertab *shader;
 QLock scenelk;
 Mouse om;
-Quaternion orient = {1,0,0,0};
 
 Camera *cam;
 Camcfg camcfg = {
@@ -87,6 +94,12 @@ Camcfg camcfg = {
 	40*DEG, 0.01, 10, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
+RFrame3 ONF3 = {	/* default orthonormal rframe */
+	0,0,0,1,
+	1,0,0,0,
+	0,1,0,0,
+	0,0,1,0
+};
 LightSource light;		/* global point light */
 
 static int doprof;
@@ -206,7 +219,7 @@ addcube(void)
 }
 
 static void
-addbasis(void)
+addbasis(Scene *s)
 {
 	Entity *e;
 	Model *m;
@@ -214,7 +227,7 @@ addbasis(void)
 
 	m = newmodel();
 	e = newentity("basis", m);
-	e->RFrame3 = subject->RFrame3;
+	e->RFrame3 = ONF3;
 
 	memset(prims, 0, sizeof prims);
 	prims[0].type = prims[1].type = prims[2].type = PLine;
@@ -231,7 +244,24 @@ addbasis(void)
 	m->addprim(m, prims[1]);
 	m->addprim(m, prims[2]);
 
-	scene->addent(scene, e);
+	s->addent(s, e);
+}
+
+static void
+setupcompass(Compass *c, Rectangle r, Renderer *rctl)
+{
+	static int scale = 3;
+
+	r.max.x = r.min.x + Dx(r)/scale;
+	r.max.y = r.min.y + Dy(r)/scale;
+
+	c->cam = Cam(rectsubpt(r, r.min), rctl, PERSPECTIVE, 30*DEG, 0.1, 10);
+	c->cam->view->p = Pt2(r.min.x,r.min.y,1);
+	c->cam->view->setscale(c->cam->view, scale, scale);
+
+	c->scn = newscene(nil);
+	addbasis(c->scn);
+	placecamera(c->cam, c->scn, camcfg.p, center, Vec3(0,1,0));
 }
 
 Point3
@@ -405,7 +435,7 @@ identvshader(VSparams *sp)
 Color
 identshader(FSparams *sp)
 {
-	Color tc, c;
+	Color tc;
 
 	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
 		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
@@ -414,10 +444,7 @@ identshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
-	c = modulapt3(sp->v.c, tc);
-	c.a = 1;
-
-	return c;
+	return modulapt3(sp->v.c, tc);
 }
 
 Shadertab shadertab[] = {
@@ -493,6 +520,7 @@ renderproc(void *)
 		qlock(&scenelk);
 		shootcamera(cam, shader);
 		qunlock(&scenelk);
+		shootcamera(compass.cam, getshader("ident"));
 		if(doprof)
 		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
 			cam->times.R[cam->times.cur-1].t0, cam->times.R[cam->times.cur-1].t1,
@@ -503,6 +531,7 @@ renderproc(void *)
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
 			cam->view->draw(cam->view, screenb);
+			compass.cam->view->draw(compass.cam->view, screenb);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
@@ -524,19 +553,28 @@ drawproc(void *)
 void
 lmb(void)
 {
+	static Quaternion orient = {1,0,0,0};
 	Quaternion Δorient;
-	Entity *e;
+	Point3 p;
 
 	if((om.buttons^mctl->buttons) == 0){
 		Δorient = orient;
 		qball(screen->r, om.xy, mctl->xy, &orient, nil);
-		Δorient = mulq(orient, invq(Δorient));
+		Δorient = mulq(Δorient, invq(orient));
 
-		for(e = scene->ents.next; e != &scene->ents; e = e->next){
-			e->bx = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, e->bx))), invq(Δorient))));
-			e->by = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, e->by))), invq(Δorient))));
-			e->bz = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, e->bz))), invq(Δorient))));
-		}
+		/* orbit camera around the center */
+		p = subpt3(cam->p, center);
+		p = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, p))), invq(Δorient))));
+		p.w = cam->p.w;
+		movecamera(cam, p);
+		aimcamera(cam, center);
+
+		/* same for the compass */
+		p = subpt3(compass.cam->p, center);
+		p = vcs2world(compass.cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(compass.cam, p))), invq(Δorient))));
+		p.w = compass.cam->p.w;
+		movecamera(compass.cam, p);
+		aimcamera(compass.cam, center);
 	}
 }
 
@@ -707,18 +745,36 @@ handlekeys(void)
 		movecamera(cam, mulpt3(cam->by, 0.1));
 	if(kdown & 1<<Kfall)
 		movecamera(cam, mulpt3(cam->by, -0.1));
-	if(kdown & 1<<KR↑)
+	if(kdown & 1<<KR↑){
 		rotatecamera(cam, cam->bx, 1*DEG);
-	if(kdown & 1<<KR↓)
+		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bx, 1*DEG));
+		rotatecamera(compass.cam, compass.cam->bx, 1*DEG);
+	}
+	if(kdown & 1<<KR↓){
 		rotatecamera(cam, cam->bx, -1*DEG);
-	if(kdown & 1<<KR←)
+		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bx, -1*DEG));
+		rotatecamera(compass.cam, compass.cam->bx, -1*DEG);
+	}
+	if(kdown & 1<<KR←){
 		rotatecamera(cam, cam->by, 1*DEG);
-	if(kdown & 1<<KR→)
+		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->by, 1*DEG));
+		rotatecamera(compass.cam, compass.cam->by, 1*DEG);
+	}
+	if(kdown & 1<<KR→){
 		rotatecamera(cam, cam->by, -1*DEG);
-	if(kdown & 1<<KR↺)
+		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->by, -1*DEG));
+		rotatecamera(compass.cam, compass.cam->by, -1*DEG);
+	}
+	if(kdown & 1<<KR↺){
 		rotatecamera(cam, cam->bz, 1*DEG);
-	if(kdown & 1<<KR↻)
+		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bz, 1*DEG));
+		rotatecamera(compass.cam, compass.cam->bz, 1*DEG);
+	}
+	if(kdown & 1<<KR↻){
 		rotatecamera(cam, cam->bz, -1*DEG);
+		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bz, -1*DEG));
+		rotatecamera(compass.cam, compass.cam->bz, -1*DEG);
+	}
 	if(kdown & 1<<Kzoomin)
 		zoomin();
 	if(kdown & 1<<Kzoomout)
@@ -790,7 +846,6 @@ threadmain(int argc, char *argv[])
 	model = newmodel();
 	subject = newentity("main", model);
 	scene->addent(scene, subject);
-	addbasis();
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
@@ -808,6 +863,8 @@ threadmain(int argc, char *argv[])
 	light.c = Pt3(1,1,1,1);
 	light.type = LightPoint;
 	tsampler = neartexsampler;
+
+	setupcompass(&compass, rectaddpt(Rect(0,0,100,100), subpt(screenb->r.max, Pt(100,100))), rctl);
 
 	kctl = emalloc(sizeof *kctl);
 	kctl->c = chancreate(sizeof(Rune), 16);

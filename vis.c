@@ -656,8 +656,8 @@ ul2col(ulong l)
 void
 lmb(void)
 {
-	Entity *e;
 	Quaternion Δorient;
+	Entity *e;
 
 	if((om.buttons^mctl->buttons) == 0){
 		Δorient = orient;
