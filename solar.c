@@ -172,6 +172,92 @@ max(int a, int b)
 	return a > b? a: b;
 }
 
+static Point3
+minpt3(Point3 a, Point3 b)
+{
+	return (Point3){
+		fmin(a.x, b.x),
+		fmin(a.y, b.y),
+		fmin(a.z, b.z),
+		fmin(a.w, b.w)
+	};
+}
+
+static Point3
+maxpt3(Point3 a, Point3 b)
+{
+	return (Point3){
+		fmax(a.x, b.x),
+		fmax(a.y, b.y),
+		fmax(a.z, b.z),
+		fmax(a.w, b.w)
+	};
+}
+
+static void
+selectplanet(Planet *p)
+{
+	static Planet *oldp;
+	struct { Point3 min, max; } aabb;
+	Entity *e, *esel;
+	Model *msel;
+	Primitive l;
+	int i, j;
+
+	if(p == oldp)
+		return;
+
+	oldp = selplanet = p;
+	esel = scene->getent(scene, "selection");
+	if(esel != nil)
+		scene->delent(scene, esel);
+	if(p == nil)
+		return;
+
+	e = p->body;
+	msel = newmodel();
+	esel = newentity("selection", msel);
+	esel->RFrame3 = e->RFrame3;
+
+	memset(&aabb, 0, sizeof aabb);
+	for(i = 0; i < e->mdl->nprims; i++)
+		for(j = 0; j < e->mdl->prims[i].type+1; j++){
+			aabb.min = minpt3(aabb.min, e->mdl->prims[i].v[j].p);
+			aabb.max = maxpt3(aabb.max, e->mdl->prims[i].v[j].p);
+		}
+	aabb.min = mulpt3(aabb.min, p->scale*0.8);
+	aabb.max = mulpt3(aabb.max, p->scale*0.8);
+	aabb.min.w = aabb.max.w = 1;
+
+	memset(&l, 0, sizeof l);
+	l.type = PLine;
+	l.v[0].c = l.v[1].c = Pt3(0.2666, 0.5333, 0.2666, 1);
+	/* bottom */
+	l.v[0].p = aabb.min; l.v[1].p = qrotate(aabb.min, Vec3(0,1,0), PI/2);
+	msel->addprim(msel, l);
+	for(i = 0; i < 3; i++){
+		l.v[0].p = l.v[1].p; l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+		msel->addprim(msel, l);
+	}
+	/* top */
+	l.v[0].p = aabb.max; l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI/2);
+	msel->addprim(msel, l);
+	for(i = 0; i < 3; i++){
+		l.v[0].p = l.v[1].p; l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+		msel->addprim(msel, l);
+	}
+	/* struts */
+	l.v[0].p = aabb.min; l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI);
+	msel->addprim(msel, l);
+	for(i = 0; i < 3; i++){
+		l.v[0].p = qrotate(l.v[0].p, Vec3(0,1,0), PI/2);
+		l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+		msel->addprim(msel, l);
+	}
+
+	scene->addent(scene, esel);
+}
+
 static void
 sailor(void *arg)
 {
@@ -284,18 +370,20 @@ identvshader(VSparams *sp)
 	Point3 pos;
 
 	p = getplanet(sp->su->entity->name);
-	assert(p != nil);
 
-	Matrix3 S = {
-		p->scale, 0, 0, 0,
-		0, p->scale, 0, 0,
-		0, 0, p->scale, 0,
-		0, 0, 0, 1,
-	};
-	pos = xform3(sp->v->p, S);
+	if(p != nil){
+		Matrix3 S = {
+			p->scale, 0, 0, 0,
+			0, p->scale, 0, 0,
+			0, 0, p->scale, 0,
+			0, 0, 0, 1,
+		};
+		pos = xform3(sp->v->p, S);
+		sp->v->mtl = p->mtl;
+		sp->v->c = p->mtl->diffuse;
+	}else
+		pos = sp->v->p;
 
-	sp->v->mtl = p->mtl;
-	sp->v->c = p->mtl->diffuse;
 	return world2clip(sp->su->camera, model2world(sp->su->entity, pos));
 }
 
@@ -496,8 +584,7 @@ lmb(void)
 					p = &planets[i];
 				}
 			}
-		if(p != nil)
-			selplanet = p;
+		selectplanet(p);
 		return;
 	}
 
