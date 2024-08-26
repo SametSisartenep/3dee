@@ -36,7 +36,6 @@ enum {
 	Scambx, Scamby, Scambz,
 	Sfps,
 	Sframes,
-	Splanet,
 	Se
 };
 
@@ -54,6 +53,7 @@ typedef struct Camcfg Camcfg;
 typedef struct HReq HReq;
 typedef struct Cmdbut Cmdbut;
 typedef struct Cmdbox Cmdbox;
+typedef struct Infobox Infobox;
 
 struct Planet
 {
@@ -90,6 +90,13 @@ struct Cmdbox
 	Rectangle r;
 	Cmdbut *cmds;
 	ulong ncmds;
+};
+
+struct Infobox
+{
+	char *title;
+	char **items;
+	Image *image;
 };
 
 Rune keys[Ke] = {
@@ -135,6 +142,7 @@ char stats[Se][256];
 char datefmt[] = "YYYY-MM-DD";
 Rectangle viewr, cmdr;
 Cmdbox cmdbox;
+Infobox *infobox;
 Image *screenb;
 Mousectl *mctl;
 Keyboardctl *kctl;
@@ -195,6 +203,106 @@ maxpt3(Point3 a, Point3 b)
 }
 
 static void
+refreshinfobox(Infobox *info)
+{
+	static Point pad = {2, 2};
+	static Image *tbg, *tfg, *bg[2], *fg;
+	Rectangle tr, cr, rr;	/* title, content and row rects */
+	char **s;
+	int i;
+
+	assert(info != nil && info->image != nil && info->items != nil);
+
+	if(tbg == nil){
+		tbg = eallocimage(display, UR, RGBA32, 1, 0x4444887F);
+		tfg = display->white;
+		bg[0] = eallocimage(display, UR, RGBA32, 1, 0xEEEEEEEE);
+		bg[1] = eallocimage(display, UR, RGBA32, 1, 0xAAAAAAAA);
+		fg = display->black;
+	}
+
+	tr = info->image->r;
+	tr.max.y = tr.min.y + 2*font->height;
+
+	draw(info->image, tr, tbg, nil, ZP);
+	string(info->image, addpt(tr.min, Pt(Dx(tr)/2 - stringwidth(font, info->title)/2,font->height/2)),
+		tfg, ZP, font, info->title);
+
+	cr = info->image->r;
+	cr.min.y = tr.max.y;
+
+	draw(info->image, cr, bg[1], nil, ZP);
+
+	rr.min = addpt(cr.min, pad);
+	rr.max = subpt(cr.max, pad);
+	rr.max.y = rr.min.y + font->height+4;
+
+	for(s = info->items, i = 0; *s != nil; s++, i ^= 1){
+		draw(info->image, rr, bg[i], nil, ZP);
+		string(info->image, rr.min, fg, ZP, font, *s);
+		rr = rectaddpt(rr, Pt(0,Dy(rr)));
+	}
+
+	border(info->image, info->image->r, 1, tbg, ZP);
+}
+
+static Infobox *
+mkplanetinfobox(Planet *p, Rectangle r)
+{
+	enum { ID, POS, RADIUS, NITEMS };
+	Infobox *info;
+	char **items, buf[256];
+	int i;
+
+	if(p == nil || badrect(r))
+		return nil;
+
+	items = emalloc((NITEMS + 1)*sizeof(*items));
+	for(i = 0; i < NITEMS; i++){
+		switch(i){
+		case ID: snprint(buf, sizeof buf, "id: %d", p->id); break;
+		case POS: snprint(buf, sizeof buf, "position (in km): %V", p->body->p); break;
+		case RADIUS: snprint(buf, sizeof buf, "radius (in km): %g", p->scale); break;
+		}
+		items[i] = strdup(buf);
+		if(items[i] == nil)
+			sysfatal("strdup: %r");
+	}
+	items[i] = nil;
+
+	info = emalloc(sizeof *info);
+	memset(info, 0, sizeof *info);
+	info->title = p->name;
+	info->items = items;
+	info->image = eallocimage(display, r, RGBA32, 0, DTransparent);
+	refreshinfobox(info);
+	return info;
+}
+
+static void
+freeinfobox(Infobox *info)
+{
+	char **s;
+
+	if(info == nil)
+		return;
+
+	freeimage(info->image);
+	for(s = info->items; *s != nil; s++)
+		free(*s);
+	free(info);
+}
+
+static void
+drawinfobox(Image *dst, Infobox *info)
+{
+	if(info == nil)
+		return;
+
+	draw(dst, rectaddpt(info->image->r, dst->r.min), info->image, nil, info->image->r.min);
+}
+
+static void
 selectplanet(Planet *p)
 {
 	static Planet *oldp;
@@ -211,6 +319,10 @@ selectplanet(Planet *p)
 	esel = scene->getent(scene, "selection");
 	if(esel != nil)
 		scene->delent(scene, esel);
+	lockdisplay(display);
+	freeinfobox(infobox);
+	infobox = nil;
+	unlockdisplay(display);
 	if(p == nil)
 		return;
 
@@ -218,6 +330,10 @@ selectplanet(Planet *p)
 	msel = newmodel();
 	esel = newentity("selection", msel);
 	esel->RFrame3 = e->RFrame3;
+
+	lockdisplay(display);
+	infobox = mkplanetinfobox(p, Rpt(subpt(viewr.max, Pt(400,200)), viewr.max));
+	unlockdisplay(display);
 
 	memset(&aabb, 0, sizeof aabb);
 	for(i = 0; i < e->mdl->nprims; i++)
@@ -427,7 +543,6 @@ drawstats(void)
 		!camera->stats.min? 0: 1e9/camera->stats.min,
 		!camera->stats.v? 0: 1e9/camera->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", camera->stats.nframes);
-	snprint(stats[Splanet], sizeof(stats[Splanet]), "%s", selplanet == nil? "": selplanet->name);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -440,6 +555,7 @@ redraw(void)
 	lockdisplay(display);
 	draw(screen, rectaddpt(viewr, screen->r.min), screenb, nil, ZP);
 	draw(screen, rectaddpt(cmdbox.r, screen->r.min), display->white, nil, ZP);
+	drawinfobox(screen, infobox);
 	for(i = 0; i < cmdbox.ncmds; i++){
 		border(screen, rectaddpt(cmdbox.cmds[i].r, screen->r.min), 1, display->black, ZP);
 		string(screen, addpt(screen->r.min, addpt(cmdbox.cmds[i].r.min, Pt(Cmdpadding,Cmdpadding))), display->black, ZP, font, cmdbox.cmds[i].label);
