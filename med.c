@@ -190,16 +190,13 @@ addcube(void)
 	v1 = Vec3(1,0,0);
 	v2 = Vec3(0,1,0);
 	t[0].v[0].p = addpt3(center, p);
-	t[0].v[0].n = p;
+	t[0].v[0].n = t[0].v[1].n = t[0].v[2].n = t[1].v[2].n = Vec3(0,0,1);
 	t[0].v[1].p = addpt3(center, addpt3(p, v1));
-	t[0].v[1].n = addpt3(p, v1);
 	t[0].v[2].p = addpt3(center, addpt3(p, addpt3(v1, v2)));
-	t[0].v[2].n = addpt3(p, addpt3(v1, v2));
 	t[0].v[0].c = t[0].v[1].c = t[0].v[2].c = Pt3(1,1,1,1);
 	t[1].v[0] = t[0].v[0];
 	t[1].v[1] = t[0].v[2];
 	t[1].v[2].p = addpt3(center, addpt3(p, v2));
-	t[1].v[2].n = addpt3(p, v2);
 	t[1].v[2].c = Pt3(1,1,1,1);
 
 	/* make a cube by rotating the reference face */
