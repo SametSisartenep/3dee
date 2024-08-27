@@ -6,6 +6,7 @@ TARG=\
 	med\
 	solar\
 	projtest\
+	procgen\
 
 OFILES=\
 	alloc.$O\
