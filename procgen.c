@@ -17,9 +17,6 @@
 #include "libgraphics/graphics.h"
 #include "fns.h"
 
-#define min(a, b) ((a)<(b)?(a):(b))
-#define max(a, b) ((a)>(b)?(a):(b))
-
 Renderer *rctl;
 Camera *cam;
 Scene *scn;

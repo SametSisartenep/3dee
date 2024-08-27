@@ -168,26 +168,14 @@ static int showskybox;
 static int doprof;
 static int showhud;
 
-static int
-min(int a, int b)
-{
-	return a < b? a: b;
-}
-
-static int
-max(int a, int b)
-{
-	return a > b? a: b;
-}
-
 static Point3
 minpt3(Point3 a, Point3 b)
 {
 	return (Point3){
-		fmin(a.x, b.x),
-		fmin(a.y, b.y),
-		fmin(a.z, b.z),
-		fmin(a.w, b.w)
+		min(a.x, b.x),
+		min(a.y, b.y),
+		min(a.z, b.z),
+		min(a.w, b.w)
 	};
 }
 
@@ -195,10 +183,10 @@ static Point3
 maxpt3(Point3 a, Point3 b)
 {
 	return (Point3){
-		fmax(a.x, b.x),
-		fmax(a.y, b.y),
-		fmax(a.z, b.z),
-		fmax(a.w, b.w)
+		max(a.x, b.x),
+		max(a.y, b.y),
+		max(a.z, b.z),
+		max(a.w, b.w)
 	};
 }
 

@@ -106,18 +106,6 @@ static int doprof;
 static int showhud;
 Color (*tsampler)(Texture*,Point2);
 
-static int
-min(int a, int b)
-{
-	return a < b? a: b;
-}
-
-static int
-max(int a, int b)
-{
-	return a > b? a: b;
-}
-
 static Point3
 Vecquat(Quaternion q)
 {
@@ -291,13 +279,13 @@ gouraudvshader(VSparams *sp)
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
 
-	Kd = fmax(0, dotvec3(sp->v->n, lightdir));
+	Kd = max(0, dotvec3(sp->v->n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v->n, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
+	spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
@@ -403,7 +391,7 @@ phongshader(FSparams *sp)
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
 
-	Kd = fmax(0, dotvec3(n, lightdir));
+	Kd = max(0, dotvec3(n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
@@ -412,7 +400,7 @@ phongshader(FSparams *sp)
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
+	spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 

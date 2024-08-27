@@ -97,18 +97,6 @@ static int depthon;
 static int abuffon;
 Color (*tsampler)(Texture*,Point2);
 
-static int
-min(int a, int b)
-{
-	return a < b? a: b;
-}
-
-static int
-max(int a, int b)
-{
-	return a > b? a: b;
-}
-
 static Point3
 Vecquat(Quaternion q)
 {
@@ -151,13 +139,13 @@ gouraudvshader(VSparams *sp)
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
 
-	Kd = fmax(0, dotvec3(sp->v->n, lightdir));
+	Kd = max(0, dotvec3(sp->v->n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, sp->v->n, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
+	spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
@@ -263,7 +251,7 @@ phongshader(FSparams *sp)
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
 
-	Kd = fmax(0, dotvec3(n, lightdir));
+	Kd = max(0, dotvec3(n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
@@ -272,7 +260,7 @@ phongshader(FSparams *sp)
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
-	spec = pow(fmax(0, dotvec3(lookdir, lightdir)), m.shininess);
+	spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
@@ -335,7 +323,7 @@ blinnshader(FSparams *sp)
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
 
-	Kd = fmax(0, dotvec3(n, lightdir));
+	Kd = max(0, dotvec3(n, lightdir));
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
@@ -344,7 +332,7 @@ blinnshader(FSparams *sp)
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = normvec3(addpt3(lookdir, lightdir));	/* half vector */
-	spec = pow(fmax(0, dotvec3(n, lightdir)), m.shininess);
+	spec = pow(max(0, dotvec3(n, lightdir)), m.shininess);
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
@@ -362,7 +350,7 @@ toonvshader(VSparams *sp)
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	pos = model2world(sp->su->entity, sp->v->p);
 	lightdir = normvec3(subpt3(light.p, pos));
-	intens = fmax(0, dotvec3(sp->v->n, lightdir));
+	intens = max(0, dotvec3(sp->v->n, lightdir));
 	addvattr(sp->v, "intensity", VANumber, &intens);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
@@ -496,8 +484,8 @@ boxshader(FSparams *sp)
 
 	p = Pt2(fabs(uv.x - 0.5), fabs(uv.y - 0.5), 1);
 	p = subpt2(p, r);
-	p.x = fmax(p.x, 0);
-	p.y = fmax(p.y, 0);
+	p.x = max(p.x, 0);
+	p.y = max(p.y, 0);
 
 	if(vec2len(p) > 0)
 		return Vec3(0,0,0);
