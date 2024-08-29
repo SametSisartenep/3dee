@@ -100,7 +100,7 @@ tree(double x, double h)
 static Point3
 vs(VSparams *sp)
 {
-	return vcs2clip(sp->su->camera, sp->v->p);
+	return sp->v->p;
 }
 
 static Color
@@ -175,18 +175,18 @@ threadmain(int argc, char *argv[])
 	placecamera(cam, scn, Pt3(0,0,0,1), Vec3(0,0,-1), Vec3(0,1,0));
 
 	quad[0].type = quad[1].type = PTriangle;
-	quad[0].v[0].p = viewport2vcs(cam, Pt3(out->r.min.x, out->r.max.y, 1, 1));
-	quad[0].v[1].p = viewport2vcs(cam, Pt3(out->r.max.x, out->r.min.y, 1, 1));
-	quad[0].v[2].p = viewport2vcs(cam, Pt3(out->r.min.x, out->r.min.y, 1, 1));
+	quad[0].v[0].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.max.y, 1, 1)));
+	quad[0].v[1].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.min.y, 1, 1)));
+	quad[0].v[2].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.min.y, 1, 1)));
 	quad[1].v[0].p = quad[0].v[0].p;
-	quad[1].v[1].p = viewport2vcs(cam, Pt3(out->r.max.x, out->r.max.y, 1, 1));
+	quad[1].v[1].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.max.y, 1, 1)));
 	quad[1].v[2].p = quad[0].v[1].p;
 	mdl->addprim(mdl, quad[0]);
 	mdl->addprim(mdl, quad[1]);
 	scn->addent(scn, ent);
 
 	do shootcamera(cam, &shaders); while(skip--);
-	cam->view->memdraw(cam->view, out);
+	cam->view->memdraw(cam->view, out, nil);
 	writememimage(1, out);
 
 	threadexitsall(nil);

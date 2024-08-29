@@ -166,6 +166,8 @@ gouraudshader(FSparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
+	sp->toraster(sp, "normals", &sp->v.n);
+
 	return modulapt3(sp->v.c, tc);
 }
 
@@ -264,6 +266,8 @@ phongshader(FSparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
+	sp->toraster(sp, "normals", &sp->v.n);
+
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
 	return c;
@@ -336,6 +340,8 @@ blinnshader(FSparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
+	sp->toraster(sp, "normals", &sp->v.n);
+
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
 	return c;
@@ -371,6 +377,8 @@ toonshader(FSparams *sp)
 		 intens > 0.30? 0.45:
 		 intens > 0.15? 0.30: 0.15;
 
+	sp->toraster(sp, "normals", &sp->v.n);
+
 	return Pt3(intens, 0.6*intens, 0, 1);
 }
 
@@ -393,6 +401,8 @@ identshader(FSparams *sp)
 		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
+
+	sp->toraster(sp, "normals", &sp->v.n);
 
 	return modulapt3(sp->v.c, tc);
 }
@@ -601,10 +611,7 @@ renderproc(void *)
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
-			if(shownormals)
-				maincam->view->fbctl->drawnormals(maincam->view->fbctl, screenb);
-			else
-				maincam->view->draw(maincam->view, screenb);
+			maincam->view->draw(maincam->view, screenb, shownormals? "normals": nil);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
@@ -659,6 +666,7 @@ lmb(void)
 		}
 	}else{	/* DBG only */
 		Framebuf *fb;
+		Raster *cr, *zr, *nr;
 		Point2 p₂;
 		Point p;
 		Color c, n;
@@ -675,9 +683,12 @@ lmb(void)
 			return;
 		qlock(maincam->view->fbctl);
 		fb = maincam->view->getfb(maincam->view);
-		c = ul2col(fb->cb[p.y*Dx(fb->r) + p.x]);
-		n = ul2col(fb->nb[p.y*Dx(fb->r) + p.x]);
-		z = fb->zb[p.y*Dx(fb->r) + p.x];
+		cr = fb->rasters;
+		zr = cr->next;
+		nr = maincam->view->fetchraster(maincam->view, "normals");
+		c = ul2col(cr->data[p.y*Dx(fb->r) + p.x]);
+		n = nr != nil? ul2col(nr->data[p.y*Dx(fb->r) + p.x]): Vec3(0,0,0);
+		z = *(float*)&zr->data[p.y*Dx(fb->r) + p.x];
 //		abuf = &fb->abuf;
 //		if(abuf->stk != nil){
 //			astk = &abuf->stk[p.y*Dx(fb->r) + p.x];
@@ -1112,6 +1123,7 @@ fprint(2, "screen %R\n", screenb->r);
 			sysfatal("Cam: %r");
 		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 		cams[i]->view->setscale(cams[i]->view, scale, scale);
+		cams[i]->view->createraster(cams[i]->view, "normals", COLOR32);
 
 		if(scale == 2)
 			cams[i]->view->setscalefilter(cams[i]->view, UFScale2x);

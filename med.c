@@ -100,7 +100,7 @@ RFrame3 ONF3 = {	/* default orthonormal rframe */
 	0,1,0,0,
 	0,0,1,0
 };
-LightSource light;		/* global point light */
+LightSource light;	/* global point light */
 
 static int doprof;
 static int showhud;
@@ -515,8 +515,8 @@ renderproc(void *)
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
-			cam->view->draw(cam->view, screenb);
-			compass.cam->view->draw(compass.cam->view, screenb);
+			cam->view->draw(cam->view, screenb, nil);
+			compass.cam->view->draw(compass.cam->view, screenb, nil);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;

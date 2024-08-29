@@ -573,7 +573,7 @@ renderproc(void *)
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
-			camera->view->draw(camera->view, screenb);
+			camera->view->draw(camera->view, screenb, nil);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
