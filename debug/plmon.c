@@ -289,7 +289,7 @@ redraw(void)
 	dy = (Dy(screen->r) - font->height)/sched.ntask;
 	for(i = 0; i < sched.ntask; i++){
 		yoff = i*dy+dy;
-		string(screen, addpt(screen->r.min, Pt(0,yoff)), pal[CMain], ZP, font, sched.tasks[i].name);
+		string(screen, addpt(screen->r.min, Pt(Graphoff/2,yoff)), pal[CMain], ZP, font, sched.tasks[i].name);
 		line(screen, addpt(screen->r.min, Pt(Graphoff/2,yoff+font->height)), addpt(screen->r.min, Pt(Graphoff,yoff+font->height)), 0, 0, 0, pal[CMain], ZP);
 
 		graphrf.p.y = yoff;
@@ -316,7 +316,7 @@ redraw(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s\n", argv0);
+	fprint(2, "usage: %s [file]\n", argv0);
 	exits("usage");
 }
 
@@ -335,10 +335,10 @@ threadmain(int argc, char *argv[])
 	ARGBEGIN{
 	default: usage();
 	}ARGEND
-	if(argc != 0)
+	if(argc > 1)
 		usage();
 
-	bin = Bfdopen(0, OREAD);
+	bin = argc? Bopen(argv[0], OREAD): Bfdopen(0, OREAD);
 	if(bin == nil)
 		sysfatal("Bfdopen: %r");
 	while((line = Brdline(bin, '\n')) != nil){
@@ -346,8 +346,8 @@ threadmain(int argc, char *argv[])
 		nf = tokenize(line, f, 3);
 		if(nf != 3)
 			continue;
-		s.t0 = strtoul(f[1], nil, 10);
-		s.t1 = strtoul(f[2], nil, 10);
+		s.t0 = strtoull(f[1], nil, 10);
+		s.t1 = strtoull(f[2], nil, 10);
 		if(s.t0 >= s.t1)
 			continue;
 		addt(f[0], s);
