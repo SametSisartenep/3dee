@@ -91,6 +91,27 @@ addt(char *n, Slot s)
 }
 
 static void
+consume(Biobuf *bin)
+{
+	Slot s;
+	char *line, *f[3];
+	int nf;
+
+	while((line = Brdline(bin, '\n')) != nil){
+		line[Blinelen(bin)-1] = 0;
+		nf = tokenize(line, f, 3);
+		if(nf != 3)
+			continue;
+		s.t0 = strtoull(f[1], nil, 10);
+		s.t1 = strtoull(f[2], nil, 10);
+		if(s.t0 >= s.t1)
+			continue;
+		addt(f[0], s);
+	}
+	Bterm(bin);
+}
+
+static void
 printsched(void)
 {
 	Task *t;
@@ -316,7 +337,7 @@ redraw(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [file]\n", argv0);
+	fprint(2, "usage: %s [file ...]\n", argv0);
 	exits("usage");
 }
 
@@ -326,33 +347,28 @@ threadmain(int argc, char *argv[])
 	Mousectl *mc;
 	Keyboardctl *kc;
 	Biobuf *bin;
-	Slot s;
 	Rune r;
-	char *line, *f[3];
-	ulong nf;
 	int i;
 
 	ARGBEGIN{
 	default: usage();
 	}ARGEND
-	if(argc > 1)
-		usage();
 
-	bin = argc? Bopen(argv[0], OREAD): Bfdopen(0, OREAD);
-	if(bin == nil)
-		sysfatal("Bfdopen: %r");
-	while((line = Brdline(bin, '\n')) != nil){
-		line[Blinelen(bin)-1] = 0;
-		nf = tokenize(line, f, 3);
-		if(nf != 3)
-			continue;
-		s.t0 = strtoull(f[1], nil, 10);
-		s.t1 = strtoull(f[2], nil, 10);
-		if(s.t0 >= s.t1)
-			continue;
-		addt(f[0], s);
+	if(argc < 1){
+		bin = Bfdopen(0, OREAD);
+		if(bin == nil)
+			sysfatal("Bfdopen: %r");
+		consume(bin);
 	}
-	Bterm(bin);
+	for(i = 0; i < argc; i++){
+		bin = Bopen(argv[i], OREAD);
+		if(bin == nil)
+			sysfatal("Bopen: %r");
+		consume(bin);
+	}
+
+	if(sched.ntask < 1)
+		sysfatal("no tasks found");
 
 	print("loaded %lud tasks:\n", sched.ntask);
 	for(i = 0; i < sched.ntask; i++)
