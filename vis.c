@@ -110,7 +110,7 @@ Ptquat(Quaternion q, double w)
 }
 
 Point3
-gouraudvshader(VSparams *sp)
+gouraudvshader(Shaderparams *sp)
 {
 	static double Ka = 0.1;	/* ambient factor */
 	static double Ks = 0.5;	/* specular factor */
@@ -155,24 +155,24 @@ gouraudvshader(VSparams *sp)
 }
 
 Color
-gouraudshader(FSparams *sp)
+gouraudshader(Shaderparams *sp)
 {
 	Color tc;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
-	sp->toraster(sp, "normals", &sp->v.n);
+	sp->toraster(sp, "normals", &sp->v->n);
 
-	return modulapt3(sp->v.c, tc);
+	return modulapt3(sp->v->c, tc);
 }
 
 Point3
-phongvshader(VSparams *sp)
+phongvshader(Shaderparams *sp)
 {
 	Point3 pos;
 	Color a, d, s;
@@ -181,26 +181,26 @@ phongvshader(VSparams *sp)
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	pos = sp->v->p;
-	addvattr(sp->v, "pos", VAPoint, &pos);
+	sp->setattr(sp, "pos", VAPoint, &pos);
 	if(sp->v->mtl != nil && sp->v->mtl->normalmap != nil && sp->v->uv.w != 0){
 		sp->v->tangent = model2world(sp->su->entity, sp->v->tangent);
-		addvattr(sp->v, "tangent", VAPoint, &sp->v->tangent);
+		sp->setattr(sp, "tangent", VAPoint, &sp->v->tangent);
 	}
 	if(sp->v->mtl != nil){
 		a = sp->v->mtl->ambient;
 		d = sp->v->mtl->diffuse;
 		s = sp->v->mtl->specular;
 		ss = sp->v->mtl->shininess;
-		addvattr(sp->v, "ambient", VAPoint, &a);
-		addvattr(sp->v, "diffuse", VAPoint, &d);
-		addvattr(sp->v, "specular", VAPoint, &s);
-		addvattr(sp->v, "shininess", VANumber, &ss);
+		sp->setattr(sp, "ambient", VAPoint, &a);
+		sp->setattr(sp, "diffuse", VAPoint, &d);
+		sp->setattr(sp, "specular", VAPoint, &s);
+		sp->setattr(sp, "shininess", VANumber, &ss);
 	}
 	return world2clip(sp->su->camera, pos);
 }
 
 Color
-phongshader(FSparams *sp)
+phongshader(Shaderparams *sp)
 {
 	static double Ka = 0.1;	/* ambient factor */
 	static double Ks = 0.5;	/* specular factor */
@@ -212,43 +212,43 @@ phongshader(FSparams *sp)
 	RFrame3 TBN;
 	Vertexattr *va;
 
-	va = getvattr(&sp->v, "pos");
+	va = sp->getattr(sp, "pos");
 	pos = va->p;
 	
-	va = getvattr(&sp->v, "ambient");
+	va = sp->getattr(sp, "ambient");
 	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
-	va = getvattr(&sp->v, "diffuse");
-	m.diffuse = va != nil? va->p: sp->v.c;
-	va = getvattr(&sp->v, "specular");
+	va = sp->getattr(sp, "diffuse");
+	m.diffuse = va != nil? va->p: sp->v->c;
+	va = sp->getattr(sp, "specular");
 	m.specular = va != nil? va->p: Pt3(1,1,1,1);
-	va = getvattr(&sp->v, "shininess");
+	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	lightc = getlightcolor(&light, lightdir);
 
 	/* normal mapping */
-	va = getvattr(&sp->v, "tangent");
+	va = sp->getattr(sp, "tangent");
 	if(va == nil)
-		n = sp->v.n;
+		n = sp->v->n;
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
-		n = sampletexture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
+		n = sampletexture(sp->v->mtl->normalmap, sp->v->uv, neartexsampler);
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
 		TBN.bx = va->p;				/* T */
-		TBN.bz = sp->v.n;			/* N */
+		TBN.bz = sp->v->n;			/* N */
 		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
 
 		n = normvec3(invrframexform3(n, TBN));
-		sp->v.n = n;
+		sp->v->n = n;
 	}
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		m.diffuse = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
@@ -257,8 +257,8 @@ phongshader(FSparams *sp)
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
-	if(sp->v.mtl != nil && sp->v.mtl->specularmap != nil && sp->v.uv.w != 0)
-		m.specular = sampletexture(sp->v.mtl->specularmap, sp->v.uv, tsampler);
+	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
+		m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
@@ -266,7 +266,7 @@ phongshader(FSparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
-	sp->toraster(sp, "normals", &sp->v.n);
+	sp->toraster(sp, "normals", &sp->v->n);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
@@ -274,7 +274,7 @@ phongshader(FSparams *sp)
 }
 
 Color
-blinnshader(FSparams *sp)
+blinnshader(Shaderparams *sp)
 {
 	static double Ka = 0.1;	/* ambient factor */
 	static double Ks = 0.5;	/* specular factor */
@@ -286,43 +286,43 @@ blinnshader(FSparams *sp)
 	RFrame3 TBN;
 	Vertexattr *va;
 
-	va = getvattr(&sp->v, "pos");
+	va = sp->getattr(sp, "pos");
 	pos = va->p;
 	
-	va = getvattr(&sp->v, "ambient");
+	va = sp->getattr(sp, "ambient");
 	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
-	va = getvattr(&sp->v, "diffuse");
-	m.diffuse = va != nil? va->p: sp->v.c;
-	va = getvattr(&sp->v, "specular");
+	va = sp->getattr(sp, "diffuse");
+	m.diffuse = va != nil? va->p: sp->v->c;
+	va = sp->getattr(sp, "specular");
 	m.specular = va != nil? va->p: Pt3(1,1,1,1);
-	va = getvattr(&sp->v, "shininess");
+	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	lightc = getlightcolor(&light, lightdir);
 
 	/* normal mapping */
-	va = getvattr(&sp->v, "tangent");
+	va = sp->getattr(sp, "tangent");
 	if(va == nil)
-		n = sp->v.n;
+		n = sp->v->n;
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
-		n = sampletexture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
+		n = sampletexture(sp->v->mtl->normalmap, sp->v->uv, neartexsampler);
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
 		TBN.bx = va->p;				/* T */
-		TBN.bz = sp->v.n;			/* N */
+		TBN.bz = sp->v->n;			/* N */
 		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
 
 		n = normvec3(invrframexform3(n, TBN));
-		sp->v.n = n;
+		sp->v->n = n;
 	}
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		m.diffuse = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
@@ -331,8 +331,8 @@ blinnshader(FSparams *sp)
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
-	if(sp->v.mtl != nil && sp->v.mtl->specularmap != nil && sp->v.uv.w != 0)
-		m.specular = sampletexture(sp->v.mtl->specularmap, sp->v.uv, tsampler);
+	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
+		m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = normvec3(addpt3(lookdir, lightdir));	/* half vector */
@@ -340,7 +340,7 @@ blinnshader(FSparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
-	sp->toraster(sp, "normals", &sp->v.n);
+	sp->toraster(sp, "normals", &sp->v->n);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
@@ -348,7 +348,7 @@ blinnshader(FSparams *sp)
 }
 
 Point3
-toonvshader(VSparams *sp)
+toonvshader(Shaderparams *sp)
 {
 	Point3 pos, lightdir;
 	double intens;
@@ -357,19 +357,19 @@ toonvshader(VSparams *sp)
 	pos = model2world(sp->su->entity, sp->v->p);
 	lightdir = normvec3(subpt3(light.p, pos));
 	intens = max(0, dotvec3(sp->v->n, lightdir));
-	addvattr(sp->v, "intensity", VANumber, &intens);
+	sp->setattr(sp, "intensity", VANumber, &intens);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
 	return world2clip(sp->su->camera, pos);
 }
 
 Color
-toonshader(FSparams *sp)
+toonshader(Shaderparams *sp)
 {
 	Vertexattr *va;
 	double intens;
 
-	va = getvattr(&sp->v, "intensity");
+	va = sp->getattr(sp, "intensity");
 	intens = va->n;
 	intens = intens > 0.85? 1:
 		 intens > 0.60? 0.80:
@@ -377,13 +377,13 @@ toonshader(FSparams *sp)
 		 intens > 0.30? 0.45:
 		 intens > 0.15? 0.30: 0.15;
 
-	sp->toraster(sp, "normals", &sp->v.n);
+	sp->toraster(sp, "normals", &sp->v->n);
 
 	return Pt3(intens, 0.6*intens, 0, 1);
 }
 
 Point3
-identvshader(VSparams *sp)
+identvshader(Shaderparams *sp)
 {
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
@@ -391,24 +391,24 @@ identvshader(VSparams *sp)
 }
 
 Color
-identshader(FSparams *sp)
+identshader(Shaderparams *sp)
 {
 	Color tc;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
-	sp->toraster(sp, "normals", &sp->v.n);
+	sp->toraster(sp, "normals", &sp->v->n);
 
-	return modulapt3(sp->v.c, tc);
+	return modulapt3(sp->v->c, tc);
 }
 
 Point3
-ivshader(VSparams *sp)
+ivshader(Shaderparams *sp)
 {
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
@@ -416,7 +416,7 @@ ivshader(VSparams *sp)
 }
 
 Color
-triangleshader(FSparams *sp)
+triangleshader(Shaderparams *sp)
 {
 	Triangle2 t;
 	Rectangle bbox;
@@ -441,7 +441,7 @@ triangleshader(FSparams *sp)
 }
 
 Color
-circleshader(FSparams *sp)
+circleshader(Shaderparams *sp)
 {
 	Point2 uv;
 	double r, d;
@@ -461,7 +461,7 @@ circleshader(FSparams *sp)
 
 /* some shaping functions from The Book of Shaders, Chapter 5 */
 Color
-sfshader(FSparams *sp)
+sfshader(Shaderparams *sp)
 {
 	Point2 uv;
 	double y, pct;
@@ -482,7 +482,7 @@ sfshader(FSparams *sp)
 }
 
 Color
-boxshader(FSparams *sp)
+boxshader(Shaderparams *sp)
 {
 	Point2 uv, p;
 	Point2 r;
@@ -666,6 +666,7 @@ lmb(void)
 		}
 	}else{	/* DBG only */
 		Framebuf *fb;
+		Viewport *v;
 		Raster *cr, *zr, *nr;
 		Point2 p₂;
 		Point p;
@@ -675,17 +676,18 @@ lmb(void)
 //		Astk *astk;
 //		int i;
 
+		v = maincam->view;
 		p = subpt(mctl->xy, screen->r.min);
 		p₂ = Pt2(p.x, p.y, 1);
-		p₂ = rframexform(p₂, *maincam->view);
+		p₂ = rframexform(p₂, *v);
 		p = Pt(p₂.x, p₂.y);
-		if(!ptinrect(p, maincam->view->r))
+		if(!ptinrect(p, v->r))
 			return;
-		qlock(maincam->view->fbctl);
-		fb = maincam->view->getfb(maincam->view);
-		cr = fb->rasters;
-		zr = cr->next;
-		nr = maincam->view->fetchraster(maincam->view, "normals");
+		qlock(v->fbctl);
+		fb = v->getfb(v);
+		cr = v->fetchraster(v, nil);
+		zr = v->fetchraster(v, "z-buffer");
+		nr = v->fetchraster(v, "normals");
 		c = ul2col(cr->data[p.y*Dx(fb->r) + p.x]);
 		n = nr != nil? ul2col(nr->data[p.y*Dx(fb->r) + p.x]): Vec3(0,0,0);
 		z = *(float*)&zr->data[p.y*Dx(fb->r) + p.x];
@@ -698,7 +700,7 @@ lmb(void)
 //					fprint(2, "\t%d: %V %g\n", i, astk->items[i].c, astk->items[i].z);
 //			}
 //		}
-		qunlock(maincam->view->fbctl);
+		qunlock(v->fbctl);
 		snprint(stats[Spixcol], sizeof(stats[Spixcol]), "c %V z %g", c, z);
 		snprint(stats[Snorcol], sizeof(stats[Snorcol]), "n %V", n);
 	}

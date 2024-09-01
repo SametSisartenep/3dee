@@ -468,7 +468,7 @@ gotoplanet(Planet *p)
 }
 
 Point3
-identvshader(VSparams *sp)
+identvshader(Shaderparams *sp)
 {
 	Planet *p;
 	Point3 pos;
@@ -492,11 +492,11 @@ identvshader(VSparams *sp)
 }
 
 Color
-identshader(FSparams *sp)
+identshader(Shaderparams *sp)
 {
-	if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		return sampletexture(sp->v.mtl->diffusemap, sp->v.uv, neartexsampler);
-	return sp->v.c;
+	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		return sampletexture(sp->v->mtl->diffusemap, sp->v->uv, neartexsampler);
+	return sp->v->c;
 }
 
 Shadertab shader = { "ident", identvshader, identshader };

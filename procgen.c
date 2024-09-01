@@ -98,13 +98,13 @@ tree(double x, double h)
 }
 
 static Point3
-vs(VSparams *sp)
+vs(Shaderparams *sp)
 {
 	return sp->v->p;
 }
 
 static Color
-fs(FSparams *sp)
+fs(Shaderparams *sp)
 {
 	Point2 uv;
 	double dt, shift, h;

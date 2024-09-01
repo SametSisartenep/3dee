@@ -250,7 +250,7 @@ setupcompass(Compass *c, Rectangle r, Renderer *rctl)
 }
 
 Point3
-gouraudvshader(VSparams *sp)
+gouraudvshader(Shaderparams *sp)
 {
 	static double Ka = 0.1;	/* ambient factor */
 	static double Ks = 0.5;	/* specular factor */
@@ -295,22 +295,22 @@ gouraudvshader(VSparams *sp)
 }
  
 Color
-gouraudshader(FSparams *sp)
+gouraudshader(Shaderparams *sp)
 {
 	Color tc;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
-	return modulapt3(sp->v.c, tc);
+	return modulapt3(sp->v->c, tc);
 }
 
 Point3
-phongvshader(VSparams *sp)
+phongvshader(Shaderparams *sp)
 {
 	Point3 pos;
 	Color a, d, s;
@@ -319,26 +319,26 @@ phongvshader(VSparams *sp)
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	sp->v->p = model2world(sp->su->entity, sp->v->p);
 	pos = sp->v->p;
-	addvattr(sp->v, "pos", VAPoint, &pos);
+	sp->setattr(sp, "pos", VAPoint, &pos);
 	if(sp->v->mtl != nil && sp->v->mtl->normalmap != nil && sp->v->uv.w != 0){
 		sp->v->tangent = model2world(sp->su->entity, sp->v->tangent);
-		addvattr(sp->v, "tangent", VAPoint, &sp->v->tangent);
+		sp->setattr(sp, "tangent", VAPoint, &sp->v->tangent);
 	}
 	if(sp->v->mtl != nil){
 		a = sp->v->mtl->ambient;
 		d = sp->v->mtl->diffuse;
 		s = sp->v->mtl->specular;
 		ss = sp->v->mtl->shininess;
-		addvattr(sp->v, "ambient", VAPoint, &a);
-		addvattr(sp->v, "diffuse", VAPoint, &d);
-		addvattr(sp->v, "specular", VAPoint, &s);
-		addvattr(sp->v, "shininess", VANumber, &ss);
+		sp->setattr(sp, "ambient", VAPoint, &a);
+		sp->setattr(sp, "diffuse", VAPoint, &d);
+		sp->setattr(sp, "specular", VAPoint, &s);
+		sp->setattr(sp, "shininess", VANumber, &ss);
 	}
 	return world2clip(sp->su->camera, pos);
 }
 
 Color
-phongshader(FSparams *sp)
+phongshader(Shaderparams *sp)
 {
 	static double Ka = 0.1;	/* ambient factor */
 	static double Ks = 0.5;	/* specular factor */
@@ -350,43 +350,43 @@ phongshader(FSparams *sp)
 	RFrame3 TBN;
 	Vertexattr *va;
 
-	va = getvattr(&sp->v, "pos");
+	va = sp->getattr(sp, "pos");
 	pos = va->p;
-	
-	va = getvattr(&sp->v, "ambient");
+
+	va = sp->getattr(sp, "ambient");
 	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
-	va = getvattr(&sp->v, "diffuse");
-	m.diffuse = va != nil? va->p: sp->v.c;
-	va = getvattr(&sp->v, "specular");
+	va = sp->getattr(sp, "diffuse");
+	m.diffuse = va != nil? va->p: sp->v->c;
+	va = sp->getattr(sp, "specular");
 	m.specular = va != nil? va->p: Pt3(1,1,1,1);
-	va = getvattr(&sp->v, "shininess");
+	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
 
 	lightdir = normvec3(subpt3(light.p, pos));
 	lightc = getlightcolor(&light, lightdir);
 
 	/* normal mapping */
-	va = getvattr(&sp->v, "tangent");
+	va = sp->getattr(sp, "tangent");
 	if(va == nil)
-		n = sp->v.n;
+		n = sp->v->n;
 	else{
 		/* TODO implement this on the VS instead and apply Gram-Schmidt here */
-		n = sampletexture(sp->v.mtl->normalmap, sp->v.uv, neartexsampler);
+		n = sampletexture(sp->v->mtl->normalmap, sp->v->uv, neartexsampler);
 		n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
 		TBN.p = Pt3(0,0,0,1);
 		TBN.bx = va->p;				/* T */
-		TBN.bz = sp->v.n;			/* N */
+		TBN.bz = sp->v->n;			/* N */
 		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
 
 		n = normvec3(invrframexform3(n, TBN));
-		sp->v.n = n;
+		sp->v->n = n;
 	}
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		m.diffuse = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
 	ambient = mulpt3(lightc, Ka);
 	ambient = modulapt3(ambient, m.diffuse);
@@ -395,8 +395,8 @@ phongshader(FSparams *sp)
 	diffuse = mulpt3(lightc, Kd);
 	diffuse = modulapt3(diffuse, m.diffuse);
 
-	if(sp->v.mtl != nil && sp->v.mtl->specularmap != nil && sp->v.uv.w != 0)
-		m.specular = sampletexture(sp->v.mtl->specularmap, sp->v.uv, tsampler);
+	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
+		m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 
 	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 	lightdir = qrotate(lightdir, n, PI);
@@ -410,7 +410,7 @@ phongshader(FSparams *sp)
 }
 
 Point3
-identvshader(VSparams *sp)
+identvshader(Shaderparams *sp)
 {
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
@@ -418,18 +418,18 @@ identvshader(VSparams *sp)
 }
 
 Color
-identshader(FSparams *sp)
+identshader(Shaderparams *sp)
 {
 	Color tc;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v.uv, tsampler);
-	else if(sp->v.mtl != nil && sp->v.mtl->diffusemap != nil && sp->v.uv.w != 0)
-		tc = sampletexture(sp->v.mtl->diffusemap, sp->v.uv, tsampler);
+	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
+	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
 
-	return modulapt3(sp->v.c, tc);
+	return modulapt3(sp->v->c, tc);
 }
 
 Shadertab shadertab[] = {
