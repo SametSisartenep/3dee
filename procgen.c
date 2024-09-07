@@ -24,6 +24,8 @@ Entity *ent;
 Model *mdl;
 Primitive quad[2];
 
+static int doprof;
+
 static Color
 getskycolor(double x, double y)
 {
@@ -149,6 +151,7 @@ threadmain(int argc, char *argv[])
 	skip = 0;
 	ARGBEGIN{
 	case 's': skip = strtoul(EARGF(usage()), nil, 10); break;
+	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
 	if(argc > 0)
@@ -165,6 +168,7 @@ threadmain(int argc, char *argv[])
 		sysfatal("memimageinit: %r");
 	if((rctl = initgraphics()) == nil)
 		sysfatal("initgraphics: %r");
+	rctl->doprof = doprof;
 
 	scn = newscene(nil);
 	mdl = newmodel();

@@ -602,12 +602,6 @@ renderproc(void *)
 	t0 = nsec();
 	for(;;){
 		shootcamera(maincam, shader);
-		if(doprof)
-		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
-			maincam->times.R[maincam->times.last].t0, maincam->times.R[maincam->times.last].t1,
-			maincam->times.E[maincam->times.last].t0, maincam->times.E[maincam->times.last].t1,
-			maincam->times.Tn[maincam->times.last].t0, maincam->times.Tn[maincam->times.last].t1,
-			maincam->times.Rn[maincam->times.last].t0, maincam->times.Rn[maincam->times.last].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
@@ -1111,6 +1105,8 @@ threadmain(int argc, char *argv[])
 		sysfatal("initdraw: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
+
+	rctl->doprof = doprof;
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, 0x888888FF);
 fprint(2, "screen %R\n", screenb->r);

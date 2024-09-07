@@ -506,12 +506,6 @@ renderproc(void *)
 		shootcamera(cam, shader);
 		qunlock(&scenelk);
 		shootcamera(compass.cam, getshader("ident"));
-		if(doprof)
-		fprint(2, "R %llud %llud\nE %llud %llud\nT %llud %llud\nr %llud %llud\n\n",
-			cam->times.R[cam->times.cur-1].t0, cam->times.R[cam->times.cur-1].t1,
-			cam->times.E[cam->times.cur-1].t0, cam->times.E[cam->times.cur-1].t1,
-			cam->times.Tn[cam->times.cur-1].t0, cam->times.Tn[cam->times.cur-1].t1,
-			cam->times.Rn[cam->times.cur-1].t0, cam->times.Rn[cam->times.cur-1].t1);
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
@@ -840,6 +834,8 @@ threadmain(int argc, char *argv[])
 		sysfatal("initdraw: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
+
+	rctl->doprof = doprof;
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 	cam = Cam(screenb->r, rctl, camcfg.ptype, camcfg.fov, camcfg.clipn, camcfg.clipf);
