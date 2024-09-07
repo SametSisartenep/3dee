@@ -136,18 +136,28 @@ initcolors(void)
 void
 lmb(Mousectl *mc)
 {
-	Mouse m;
+	Task *t;
+	Slot *s;
+	Rectangle r;
+	Point2 p;
+	int dy;
 
-	for(;;){
-		m = mc->Mouse;
-		if(readmouse(mc) < 0)
-			break;
-		if((mc->buttons & 7) != 1)
-			break;
-		graphrf.p.x += mc->xy.x - m.xy.x;
-		if(graphrf.p.x > Graphoff)
-			graphrf.p.x = Graphoff;
-		redraw();
+	dy = (Dy(screen->r) - font->height)/sched.ntask;
+	for(t = sched.tasks; t < sched.tasks+sched.ntask; t++){
+		graphrf.p.y = (t - sched.tasks)*dy+dy;
+		for(s = t->times; s < t->times+t->ntime; s++){
+			p = invrframexform(Pt2(s->t0,0,1), graphrf);
+			r.min = Pt(p.x,p.y-Slotht);
+			p = invrframexform(Pt2(s->t1,0,1), graphrf);
+			r.max = Pt(p.x+1,p.y);
+			if(r.min.x < Graphoff)
+				r.min.x = Graphoff;
+			if(ptinrect(subpt(mc->xy, screen->r.min), r)){
+				curts = s;
+				nbsend(drawc, nil);
+				return;
+			}
+		}
 	}
 }
 
@@ -173,28 +183,18 @@ mmb(Mousectl *mc)
 void
 rmb(Mousectl *mc)
 {
-	Task *t;
-	Slot *s;
-	Rectangle r;
-	Point2 p;
-	int dy;
+	Mouse m;
 
-	dy = (Dy(screen->r) - font->height)/sched.ntask;
-	for(t = sched.tasks; t < sched.tasks+sched.ntask; t++){
-		graphrf.p.y = (t - sched.tasks)*dy+dy;
-		for(s = t->times; s < t->times+t->ntime; s++){
-			p = invrframexform(Pt2(s->t0,0,1), graphrf);
-			r.min = Pt(p.x,p.y-Slotht);
-			p = invrframexform(Pt2(s->t1,0,1), graphrf);
-			r.max = Pt(p.x+1,p.y);
-			if(r.min.x < Graphoff)
-				r.min.x = Graphoff;
-			if(ptinrect(subpt(mc->xy, screen->r.min), r)){
-				curts = s;
-				nbsend(drawc, nil);
-				return;
-			}
-		}
+	for(;;){
+		m = mc->Mouse;
+		if(readmouse(mc) < 0)
+			break;
+		if((mc->buttons & 7) != 4)
+			break;
+		graphrf.p.x += mc->xy.x - m.xy.x;
+		if(graphrf.p.x > Graphoff)
+			graphrf.p.x = Graphoff;
+		redraw();
 	}
 }
 
