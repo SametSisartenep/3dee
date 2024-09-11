@@ -130,10 +130,11 @@ materializefrustum(void)
 	p[2] = Pt3(Dx(cam->view->r),Dy(cam->view->r),1,1);
 	p[3] = Pt3(0,Dy(cam->view->r),1,1);
 	memset(&l, 0, sizeof l);
+	l.type = PLine;
+	l.v[0].c = l.v[1].c = Pt3(1,1,1,1);
 
 	for(i = 0; i < nelem(p); i++){
 		/* front frame */
-		l.type = PLine;
 		l.v[0].p = world2model(subject, viewport2world(cam, p[i]));
 		l.v[1].p = world2model(subject, viewport2world(cam, p[(i+1)%nelem(p)]));
 		qlock(&scenelk);
@@ -496,9 +497,12 @@ redraw(void)
 void
 renderproc(void *)
 {
+	static Image *bg;
 	uvlong t0, Δt;
 
 	threadsetname("renderproc");
+
+	bg = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
 
 	t0 = nsec();
 	for(;;){
@@ -509,6 +513,7 @@ renderproc(void *)
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
+			draw(screenb, screenb->r, bg, nil, ZP);
 			cam->view->draw(cam->view, screenb, nil);
 			compass.cam->view->draw(compass.cam->view, screenb, nil);
 			unlockdisplay(display);

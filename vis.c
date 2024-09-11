@@ -52,6 +52,7 @@ char *skyboxpaths[] = {
 };
 char stats[Se][256];
 Image *screenb;
+Image *clr;
 Mousectl *mctl;
 Keyboardctl *kctl;
 Channel *drawc;
@@ -166,6 +167,7 @@ gouraudshader(Shaderparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
+	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
 
 	return modulapt3(sp->v->c, tc);
@@ -266,6 +268,7 @@ phongshader(Shaderparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
+	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
@@ -340,6 +343,7 @@ blinnshader(Shaderparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
+	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
@@ -377,6 +381,7 @@ toonshader(Shaderparams *sp)
 		 intens > 0.30? 0.45:
 		 intens > 0.15? 0.30: 0.15;
 
+	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
 
 	return Pt3(intens, 0.6*intens, 0, 1);
@@ -402,6 +407,7 @@ identshader(Shaderparams *sp)
 	else
 		tc = Pt3(1,1,1,1);
 
+	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
 
 	return modulapt3(sp->v->c, tc);
@@ -605,6 +611,7 @@ renderproc(void *)
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
+			draw(screenb, screenb->r, clr, nil, ZP);
 			maincam->view->draw(maincam->view, screenb, shownormals? "normals": nil);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
@@ -628,18 +635,6 @@ drawproc(void *)
 		recv(drawc, nil);
 		redraw();
 	}
-}
-
-static Color
-ul2col(ulong l)
-{
-	Color c;
-
-	c.b = (l     & 0xff)/255.0;
-	c.g = (l>>8  & 0xff)/255.0;
-	c.r = (l>>16 & 0xff)/255.0;
-	c.a = (l>>24 & 0xff)/255.0;
-	return c;
 }
 
 void
@@ -743,6 +738,7 @@ mmb(void)
 	static Menu menu = { .item = items };
 	char buf[256], *f[3];
 	int nf;
+	ulong clrcol;
 
 	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
@@ -767,13 +763,18 @@ mmb(void)
 		shownormals ^= 1;
 		break;
 	case SETCLRCOL:
-		snprint(buf, sizeof buf, "0x%08lux", maincam->clearcolor);
+		if(unloadimage(clr, UR, (uchar*)&clrcol, 4) != 4)
+			break;
+		clrcol = clrcol<<8 | 0xFF;	/* xrgb2rgba */
+		snprint(buf, sizeof buf, "0x%08lux", clrcol);
 		if(enter("clear color", buf, sizeof buf, mctl, kctl, nil) <= 0)
 			break;
 		nf = tokenize(buf, f, 1);
 		if(nf != 1)
 			break;
-		maincam->clearcolor = strtoul(buf, nil, 0);
+		clrcol = strtoul(buf, nil, 0);
+		freeimage(clr);
+		clr = eallocimage(display, UR, XRGB32, 1, clrcol);
 		break;
 	case CULLFRONT:
 		maincam->cullmode = CullFront;
@@ -1108,7 +1109,10 @@ threadmain(int argc, char *argv[])
 
 	rctl->doprof = doprof;
 
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, 0x888888FF);
+	clr = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
+//	if(nameimage(screenb, "screenb", 1) == 0)
+//		sysfatal("nameimage: %r");
 fprint(2, "screen %R\n", screenb->r);
 	for(i = 0; i < nelem(cams); i++){
 		if(fbw == 0 || fbh == 0)

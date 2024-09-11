@@ -168,28 +168,6 @@ static int showskybox;
 static int doprof;
 static int showhud;
 
-static Point3
-minpt3(Point3 a, Point3 b)
-{
-	return (Point3){
-		min(a.x, b.x),
-		min(a.y, b.y),
-		min(a.z, b.z),
-		min(a.w, b.w)
-	};
-}
-
-static Point3
-maxpt3(Point3 a, Point3 b)
-{
-	return (Point3){
-		max(a.x, b.x),
-		max(a.y, b.y),
-		max(a.z, b.z),
-		max(a.w, b.w)
-	};
-}
-
 static void
 refreshinfobox(Infobox *info)
 {
@@ -202,7 +180,7 @@ refreshinfobox(Infobox *info)
 	assert(info != nil && info->image != nil && info->items != nil);
 
 	if(tbg == nil){
-		tbg = eallocimage(display, UR, RGBA32, 1, 0x4444887F);
+		tbg = eallocimage(display, UR, RGBA32, 1, 0x2222447F);
 		tfg = display->white;
 		bg[0] = eallocimage(display, UR, RGBA32, 1, 0xEEEEEEEE);
 		bg[1] = eallocimage(display, UR, RGBA32, 1, 0xAAAAAAAA);
@@ -557,9 +535,12 @@ redraw(void)
 void
 renderproc(void *)
 {
+	static Image *bg;
 	uvlong t0, Δt;
 
 	threadsetname("renderproc");
+
+	bg = eallocimage(display, UR, XRGB32, 1, DBlack);
 
 	t0 = nsec();
 	for(;;){
@@ -567,6 +548,7 @@ renderproc(void *)
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
+			draw(screenb, screenb->r, bg, nil, ZP);
 			camera->view->draw(camera->view, screenb, nil);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
@@ -951,6 +933,7 @@ threadmain(int argc, char *argv[])
 		else
 			cmds[i].r = rectaddpt(cmds[i].r, Pt(cmds[i-1].r.max.x+Cmdmargin,cmds[i-1].r.min.y));
 	}
+
 	screenb = eallocimage(display, viewr, XRGB32, 0, DNofill);
 	camera = Cam(screenb->r, rctl, cameracfg.ptype, cameracfg.fov, cameracfg.clipn, cameracfg.clipf);
 	placecamera(camera, scene, cameracfg.p, cameracfg.lookat, cameracfg.up);
