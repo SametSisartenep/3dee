@@ -569,9 +569,9 @@ drawstats(void)
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", maincam->stats.nframes);
 	snprint(stats[Sorient], sizeof(stats[Sorient]), "ℍ %V", (Point3)orient);
 	snprint(stats[Sextra], sizeof(stats[Sextra]), "blend %s z-buf %s a-buf %s",
-		maincam->enableblend? "on": "off",
-		maincam->enabledepth? "on": "off",
-		maincam->enableAbuff? "on": "off");
+		maincam->rendopts & ROBlend? "on": "off",
+		maincam->rendopts & RODepth? "on": "off",
+		maincam->rendopts & ROAbuff? "on": "off");
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -786,13 +786,13 @@ mmb(void)
 		maincam->cullmode = CullNone;
 		break;
 	case TGLBLEND:
-		maincam->enableblend ^= 1;
+		maincam->rendopts ^= ROBlend;
 		break;
 	case TGLDEPTH:
-		maincam->enabledepth ^= 1;
+		maincam->rendopts ^= RODepth;
 		break;
 	case TGLABUFF:
-		maincam->enableAbuff ^= 1;
+		maincam->rendopts ^= ROAbuff;
 		break;
 	}
 	unlockdisplay(display);
