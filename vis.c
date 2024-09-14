@@ -92,7 +92,7 @@ static int showskybox;
 static int doprof;
 static int inception;
 static int showhud;
-static int shownormals;
+static char *curraster;
 static int blendon;
 static int depthon;
 static int abuffon;
@@ -612,7 +612,7 @@ renderproc(void *)
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
 			draw(screenb, screenb->r, clr, nil, ZP);
-			maincam->view->draw(maincam->view, screenb, shownormals? "normals": nil);
+			maincam->view->draw(maincam->view, screenb, curraster);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 += Δt;
@@ -705,6 +705,7 @@ mmb(void)
 		TSBILINEAR,
 		SP1,
 		SHOWNORMALS,
+		SHOWZBUFFER,
 		SP2,
 		SETCLRCOL,
 		SP3,
@@ -723,6 +724,7 @@ mmb(void)
 	 [TSBILINEAR]	"use bilinear sampler",
 			"",
 	 [SHOWNORMALS]	"show normals",
+	 [SHOWZBUFFER]	"show z-buffer",
 			"",
 	 [SETCLRCOL]	"set clear color",
 			"",
@@ -760,7 +762,10 @@ mmb(void)
 		tsampler = bilitexsampler;
 		break;
 	case SHOWNORMALS:
-		shownormals ^= 1;
+		curraster = curraster && strcmp(curraster, "normals") == 0? nil: "normals";
+		break;
+	case SHOWZBUFFER:
+		curraster = curraster && strcmp(curraster, "z-buffer") == 0? nil: "z-buffer";
 		break;
 	case SETCLRCOL:
 		if(unloadimage(clr, UR, (uchar*)&clrcol, 4) != 4)
