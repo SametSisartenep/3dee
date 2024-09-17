@@ -1,0 +1,15 @@
+newmtl witch
+Ns 32
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+map_Kd witch_diffuse.tga
+illum 2
+
+newmtl object
+Ns 32
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+map_Kd object_diffuse.tga
+illum 2
