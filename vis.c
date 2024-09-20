@@ -1116,8 +1116,6 @@ threadmain(int argc, char *argv[])
 
 	clr = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
-//	if(nameimage(screenb, "screenb", 1) == 0)
-//		sysfatal("nameimage: %r");
 fprint(2, "screen %R\n", screenb->r);
 	for(i = 0; i < nelem(cams); i++){
 		if(fbw == 0 || fbh == 0)
