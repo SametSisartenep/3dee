@@ -624,6 +624,7 @@ void
 threadmain(int argc, char *argv[])
 {
 	Renderer *rctl;
+	Viewport *v;
 	Channel *keyc;
 	Entity *subject;
 	char *texpath, *mdlpath, *s;
@@ -698,26 +699,24 @@ threadmain(int argc, char *argv[])
 	clr = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 fprint(2, "screen %R\n", screenb->r);
-	for(i = 0; i < nelem(cams); i++){
-		if(fbw == 0 || fbh == 0)
-			cams[i] = Cam(screenb->r, rctl,
-					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
-		else
-			cams[i] = Cam(Rect(0,0,fbw,fbh), rctl,
-					camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
-		if(cams[i] == nil)
-			sysfatal("Cam: %r");
-		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
-		cams[i]->view->setscale(cams[i]->view, scale, scale);
-		cams[i]->view->createraster(cams[i]->view, "normals", COLOR32);
 
-		if(scale == 2)
-			cams[i]->view->setscalefilter(cams[i]->view, UFScale2x);
-		else if(scale == 3)
-			cams[i]->view->setscalefilter(cams[i]->view, UFScale3x);
-		cams[i]->view->p.x = (Dx(screenb->r) - cams[i]->view->getwidth(cams[i]->view))/2;
-		cams[i]->view->p.y = (Dy(screenb->r) - cams[i]->view->getheight(cams[i]->view))/2;
-fprint(2, "cam%d off %v scalex %g scaley %g\n", i+1, cams[i]->view->p, cams[i]->view->bx.x, cams[i]->view->by.y);
+	v = mkviewport(fbw == 0 || fbh == 0? screenb->r: Rect(0,0,fbw,fbh));
+	v->setscale(v, scale, scale);
+	v->createraster(v, "normals", COLOR32);
+	v->p.x = (Dx(screenb->r) - v->getwidth(v))/2;
+	v->p.y = (Dy(screenb->r) - v->getheight(v))/2;
+	if(scale == 2)
+		v->setscalefilter(v, UFScale2x);
+	else if(scale == 3)
+		v->setscalefilter(v, UFScale3x);
+fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
+
+	for(i = 0; i < nelem(cams); i++){
+		cams[i] = Camv(v, rctl,
+				camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
+		if(cams[i] == nil)
+			sysfatal("Camv: %r");
+		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 	}
 	maincam = cams[3];
 	light.p = Pt3(0,100,100,1);
