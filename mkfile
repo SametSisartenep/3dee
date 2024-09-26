@@ -39,7 +39,6 @@ pulldeps:VQ: nuke∅dirs
 	git/clone https://github.com/sametsisartenep/libobj
 	git/clone git://antares-labs.eu/libgraphics || \
 	git/clone https://github.com/sametsisartenep/libgraphics
-	@{cd libgraphics; mk $target}
 
 clean nuke:V:
 	rm -f *.[$OS] [$OS].out [$OS].^$TARG
