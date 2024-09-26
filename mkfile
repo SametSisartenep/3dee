@@ -7,6 +7,7 @@ TARG=\
 	solar\
 	projtest\
 	procgen\
+	obj\
 
 OFILES=\
 	alloc.$O\

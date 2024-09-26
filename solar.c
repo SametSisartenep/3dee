@@ -7,7 +7,6 @@
 #include <mouse.h>
 #include <keyboard.h>
 #include <geometry.h>
-#include "libobj/obj.h"
 #include "libgraphics/graphics.h"
 #include "fns.h"
 
@@ -864,7 +863,7 @@ threadmain(int argc, char *argv[])
 	Entity *subject;
 	Model *model;
 	Point lblsiz;
-	int i, j;
+	int fd, i, j;
 
 	tmfmtinstall();
 	GEOMfmtinstall();
@@ -879,7 +878,13 @@ threadmain(int argc, char *argv[])
 
 	confproc();
 
-	model = readobjmodel("mdl/planet.obj");
+	fd = open("mdl/planet.mdl", OREAD);
+	if(fd < 0)
+		sysfatal("open: %r");
+	model = readmodel(fd);
+	if(model == nil)
+		sysfatal("readmodel: %r");
+	close(fd);
 	/*
 	 * normalize the vertices so that we can scale
 	 * each planet based on its radius

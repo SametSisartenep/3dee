@@ -6,7 +6,6 @@
 #include <mouse.h>
 #include <keyboard.h>
 #include <geometry.h>
-#include "libobj/obj.h"
 #include "libgraphics/graphics.h"
 #include "dat.h"
 #include "fns.h"
@@ -667,7 +666,13 @@ threadmain(int argc, char *argv[])
 	else
 	while(argc--){
 		mdlpath = argv[argc];
-		model = readobjmodel(mdlpath);
+		fd = open(mdlpath, OREAD);
+		if(fd < 0)
+			sysfatal("open: %r");
+		model = readmodel(fd);
+		if(model == nil)
+			sysfatal("readmodel: %r");
+		close(fd);
 		subject = newentity(mdlpath, model);
 //		subject->p.z = -argc*4;
 		scene->addent(scene, subject);

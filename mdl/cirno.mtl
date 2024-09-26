@@ -6,7 +6,7 @@ Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
-map_Kd cirno_body_diffuse.png
+map_Kd cirno_diffuse.png
 illum 2
 
 newmtl mouth
