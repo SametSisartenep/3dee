@@ -94,12 +94,11 @@ USAGE
 		positions.
 
 
-	obj [file]
+	obj objfile dir
 
-	As of now this tool will take a Wavefront OBJ file, with all its materials,
+	This tool will take a Wavefront OBJ file objfile, with all its materials,
 	and convert it into a model(6) file (see libgraphics/model.6.txt) that's
-	written to stdout.  The only exception is textures, which aren't taken care
-	of yet.  This will change soon.
+	written, along with its assets, inside the directory dir.
 
 CUBEMAPS
 
