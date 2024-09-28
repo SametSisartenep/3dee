@@ -94,11 +94,14 @@ USAGE
 		positions.
 
 
-	obj objfile dir
+	obj [objfile [dir]]
 
 	This tool will take a Wavefront OBJ file objfile, with all its materials,
 	and convert it into a model(6) file (see libgraphics/model.6.txt) that's
 	written, along with its assets, inside the directory dir.
+
+	If no dir is specified, it writes the model(6) to stdout.  And if no
+	arguments are given, it reads the OBJ file from stdin.
 
 CUBEMAPS
 

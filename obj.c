@@ -325,7 +325,7 @@ readobjmodel(char *path)
 static void
 usage(void)
 {
-	fprint(2, "usage: %s objfile dstdir\n", argv0);
+	fprint(2, "usage: %s [objfile [dstdir]]\n", argv0);
 	exits("usage");
 }
 
@@ -333,17 +333,28 @@ void
 threadmain(int argc, char *argv[])
 {
 	Model *m;
+	char *infile, *dstdir;
 
 	ARGBEGIN{
 	default: usage();
 	}ARGEND;
-	if(argc != 2)
+	if(argc > 2)
 		usage();
 
-	m = readobjmodel(argv[0]);
+	infile = argc > 0? argv[0]: "/fd/0";
+	dstdir = argc == 2? argv[1]: nil;
+
+	m = readobjmodel(infile);
 	if(m == nil)
 		sysfatal("readobjmodel: %r");
-	if(exportmodel(argv[1], m) < 0)
-		sysfatal("exportmodel: %r");
+
+	if(dstdir == nil){
+		if(writemodel(1, m) == 0)
+			sysfatal("writemodel: %r");
+	}else{
+		if(exportmodel(dstdir, m) < 0)
+			sysfatal("exportmodel: %r");
+	}
+
 	exits(nil);
 }
