@@ -26,8 +26,8 @@ USAGE
 	The g flag takes as input the dimensions of the camera viewport.  If it's
 	smaller than screen the image will be upscaled to fit it as much as
 	possible, otherwise it will default to the screen dimensions.
-	The models supported by the program are OBJ files with material data (MTL
-	files).  You can find examples in the mdl/ folder.
+	The models supported by the program are model(6) files.  You can find
+	examples in the mdl/ folder (those with a .mdl suffix).
 
 	NOTE:	Now two visibility determination technologies are available: the
 		Z-buffer and the A-buffer. To get the best results out of them the
