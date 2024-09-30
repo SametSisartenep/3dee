@@ -1,8 +1,0 @@
-newmtl african_head
-Ns 250
-Ka 1.000000 1.000000 1.000000
-Kd 1.000000 1.000000 1.000000
-Ks 1.000000 1.000000 1.000000
-map_Kd african_head_diffuse.tga
-norm african_head_nm_tangent.tga
-illum 2
