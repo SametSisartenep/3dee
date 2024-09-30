@@ -162,6 +162,10 @@ phongshader(Shaderparams *sp)
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
+
+	specular.a = 1;
+	sp->toraster(sp, "specular", &specular);
+
 	return c;
 }
 
@@ -237,6 +241,10 @@ blinnshader(Shaderparams *sp)
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
+
+	specular.a = 1;
+	sp->toraster(sp, "specular", &specular);
+
 	return c;
 }
 

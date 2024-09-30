@@ -285,6 +285,7 @@ mmb(void)
 		TSBILINEAR,
 		SP1,
 		SHOWNORMALS,
+		SHOWSPECULAR,
 		SHOWZBUFFER,
 		SP2,
 		SETCLRCOL,
@@ -304,6 +305,7 @@ mmb(void)
 	 [TSBILINEAR]	"use bilinear sampler",
 			"",
 	 [SHOWNORMALS]	"show normals",
+	 [SHOWSPECULAR]	"show specular",
 	 [SHOWZBUFFER]	"show z-buffer",
 			"",
 	 [SETCLRCOL]	"set clear color",
@@ -343,6 +345,9 @@ mmb(void)
 		break;
 	case SHOWNORMALS:
 		curraster = curraster && strcmp(curraster, "normals") == 0? nil: "normals";
+		break;
+	case SHOWSPECULAR:
+		curraster = curraster && strcmp(curraster, "specular") == 0? nil: "specular";
 		break;
 	case SHOWZBUFFER:
 		curraster = curraster && strcmp(curraster, "z-buffer") == 0? nil: "z-buffer";
@@ -708,6 +713,7 @@ fprint(2, "screen %R\n", screenb->r);
 	v = mkviewport(fbw == 0 || fbh == 0? screenb->r: Rect(0,0,fbw,fbh));
 	v->setscale(v, scale, scale);
 	v->createraster(v, "normals", COLOR32);
+	v->createraster(v, "specular", COLOR32);
 	v->p.x = (Dx(screenb->r) - v->getwidth(v))/2;
 	v->p.y = (Dy(screenb->r) - v->getheight(v))/2;
 	if(scale == 2)
