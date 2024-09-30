@@ -110,3 +110,30 @@ CUBEMAPS
 	helper script (conv) available in each of them.
 
 	% for(d in cubemap/*)@{ cd $d && conv }
+
+MODEL CONVERSION GUIDE
+
+	Some of the models that come with the repo (mdl/) were already converted
+	from OBJ to model(6), but many remain untouched.  To convert an OBJ model
+	into its model(6) counterpart run the following:
+
+	% $O.obj mdl/goku/goku.obj mdl/goku
+
+	You can also create a temporary folder to hold them while you work with them:
+
+	% ramfs -p
+	% mkdir /tmp/goku
+	% $O.obj mdl/goku/goku.obj /tmp/goku
+
+	If the model is made out of multiple files, like in mdl/vivi/, you have to
+	convert the different .obj files one by one.  Each will create a main.mdl
+	that you need to rename; here's an example script to automate the process:
+
+	% for(o in mdl/vivi/*.obj){
+		$O.obj $o /tmp/vivi
+		mv /tmp/vivi/main.mdl /tmp/vivi/`{basename $o .obj}^.mdl
+	}
+
+	Then you should be able to visualize them as usual:
+
+	% $O.vis /tmp/vivi/*.mdl
