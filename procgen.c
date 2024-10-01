@@ -107,15 +107,18 @@ vs(Shaderparams *sp)
 static Color
 fs(Shaderparams *sp)
 {
+	Vertexattr *va;
 	Point2 uv;
-	double dt, shift, h;
+	double dt, shift, h, time;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
 	uv.x /= Dx(sp->su->fb->r);
 	uv.y /= Dy(sp->su->fb->r);
 	uv.y = 1 - uv.y;		/* make [0 0] the bottom-left corner */
 
-	dt = sp->su->uni_time/1e9;
+	va = sp->getuniform(sp, "time");
+	time = va == nil? 0: va->n;
+	dt = time/1e9;
 	shift = 0.09*dt + 0.2;
 	uv.x += shift;
 

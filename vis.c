@@ -172,6 +172,7 @@ renderproc(void *)
 {
 	uvlong t0, Δt;
 	int fd;
+	double time;
 
 	threadsetname("renderproc");
 
@@ -187,15 +188,21 @@ renderproc(void *)
 
 	t0 = nsec();
 	for(;;){
+		time = t0;
+		setuniform(shader, "time", VANumber, &time);
+
 		shootcamera(maincam, shader);
+
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
 			draw(screenb, screenb->r, clr, nil, ZP);
 			maincam->view->draw(maincam->view, screenb, curraster);
 			unlockdisplay(display);
+
 			nbsend(drawc, nil);
 			t0 += Δt;
+
 			if(inception){
 				freememimage(model->tex->image);
 				seek(fd, 0, 0);

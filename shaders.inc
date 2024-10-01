@@ -133,7 +133,6 @@ phongshader(Shaderparams *sp)
 		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
 
 		n = normvec3(invrframexform3(n, TBN));
-		sp->v->n = n;
 	}
 
 	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
@@ -157,8 +156,8 @@ phongshader(Shaderparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
-	sp->v->n.w = 1;
-	sp->toraster(sp, "normals", &sp->v->n);
+	n.w = 1;
+	sp->toraster(sp, "normals", &n);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
@@ -212,7 +211,6 @@ blinnshader(Shaderparams *sp)
 		TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
 
 		n = normvec3(invrframexform3(n, TBN));
-		sp->v->n = n;
 	}
 
 	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
@@ -236,8 +234,8 @@ blinnshader(Shaderparams *sp)
 	specular = mulpt3(lightc, spec*Ks);
 	specular = modulapt3(specular, m.specular);
 
-	sp->v->n.w = 1;
-	sp->toraster(sp, "normals", &sp->v->n);
+	n.w = 1;
+	sp->toraster(sp, "normals", &n);
 
 	c = addpt3(ambient, addpt3(diffuse, specular));
 	c.a = m.diffuse.a;
@@ -346,14 +344,19 @@ triangleshader(Shaderparams *sp)
 Color
 circleshader(Shaderparams *sp)
 {
+	Vertexattr *va;
 	Point2 uv;
-	double r, d;
+	double r, d, time;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
 	uv.x /= Dx(sp->su->fb->r);
 	uv.y /= Dy(sp->su->fb->r);
+
+	va = sp->getuniform(sp, "time");
+	time = va == nil? 0: va->n;
+
 //	r = 0.3;
-	r = 0.3*fabs(sin(sp->su->uni_time/1e9));
+	r = 0.3*fabs(sin(time/1e9));
 	d = vec2len(subpt2(uv, Vec2(0.5,0.5)));
 
 	if(d > r + r*0.05 || d < r - r*0.05)
@@ -366,18 +369,22 @@ circleshader(Shaderparams *sp)
 Color
 sfshader(Shaderparams *sp)
 {
+	Vertexattr *va;
 	Point2 uv;
-	double y, pct;
+	double y, pct, time;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
 	uv.x /= Dx(sp->su->fb->r);
 	uv.y /= Dy(sp->su->fb->r);
 	uv.y = 1 - uv.y;		/* make [0 0] the bottom-left corner */
 
+	va = sp->getuniform(sp, "time");
+	time = va == nil? 0: va->n;
+
 //	y = step(0.5, uv.x);
 //	y = pow(uv.x, 5);
 //	y = sin(uv.x);
-	y = sin(uv.x*sp->su->uni_time/1e8)/2.0 + 0.5;
+	y = sin(uv.x*time/1e8)/2.0 + 0.5;
 //	y = smoothstep(0.1, 0.9, uv.x);
 	pct = smoothstep(y-0.02, y, uv.y) - smoothstep(y, y+0.02, uv.y);
 
