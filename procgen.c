@@ -131,8 +131,8 @@ fs(Shaderparams *sp)
 }
 
 Shadertab shaders = {
-	.vshader = vs,
-	.fshader = fs
+	.vs = vs,
+	.fs = fs
 };
 
 void
