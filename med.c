@@ -10,18 +10,8 @@
 #include "fns.h"
 
 enum {
-	K↑,
-	K↓,
-	K←,
-	K→,
-	Krise,
-	Kfall,
-	KR↑,
-	KR↓,
-	KR←,
-	KR→,
-	KR↺,
-	KR↻,
+	Kmodeorb,
+	Kmodesel,
 	Kzoomin,
 	Kzoomout,
 	Khud,
@@ -36,6 +26,11 @@ enum {
 	Sfps,
 	Sframes,
 	Se
+};
+
+enum {
+	OMOrbit,
+	OMSelect,
 };
 
 typedef struct Camcfg Camcfg;
@@ -55,18 +50,8 @@ struct Compass
 Compass compass;	/* 3d compass */
 
 Rune keys[Ke] = {
- [K↑]		= Kup,
- [K↓]		= Kdown,
- [K←]		= Kleft,
- [K→]		= Kright,
- [Krise]	= Kpgup,
- [Kfall]	= Kpgdown,
- [KR↑]		= 'w',
- [KR↓]		= 's',
- [KR←]		= 'a',
- [KR→]		= 'd',
- [KR↺]		= 'q',
- [KR↻]		= 'e',
+ [Kmodeorb]	= 'r',
+ [Kmodesel]	= 's',
  [Kzoomin]	= 'z',
  [Kzoomout]	= 'x',
  [Khud]		= 'h',
@@ -93,16 +78,11 @@ Camcfg camcfg = {
 	40*DEG, 0.01, 10, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-RFrame3 ONF3 = {	/* default orthonormal rframe */
-	0,0,0,1,
-	1,0,0,0,
-	0,1,0,0,
-	0,0,1,0
-};
 LightSource light;	/* global point light */
 
 static int doprof;
 static int showhud;
+static int opmode;
 Color (*tsampler)(Texture*,Point2);
 
 #include "shaders.inc"
@@ -117,6 +97,54 @@ static Point3
 Ptquat(Quaternion q, double w)
 {
 	return Pt3(q.i, q.j, q.k, w);
+}
+
+/*
+ * p is the point to test
+ * p0 and p1 are the centers of the circles at each end of the cylinder
+ * r is the radius of these circles
+ */
+int
+ptincylinder(Point3 p, Point3 p0, Point3 p1, double r)
+{
+	Point3 p01, p0p, p1p;
+	double h;
+
+	p01 = subpt3(p1, p0);
+	p0p = subpt3(p, p0);
+	p1p = subpt3(p, p1);
+	h = vec3len(p01);
+
+	if(h == 0)
+		return 0;
+
+	return dotvec3(p0p, p01) >= 0 &&
+		dotvec3(p1p, p01) <= 0 &&
+		vec3len(crossvec3(p0p, p01))/h <= r;
+}
+
+/*
+ * p is the point to test
+ * p0 is the apex
+ * p1 is the center of the base
+ * br is the radius of the base
+ */
+int
+ptincone(Point3 p, Point3 p0, Point3 p1, double br)
+{
+	Point3 p01, p0p;
+	double h, d, r;
+
+	p01 = subpt3(p1, p0);
+	p0p = subpt3(p, p0);
+	h = vec3len(p01);
+	d = dotvec3(p0p, normvec3(p01));
+
+	if(h == 0 || d < 0 || d > h)
+		return 0;
+
+	r = d/h * br;
+	return vec3len(crossvec3(p0p, p01))/h <= r;
 }
 
 void
@@ -214,7 +242,6 @@ addbasis(Scene *s)
 
 	m = newmodel();
 	e = newentity("basis", m);
-	e->RFrame3 = ONF3;
 
 	memset(prims, 0, sizeof prims);
 	prims[0].type = prims[1].type = prims[2].type = PLine;
@@ -266,8 +293,23 @@ zoomout(void)
 }
 
 void
+drawopmode(void)
+{
+	static char *opmodestr[] = {
+	 [OMOrbit]	"ORBIT",
+	 [OMSelect]	"SELECT",
+			nil
+	};
+	Point p;
+
+	p = Pt(screen->r.min.x + 10, screen->r.max.y - font->height-10);
+	stringbg(screen, p, display->white, ZP, font, opmodestr[opmode], display->black, ZP);
+}
+
+void
 drawstats(void)
 {
+	Point p;
 	int i;
 
 	snprint(stats[Sfov], sizeof(stats[Sfov]), "FOV %g°", cam->fov/DEG);
@@ -281,8 +323,10 @@ drawstats(void)
 		!cam->stats.min? 0: 1e9/cam->stats.min,
 		!cam->stats.v? 0: 1e9/cam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", cam->stats.nframes);
-	for(i = 0; i < Se; i++)
-		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
+	for(i = 0; i < Se; i++){
+		p = addpt(screen->r.min, Pt(10,10 + i*font->height));
+		stringbg(screen, p, display->black, ZP, font, stats[i], display->white, ZP);
+	}
 }
 
 void
@@ -290,6 +334,7 @@ redraw(void)
 {
 	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
+	drawopmode();
 	if(showhud)
 		drawstats();
 	flushimage(display, 1);
@@ -299,19 +344,28 @@ redraw(void)
 void
 renderproc(void *)
 {
-	static Image *bg;
+	static Image *bg, *mist;
 	uvlong t0, Δt;
 
 	threadsetname("renderproc");
 
-	bg = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
+	bg = eallocimage(display, Rect(0,0,32,32), XRGB32, 1, DNofill);
+	mist = eallocimage(display, UR, RGBA32, 1, 0xDF);
+	draw(bg, Rect( 0, 0,16,16), display->white, nil, ZP);
+	draw(bg, Rect(16, 0,32,16), display->black, nil, ZP);
+	draw(bg, Rect( 0,16,16,32), display->black, nil, ZP);
+	draw(bg, Rect(16,16,32,32), display->white, nil, ZP);
+	draw(bg, bg->r, mist, nil, ZP);
+	freeimage(mist);
 
 	t0 = nsec();
 	for(;;){
 		qlock(&scenelk);
 		shootcamera(cam, shader);
 		qunlock(&scenelk);
+
 		shootcamera(compass.cam, getshader("ident"));
+
 		Δt = nsec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
@@ -319,6 +373,7 @@ renderproc(void *)
 			cam->view->draw(cam->view, screenb, nil);
 			compass.cam->view->draw(compass.cam->view, screenb, nil);
 			unlockdisplay(display);
+
 			nbsend(drawc, nil);
 			t0 += Δt;
 		}
@@ -341,26 +396,49 @@ lmb(void)
 {
 	static Quaternion orient = {1,0,0,0};
 	Quaternion Δorient;
-	Point3 p;
+	Point3 p, cp0, cp1, cv;
+	double cr;
+	int i, j;
 
-	if((om.buttons^mctl->buttons) == 0){
+	switch(opmode){
+	case OMOrbit:
+		if((om.buttons^mctl->buttons) != 0)
+			break;
+
 		Δorient = orient;
 		qball(screen->r, om.xy, mctl->xy, &orient, nil);
 		Δorient = mulq(Δorient, invq(orient));
 
 		/* orbit camera around the center */
 		p = subpt3(cam->p, center);
-		p = vcs2world(cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(cam, p))), invq(Δorient))));
+		p = vcs2world(cam, qsandwichpt3(Δorient, world2vcs(cam, p)));
 		p.w = cam->p.w;
 		movecamera(cam, p);
 		aimcamera(cam, center);
 
 		/* same for the compass */
 		p = subpt3(compass.cam->p, center);
-		p = vcs2world(compass.cam, Vecquat(mulq(mulq(Δorient, Quatvec(0, world2vcs(compass.cam, p))), invq(Δorient))));
+		p = vcs2world(compass.cam, qsandwichpt3(Δorient, world2vcs(compass.cam, p)));
 		p.w = compass.cam->p.w;
 		movecamera(compass.cam, p);
 		aimcamera(compass.cam, center);
+		break;
+	case OMSelect:
+		if((om.buttons^mctl->buttons) == 0)
+			break;
+
+		mctl->xy = subpt(mctl->xy, screen->r.min);
+		cp0 = viewport2world(cam, Pt3(mctl->xy.x, mctl->xy.y, 1, 1));
+		cp1 = viewport2world(cam, Pt3(mctl->xy.x, mctl->xy.y, 0, 1));
+		cv = viewport2world(cam, Pt3(mctl->xy.x+10, mctl->xy.y, 1, 1));
+		cr = vec3len(subpt3(cv, cp0)) * cam->clip.f/cam->clip.n;
+
+		for(i = 0; i < model->nprims; i++)
+			for(j = 0; j < model->prims[i].type+1; j++){
+				if(ptincone(model->prims[i].v[j].p, cam->p, cp1, cr))
+					model->prims[i].v[j].c = Pt3(0.5,0.5,0,1);
+			}
+		break;
 	}
 }
 
@@ -368,14 +446,14 @@ void
 mmb(void)
 {
 	enum {
-		TSNEAREST,
-		TSBILINEAR,
+		TSNEAR,
+		TSBILI,
 		SP,
 		QUIT,
 	};
 	static char *items[] = {
-	 [TSNEAREST]	"use nearest sampler",
-	 [TSBILINEAR]	"use bilinear sampler",
+	 [TSNEAR]	"use nearest sampler",
+	 [TSBILI]	"use bilinear sampler",
 	 [SP]	"",
 	 [QUIT]	"quit",
 		nil,
@@ -384,10 +462,10 @@ mmb(void)
 
 	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
-	case TSNEAREST:
+	case TSNEAR:
 		tsampler = neartexsampler;
 		break;
-	case TSBILINEAR:
+	case TSBILI:
 		tsampler = bilitexsampler;
 		break;
 	case QUIT:
@@ -519,48 +597,11 @@ handlekeys(void)
 {
 	static int okdown;
 
-	if(kdown & 1<<K↑)
-		movecamera(cam, mulpt3(cam->bz, -0.1));
-	if(kdown & 1<<K↓)
-		movecamera(cam, mulpt3(cam->bz, 0.1));
-	if(kdown & 1<<K←)
-		movecamera(cam, mulpt3(cam->bx, -0.1));
-	if(kdown & 1<<K→)
-		movecamera(cam, mulpt3(cam->bx, 0.1));
-	if(kdown & 1<<Krise)
-		movecamera(cam, mulpt3(cam->by, 0.1));
-	if(kdown & 1<<Kfall)
-		movecamera(cam, mulpt3(cam->by, -0.1));
-	if(kdown & 1<<KR↑){
-		rotatecamera(cam, cam->bx, 1*DEG);
-		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bx, 1*DEG));
-		rotatecamera(compass.cam, compass.cam->bx, 1*DEG);
-	}
-	if(kdown & 1<<KR↓){
-		rotatecamera(cam, cam->bx, -1*DEG);
-		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bx, -1*DEG));
-		rotatecamera(compass.cam, compass.cam->bx, -1*DEG);
-	}
-	if(kdown & 1<<KR←){
-		rotatecamera(cam, cam->by, 1*DEG);
-		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->by, 1*DEG));
-		rotatecamera(compass.cam, compass.cam->by, 1*DEG);
-	}
-	if(kdown & 1<<KR→){
-		rotatecamera(cam, cam->by, -1*DEG);
-		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->by, -1*DEG));
-		rotatecamera(compass.cam, compass.cam->by, -1*DEG);
-	}
-	if(kdown & 1<<KR↺){
-		rotatecamera(cam, cam->bz, 1*DEG);
-		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bz, 1*DEG));
-		rotatecamera(compass.cam, compass.cam->bz, 1*DEG);
-	}
-	if(kdown & 1<<KR↻){
-		rotatecamera(cam, cam->bz, -1*DEG);
-		movecamera(compass.cam, qrotate(compass.cam->p, compass.cam->bz, -1*DEG));
-		rotatecamera(compass.cam, compass.cam->bz, -1*DEG);
-	}
+	if((okdown & 1<<Kmodeorb) == 0 && (kdown & 1<<Kmodeorb) != 0)
+		opmode = OMOrbit;
+	else if((okdown & 1<<Kmodesel) == 0 && (kdown & 1<<Kmodesel) != 0)
+		opmode = OMSelect;
+
 	if(kdown & 1<<Kzoomin)
 		zoomin();
 	if(kdown & 1<<Kzoomout)
