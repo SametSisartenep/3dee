@@ -9,9 +9,9 @@
 #include "libgraphics/graphics.h"
 #include "fns.h"
 
+#define SEC	(1000000000ULL)
+
 enum {
-	Kmodeorb,
-	Kmodesel,
 	Kzoomin,
 	Kzoomout,
 	Khud,
@@ -33,6 +33,30 @@ enum {
 	OMSelect,
 };
 
+typedef struct Usermsg Usermsg;
+typedef struct Userlog Userlog;
+
+struct Usermsg
+{
+	char *s;
+	Image *i;
+	uvlong eol;
+	Usermsg *prev, *next;
+};
+
+struct Userlog
+{
+	QLock;
+	Usermsg msgs;
+	ulong nmsgs;
+	ulong cap;
+
+	void (*send)(Userlog*, char*, ...);
+	void (*update)(Userlog*);
+	void (*draw)(Userlog*);
+	void (*delmsg)(Userlog*, Usermsg*);
+};
+
 typedef struct Camcfg Camcfg;
 struct Camcfg
 {
@@ -47,11 +71,8 @@ struct Compass
 	Camera	*cam;
 	Scene	*scn;
 };
-Compass compass;	/* 3d compass */
 
 Rune keys[Ke] = {
- [Kmodeorb]	= 'r',
- [Kmodesel]	= 's',
  [Kzoomin]	= 'z',
  [Kzoomout]	= 'x',
  [Khud]		= 'h',
@@ -79,6 +100,8 @@ Camcfg camcfg = {
 };
 Point3 center = {0,0,0,1};
 LightSource light;	/* global point light */
+Compass compass;	/* 3d compass */
+Userlog *usrlog;
 
 static int doprof;
 static int showhud;
@@ -145,6 +168,119 @@ ptincone(Point3 p, Point3 p0, Point3 p1, double br)
 
 	r = d/h * br;
 	return vec3len(crossvec3(p0p, p01))/h <= r;
+}
+
+static Point
+randptfromrect(Rectangle *r)
+{
+	if(badrect(*r))
+		return r->min;
+	return addpt(r->min, Pt(ntruerand(Dx(*r)), ntruerand(Dy(*r))));
+}
+
+static void
+userlog_send(Userlog *l, char *msg, ...)
+{
+	Usermsg *m;
+	Rectangle ar;	/* available spawn area */
+	Point dim, off;
+	va_list va;
+	char buf[ERRMAX];
+
+	m = emalloc(sizeof *m);
+	memset(m, 0, sizeof *m);
+
+	va_start(va, msg);
+	vsnprint(buf, sizeof buf, msg, va);
+	va_end(va);
+
+	m->s = strdup(buf);
+	if(m->s == nil){
+		free(m);
+		return;		/* lost message */
+	}
+
+	dim = stringsize(font, m->s);
+	ar = screen->r;
+	ar.max = subpt(ar.max, dim);
+	off = randptfromrect(&ar);
+
+	m->i = eallocimage(display, Rpt(off, addpt(off, dim)), XRGB32, 0, DNofill);
+	stringbg(m->i, m->i->r.min, display->white, ZP, font, m->s, display->black, ZP);
+	m->eol = nsec() + 5*SEC;
+
+	qlock(l);
+	m->prev = l->msgs.prev;
+	m->next = l->msgs.prev->next;
+	l->msgs.prev->next = m;
+	l->msgs.prev = m;
+	l->nmsgs++;
+	qunlock(l);
+}
+
+static void
+userlog_delmsg(Userlog *l, Usermsg *m)
+{
+	m->prev->next = m->next;
+	m->next->prev = m->prev;
+	m->prev = m->next = nil;
+
+	freeimage(m->i);
+	free(m->s);
+	free(m);
+
+	l->nmsgs--;
+}
+
+static void
+userlog_update(Userlog *l)
+{
+	Usermsg *m, *nm;
+
+	qlock(l);
+	for(m = l->msgs.next; m != &l->msgs; m = nm){
+		nm = m->next;
+		if(nsec() >= m->eol)
+			l->delmsg(l, m);
+	}
+	qunlock(l);
+}
+
+static void
+userlog_draw(Userlog *l)
+{
+	Usermsg *m;
+
+	qlock(l);
+	for(m = l->msgs.next; m != &l->msgs; m = m->next)
+		draw(screen, m->i->r, m->i, nil, m->i->r.min);
+	qunlock(l);
+}
+
+Userlog *
+mkuserlog(void)
+{
+	Userlog *l;
+
+	l = emalloc(sizeof *l);
+	memset(l, 0, sizeof *l);
+	l->msgs.prev = l->msgs.next = &l->msgs;
+	l->send = userlog_send;
+	l->update = userlog_update;
+	l->draw = userlog_draw;
+	l->delmsg = userlog_delmsg;
+	return l;
+}
+
+void
+rmuserlog(Userlog *l)
+{
+	if(l->msgs.next != &l->msgs){
+		l->delmsg(l, l->msgs.next);
+		rmuserlog(l);
+		return;
+	}
+	free(l);
 }
 
 void
@@ -334,6 +470,7 @@ redraw(void)
 {
 	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
+	usrlog->draw(usrlog);
 	drawopmode();
 	if(showhud)
 		drawstats();
@@ -388,6 +525,8 @@ drawproc(void *)
 	for(;;){
 		recv(drawc, nil);
 		redraw();
+
+		usrlog->update(usrlog);
 	}
 }
 
@@ -446,27 +585,44 @@ void
 mmb(void)
 {
 	enum {
-		TSNEAR,
-		TSBILI,
-		SP,
+		ORBIT,
+		SELECT,
+		SP0,
+		SAVE,
+		SP1,
 		QUIT,
 	};
 	static char *items[] = {
-	 [TSNEAR]	"use nearest sampler",
-	 [TSBILI]	"use bilinear sampler",
-	 [SP]	"",
-	 [QUIT]	"quit",
+	 [ORBIT]	"orbit",
+	 [SELECT]	"select",
+			"",
+	 [SAVE]		"save",
+			"",
+	 [QUIT]		"quit",
 		nil,
 	};
 	static Menu menu = { .item = items };
+	static char buf[256];
+	int fd;
 
 	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
-	case TSNEAR:
-		tsampler = neartexsampler;
+	case ORBIT:
+		opmode = OMOrbit;
 		break;
-	case TSBILI:
-		tsampler = bilitexsampler;
+	case SELECT:
+		opmode = OMSelect;
+		break;
+	case SAVE:
+		if(enter("path", buf, sizeof buf, mctl, kctl, nil) <= 0)
+			break;
+		fd = create(buf, OWRITE, 0644);
+		if(fd < 0){
+			usrlog->send(usrlog, "create: %r");
+			break;
+		}
+		writemodel(fd, model);
+		close(fd);
 		break;
 	case QUIT:
 		threadexitsall(nil);
@@ -597,11 +753,6 @@ handlekeys(void)
 {
 	static int okdown;
 
-	if((okdown & 1<<Kmodeorb) == 0 && (kdown & 1<<Kmodeorb) != 0)
-		opmode = OMOrbit;
-	else if((okdown & 1<<Kmodesel) == 0 && (kdown & 1<<Kmodesel) != 0)
-		opmode = OMSelect;
-
 	if(kdown & 1<<Kzoomin)
 		zoomin();
 	if(kdown & 1<<Kzoomout)
@@ -694,6 +845,7 @@ threadmain(int argc, char *argv[])
 	tsampler = neartexsampler;
 
 	setupcompass(&compass, rectaddpt(Rect(0,0,100,100), subpt(screenb->r.max, Pt(100,100))), rctl);
+	usrlog = mkuserlog();
 
 	kctl = emalloc(sizeof *kctl);
 	kctl->c = chancreate(sizeof(Rune), 16);
