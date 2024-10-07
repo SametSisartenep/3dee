@@ -19,11 +19,11 @@ static int
 triangulate(OBJElem **newe, OBJElem *e)
 {
 	OBJIndexArray *newidxtab;
-	OBJIndexArray *idxtab;
+	OBJIndexArray *gidxtab, *idxtab;
 	int i;
 
-	idxtab = &e->indextab[OBJVGeometric];
-	for(i = 0; i < idxtab->nindex-2; i++){
+	gidxtab = &e->indextab[OBJVGeometric];
+	for(i = 0; i < gidxtab->nindex-2; i++){
 		idxtab = &e->indextab[OBJVGeometric];
 		newe[i] = emalloc(sizeof **newe);
 		memset(newe[i], 0, sizeof **newe);
