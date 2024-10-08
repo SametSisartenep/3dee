@@ -172,6 +172,11 @@ loadobjmodel(Model *m, OBJ *obj)
 				mtl->diffusemap->image = dupmemimage(objmtl->map_Kd);
 			}
 
+			if(objmtl->map_Ks != nil){
+				mtl->specularmap = alloctexture(sRGBTexture, nil);
+				mtl->specularmap->image = dupmemimage(objmtl->map_Ks);
+			}
+
 			if(objmtl->norm != nil){
 				mtl->normalmap = alloctexture(RAWTexture, nil);
 				mtl->normalmap->image = dupmemimage(objmtl->norm);
