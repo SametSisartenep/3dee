@@ -797,7 +797,7 @@ confproc(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s\n", argv0);
+	fprint(2, "usage: %s [mdlfile]\n", argv0);
 	exits("usage");
 }
 
@@ -806,13 +806,18 @@ threadmain(int argc, char *argv[])
 {
 	Renderer *rctl;
 	Channel *keyc;
+	char *mdlpath;
+	int fd;
 
 	GEOMfmtinstall();
+	mdlpath = nil;
 	ARGBEGIN{
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
-	if(argc != 0)
+	if(argc == 1)
+		mdlpath = argv[0];
+	else if(argc > 1)
 		usage();
 
 	confproc();
@@ -821,7 +826,16 @@ threadmain(int argc, char *argv[])
 		sysfatal("couldn't find main shader");
 
 	scene = newscene(nil);
-	model = newmodel();
+	if(mdlpath != nil){
+		fd = open(mdlpath, OREAD);
+		if(fd < 0)
+			sysfatal("open: %r");
+		model = readmodel(fd);
+		if(model == nil)
+			sysfatal("readmodel: %r");
+		close(fd);
+	}else
+		model = newmodel();
 	subject = newentity("main", model);
 	scene->addent(scene, subject);
 
