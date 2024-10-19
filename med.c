@@ -122,54 +122,6 @@ Ptquat(Quaternion q, double w)
 	return Pt3(q.i, q.j, q.k, w);
 }
 
-/*
- * p is the point to test
- * p0 and p1 are the centers of the circles at each end of the cylinder
- * r is the radius of these circles
- */
-int
-ptincylinder(Point3 p, Point3 p0, Point3 p1, double r)
-{
-	Point3 p01, p0p, p1p;
-	double h;
-
-	p01 = subpt3(p1, p0);
-	p0p = subpt3(p, p0);
-	p1p = subpt3(p, p1);
-	h = vec3len(p01);
-
-	if(h == 0)
-		return 0;
-
-	return dotvec3(p0p, p01) >= 0 &&
-		dotvec3(p1p, p01) <= 0 &&
-		vec3len(crossvec3(p0p, p01))/h <= r;
-}
-
-/*
- * p is the point to test
- * p0 is the apex
- * p1 is the center of the base
- * br is the radius of the base
- */
-int
-ptincone(Point3 p, Point3 p0, Point3 p1, double br)
-{
-	Point3 p01, p0p;
-	double h, d, r;
-
-	p01 = subpt3(p1, p0);
-	p0p = subpt3(p, p0);
-	h = vec3len(p01);
-	d = dotvec3(p0p, normvec3(p01));
-
-	if(h == 0 || d < 0 || d > h)
-		return 0;
-
-	r = d/h * br;
-	return vec3len(crossvec3(p0p, p01))/h <= r;
-}
-
 static Point
 randptfromrect(Rectangle *r)
 {
