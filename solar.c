@@ -878,7 +878,7 @@ threadmain(int argc, char *argv[])
 
 	confproc();
 
-	fd = open("mdl/planet.mdl", OREAD);
+	fd = open("mdl/planets/planet.mdl", OREAD);
 	if(fd < 0)
 		sysfatal("open: %r");
 	model = readmodel(fd);
