@@ -330,7 +330,7 @@ readobjmodel(char *path)
 static void
 usage(void)
 {
-	fprint(2, "usage: %s [objfile [dstdir]]\n", argv0);
+	fprint(2, "usage: %s [-d] [objfile [dstdir]]\n", argv0);
 	exits("usage");
 }
 
@@ -339,8 +339,11 @@ threadmain(int argc, char *argv[])
 {
 	Model *m;
 	char *infile, *dstdir;
+	int dedup;
 
+	dedup = 1;
 	ARGBEGIN{
+	case 'd': dedup--; break;
 	default: usage();
 	}ARGEND;
 	if(argc > 2)
@@ -354,10 +357,10 @@ threadmain(int argc, char *argv[])
 		sysfatal("readobjmodel: %r");
 
 	if(dstdir == nil){
-		if(writemodel(1, m) == 0)
+		if(writemodel(1, m, dedup) == 0)
 			sysfatal("writemodel: %r");
 	}else{
-		if(exportmodel(dstdir, m) < 0)
+		if(exportmodel(dstdir, m, dedup) < 0)
 			sysfatal("exportmodel: %r");
 	}
 

@@ -573,7 +573,7 @@ mmb(void)
 			usrlog->send(usrlog, "create: %r");
 			break;
 		}
-		writemodel(fd, model);
+		writemodel(fd, model, 1);
 		close(fd);
 		break;
 	case QUIT:
