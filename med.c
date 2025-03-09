@@ -808,6 +808,7 @@ threadmain(int argc, char *argv[])
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
 	light.type = LightPoint;
+	scene->addlight(scene, &light);
 	tsampler = neartexsampler;
 
 	setupcompass(&compass, rectaddpt(Rect(0,0,100,100), subpt(screenb->r.max, Pt(100,100))), rctl);

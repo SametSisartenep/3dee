@@ -67,25 +67,25 @@ Camcfg camcfgs[4] = {
 	2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	0, 0.01, 100, ORTHOGRAPHIC,
+	0, 0.01, 1000, ORTHOGRAPHIC,
 
 	-2,0,-4,1,
 	0,0,0,1,
 	0,1,0,0,
-	120*DEG, 0.01, 100, PERSPECTIVE,
+	120*DEG, 0.01, 1000, PERSPECTIVE,
 
 	-2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	0, 0.01, 100, ORTHOGRAPHIC,
+	0, 0.01, 1000, ORTHOGRAPHIC,
 
 	2,0,4,1,
 	0,0,0,1,
 	0,1,0,0,
-	80*DEG, 0.01, 100, PERSPECTIVE
+	80*DEG, 0.01, 1000, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-LightSource light;		/* global point light */
+LightSource lights[2];
 
 static int showskybox;
 static int doprof;
@@ -334,15 +334,15 @@ mmb(void)
 	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
-		snprint(buf, sizeof buf, "%g %g %g", light.p.x, light.p.y, light.p.z);
+		snprint(buf, sizeof buf, "%g %g %g", lights[0].p.x, lights[0].p.y, lights[0].p.z);
 		if(enter("light pos", buf, sizeof buf, mctl, kctl, nil) <= 0)
 			break;
 		nf = tokenize(buf, f, 3);
 		if(nf != 3)
 			break;
-		light.p.x = strtod(f[0], nil);
-		light.p.y = strtod(f[1], nil);
-		light.p.z = strtod(f[2], nil);
+		lights[0].p.x = strtod(f[0], nil);
+		lights[0].p.y = strtod(f[1], nil);
+		lights[0].p.z = strtod(f[2], nil);
 		break;
 	case TSNEAREST:
 		tsampler = neartexsampler;
@@ -617,7 +617,7 @@ confproc(void)
 
 	if(doprof)
 		fprint(fd, "profile\n");
-//	fprint(fd, "pri 15\n");
+//	fprint(fd, "fixedpri 15");
 //	fprint(fd, "wired 0\n");
 //	setfcr(getfcr() & ~FPINVAL);
 
@@ -737,13 +737,19 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
 	}
 	maincam = cams[3];
-	light.p = Pt3(0,100,100,1);
-//	light.dir = Vec3(0,-1,0);
-	light.c = Pt3(1,1,1,1);
-	light.type = LightPoint;
-//	light.type = LightSpot;
-//	light.θu = 30*DEG;
-//	light.θp = 5*DEG;
+	lights[0].p = Pt3(0,100,100,1);
+	lights[0].c = Pt3(0,1,0,1);
+	lights[0].type = LightPoint;
+	lights[1].p = Pt3(0,100,-100,1);
+	lights[1].c = Pt3(1,0,0,1);
+	lights[1].type = LightPoint;
+	/* to test spotlights */
+//	lights[0].dir = Vec3(0,-1,0);
+//	lights[0].type = LightSpot;
+//	lights[0].θu = 30*DEG;
+//	lights[0].θp = 5*DEG;
+	scene->addlight(scene, &lights[0]);
+	scene->addlight(scene, &lights[1]);
 	tsampler = neartexsampler;
 
 	kctl = emalloc(sizeof *kctl);

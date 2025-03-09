@@ -8,6 +8,7 @@ gouraudvshader(Shaderparams *sp)
 	double spec;
 	Point3 pos, lightdir, lookdir;
 	Material m;
+	LightSource *l;
 	Color ambient, diffuse, specular, lightc;
 
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
@@ -23,23 +24,27 @@ gouraudvshader(Shaderparams *sp)
 		m.shininess = 1;
 	}
 
-	lightdir = normvec3(subpt3(light.p, pos));
-	lightc = getlightcolor(&light, lightdir);
+	lightc = getscenecolor(sp->su->camera->scene, pos, sp->v->n);
+	sp->v->c = Vec3(0,0,0);
 
-	ambient = mulpt3(lightc, Ka);
-	ambient = modulapt3(ambient, m.diffuse);
+	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+		lightdir = normvec3(subpt3(l->p, pos));
 
-	Kd = max(0, dotvec3(sp->v->n, lightdir));
-	diffuse = mulpt3(lightc, Kd);
-	diffuse = modulapt3(diffuse, m.diffuse);
+		ambient = mulpt3(lightc, Ka);
+		ambient = modulapt3(ambient, m.diffuse);
 
-	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
-	lightdir = qrotate(lightdir, sp->v->n, PI);
-	spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
-	specular = mulpt3(lightc, spec*Ks);
-	specular = modulapt3(specular, m.specular);
+		Kd = max(0, dotvec3(sp->v->n, lightdir));
+		diffuse = mulpt3(lightc, Kd);
+		diffuse = modulapt3(diffuse, m.diffuse);
 
-	sp->v->c = addpt3(ambient, addpt3(diffuse, specular));
+		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
+		lightdir = qrotate(lightdir, sp->v->n, PI); /* reflect */
+		spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
+		specular = mulpt3(lightc, spec*Ks);
+		specular = modulapt3(specular, m.specular);
+
+		sp->v->c = addpt3(sp->v->c, addpt3(ambient, addpt3(diffuse, specular)));
+	}
 	sp->v->c.a = m.diffuse.a;
 	return world2clip(sp->su->camera, pos);
 }
@@ -100,6 +105,7 @@ phongshader(Shaderparams *sp)
 	Color ambient, diffuse, specular, lightc, c;
 	Point3 pos, n, lightdir, lookdir;
 	Material m;
+	LightSource *l;
 	RFrame3 TBN;
 	Vertexattr *va;
 
@@ -114,9 +120,6 @@ phongshader(Shaderparams *sp)
 	m.specular = va != nil? va->p: Pt3(1,1,1,1);
 	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
-
-	lightdir = normvec3(subpt3(light.p, pos));
-	lightc = getlightcolor(&light, lightdir);
 
 	/* normal mapping */
 	va = sp->getattr(sp, "tangent");
@@ -140,27 +143,34 @@ phongshader(Shaderparams *sp)
 	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
-	ambient = mulpt3(lightc, Ka);
-	ambient = modulapt3(ambient, m.diffuse);
-
-	Kd = max(0, dotvec3(n, lightdir));
-	diffuse = mulpt3(lightc, Kd);
-	diffuse = modulapt3(diffuse, m.diffuse);
-
 	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
 		m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 
-	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
-	lightdir = qrotate(lightdir, n, PI);
-	spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
-	specular = mulpt3(lightc, spec*Ks);
-	specular = modulapt3(specular, m.specular);
+	lightc = getscenecolor(sp->su->camera->scene, pos, n);
+	c = Vec3(0,0,0);
+
+	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+		lightdir = normvec3(subpt3(l->p, pos));
+
+		ambient = mulpt3(lightc, Ka);
+		ambient = modulapt3(ambient, m.diffuse);
+
+		Kd = max(0, dotvec3(n, lightdir));
+		diffuse = mulpt3(lightc, Kd);
+		diffuse = modulapt3(diffuse, m.diffuse);
+
+		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
+		lightdir = qrotate(lightdir, n, PI); /* reflect */
+		spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
+		specular = mulpt3(lightc, spec*Ks);
+		specular = modulapt3(specular, m.specular);
+
+		c = addpt3(c, addpt3(ambient, addpt3(diffuse, specular)));
+	}
+	c.a = m.diffuse.a;
 
 	n.w = 1;
 	sp->toraster(sp, "normals", &n);
-
-	c = addpt3(ambient, addpt3(diffuse, specular));
-	c.a = m.diffuse.a;
 
 	specular.a = 1;
 	sp->toraster(sp, "specular", &specular);
@@ -178,6 +188,7 @@ blinnshader(Shaderparams *sp)
 	Color ambient, diffuse, specular, lightc, c;
 	Point3 pos, n, lightdir, lookdir;
 	Material m;
+	LightSource *l;
 	RFrame3 TBN;
 	Vertexattr *va;
 
@@ -192,9 +203,6 @@ blinnshader(Shaderparams *sp)
 	m.specular = va != nil? va->p: Pt3(1,1,1,1);
 	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
-
-	lightdir = normvec3(subpt3(light.p, pos));
-	lightc = getlightcolor(&light, lightdir);
 
 	/* normal mapping */
 	va = sp->getattr(sp, "tangent");
@@ -218,27 +226,34 @@ blinnshader(Shaderparams *sp)
 	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
-	ambient = mulpt3(lightc, Ka);
-	ambient = modulapt3(ambient, m.diffuse);
-
-	Kd = max(0, dotvec3(n, lightdir));
-	diffuse = mulpt3(lightc, Kd);
-	diffuse = modulapt3(diffuse, m.diffuse);
-
 	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
 		m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 
-	lookdir = normvec3(subpt3(sp->su->camera->p, pos));
-	lightdir = normvec3(addpt3(lookdir, lightdir));	/* half vector */
-	spec = pow(max(0, dotvec3(n, lightdir)), m.shininess);
-	specular = mulpt3(lightc, spec*Ks);
-	specular = modulapt3(specular, m.specular);
+	lightc = getscenecolor(sp->su->camera->scene, pos, n);
+	c = Vec3(0,0,0);
+
+	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+		lightdir = normvec3(subpt3(l->p, pos));
+
+		ambient = mulpt3(lightc, Ka);
+		ambient = modulapt3(ambient, m.diffuse);
+
+		Kd = max(0, dotvec3(n, lightdir));
+		diffuse = mulpt3(lightc, Kd);
+		diffuse = modulapt3(diffuse, m.diffuse);
+
+		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
+		lightdir = normvec3(addpt3(lookdir, lightdir));	/* half vector */
+		spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
+		specular = mulpt3(lightc, spec*Ks);
+		specular = modulapt3(specular, m.specular);
+
+		c = addpt3(c, addpt3(ambient, addpt3(diffuse, specular)));
+	}
+	c.a = m.diffuse.a;
 
 	n.w = 1;
 	sp->toraster(sp, "normals", &n);
-
-	c = addpt3(ambient, addpt3(diffuse, specular));
-	c.a = m.diffuse.a;
 
 	specular.a = 1;
 	sp->toraster(sp, "specular", &specular);
@@ -250,12 +265,16 @@ Point3
 toonvshader(Shaderparams *sp)
 {
 	Point3 pos, lightdir;
+	LightSource *l;
 	double intens;
 
 	sp->v->n = model2world(sp->su->entity, sp->v->n);
 	pos = model2world(sp->su->entity, sp->v->p);
-	lightdir = normvec3(subpt3(light.p, pos));
-	intens = max(0, dotvec3(sp->v->n, lightdir));
+	intens = 0;
+	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+		lightdir = normvec3(subpt3(l->p, pos));
+		intens += max(0, dotvec3(sp->v->n, lightdir));
+	}
 	sp->setattr(sp, "intensity", VANumber, &intens);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
@@ -336,6 +355,31 @@ triangleshader(Shaderparams *sp)
 
 	bc = barycoords(t, Pt2(sp->p.x,sp->p.y,1));
 	if(bc.x < 0 || bc.y < 0 || bc.z < 0)
+		return Vec3(0,0,0);
+
+	/* wireframe version */
+	enum { THICKNESS = 8 };
+	Point2 p01, p12, p20;
+	double d01, d12, d20, d;
+	Point2 p, v, r;
+
+	p01 = subpt2(t.p1, t.p0);
+	p12 = subpt2(t.p2, t.p1);
+	p20 = subpt2(t.p0, t.p2);
+
+	p = Pt2(sp->p.x, sp->p.y, 1);
+	r = subpt2(t.p0, p);
+	v = Vec2(p01.y, -p01.x);
+	d01 = fabs(dotvec2(v, r));
+	r = subpt2(t.p1, p);
+	v = Vec2(p12.y, -p12.x);
+	d12 = fabs(dotvec2(v, r));
+	r = subpt2(t.p2, p);
+	v = Vec2(p20.y, -p20.x);
+	d20 = fabs(dotvec2(v, r));
+
+	d = min(d01, min(d12, d20));
+	if(d > THICKNESS)
 		return Vec3(0,0,0);
 
 	return Pt3(bc.x, bc.y, bc.z, 1);
