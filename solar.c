@@ -541,10 +541,10 @@ renderproc(void *)
 
 	bg = eallocimage(display, UR, XRGB32, 1, DBlack);
 
-	t0 = nsec();
+	t0 = nanosec();
 	for(;;){
 		shootcamera(camera, &shader);
-		Δt = nsec() - t0;
+		Δt = nanosec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
 			draw(screenb, screenb->r, bg, nil, ZP);

@@ -159,7 +159,7 @@ userlog_send(Userlog *l, char *msg, ...)
 
 	m->i = eallocimage(display, Rpt(off, addpt(off, dim)), XRGB32, 0, DNofill);
 	stringbg(m->i, m->i->r.min, display->white, ZP, font, m->s, display->black, ZP);
-	m->eol = nsec() + 5*SEC;
+	m->eol = nanosec() + 5*SEC;
 
 	qlock(l);
 	m->prev = l->msgs.prev;
@@ -192,7 +192,7 @@ userlog_update(Userlog *l)
 	qlock(l);
 	for(m = l->msgs.next; m != &l->msgs; m = nm){
 		nm = m->next;
-		if(nsec() >= m->eol)
+		if(nanosec() >= m->eol)
 			l->delmsg(l, m);
 	}
 	qunlock(l);
@@ -447,7 +447,7 @@ renderproc(void *)
 	draw(bg, bg->r, mist, nil, ZP);
 	freeimage(mist);
 
-	t0 = nsec();
+	t0 = nanosec();
 	for(;;){
 		qlock(&scenelk);
 		shootcamera(cam, shader);
@@ -455,7 +455,7 @@ renderproc(void *)
 
 		shootcamera(compass.cam, getshader("ident"));
 
-		Δt = nsec() - t0;
+		Δt = nanosec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
 			draw(screenb, screenb->r, bg, nil, ZP);

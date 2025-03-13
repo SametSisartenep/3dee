@@ -186,14 +186,14 @@ renderproc(void *)
 			sysfatal("readmemimage: %r");
 	}
 
-	t0 = nsec();
+	t0 = nanosec();
 	for(;;){
 		time = t0;
 		setuniform(shader, "time", VANumber, &time);
 
 		shootcamera(maincam, shader);
 
-		Δt = nsec() - t0;
+		Δt = nanosec() - t0;
 		if(Δt > HZ2MS(60)*1000000ULL){
 			lockdisplay(display);
 			draw(screenb, screenb->r, clr, nil, ZP);
