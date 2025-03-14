@@ -4,9 +4,9 @@
 #include <draw.h>
 #include <memdraw.h>
 #include <geometry.h>
-#include "libobj/obj.h"
 #include "libgraphics/graphics.h"
 #include "fns.h"
+#include "libobj/obj.h"
 
 /*
  * fan triangulation.
