@@ -1,5 +1,6 @@
 #!/bin/rc
 bind -bc ../libgraphics libgraphics
 bind -bc ../libobj libobj
+bind -bc ../libstl libstl
 
 B *.[hc] mkfile readme
