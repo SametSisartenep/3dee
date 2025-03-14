@@ -54,9 +54,7 @@ gouraudshader(Shaderparams *sp)
 {
 	Color tc;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
-	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);
@@ -138,9 +136,7 @@ phongshader(Shaderparams *sp)
 		n = normvec3(invrframexform3(n, TBN));
 	}
 
-	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
-		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
-	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
 	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
@@ -221,9 +217,7 @@ blinnshader(Shaderparams *sp)
 		n = normvec3(invrframexform3(n, TBN));
 	}
 
-	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
-		m.diffuse = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
-	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		m.diffuse = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 
 	if(sp->v->mtl != nil && sp->v->mtl->specularmap != nil && sp->v->uv.w != 0)
@@ -314,9 +308,7 @@ identshader(Shaderparams *sp)
 {
 	Color tc;
 
-	if(sp->su->entity->mdl->tex != nil && sp->v->uv.w != 0)
-		tc = sampletexture(sp->su->entity->mdl->tex, sp->v->uv, tsampler);
-	else if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
 		tc = Pt3(1,1,1,1);

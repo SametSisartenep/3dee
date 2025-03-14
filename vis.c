@@ -170,6 +170,8 @@ redraw(void)
 void
 renderproc(void *)
 {
+	Material *mtl;
+	Primitive *prim;
 	uvlong t0, Δt;
 	int fd;
 	double time;
@@ -181,9 +183,15 @@ renderproc(void *)
 		fd = open("/dev/screen", OREAD);
 		if(fd < 0)
 			sysfatal("open: %r");
-		model->tex = alloctexture(sRGBTexture, nil);
-		if((model->tex->image = readmemimage(fd)) == nil)
+		mtl = newmaterial("ιnception");
+		mtl->diffusemap = alloctexture(sRGBTexture, nil);
+		if((mtl->diffusemap->image = readmemimage(fd)) == nil)
 			sysfatal("readmemimage: %r");
+		model->addmaterial(model, *mtl);
+		free(mtl);
+		mtl = &model->materials[model->nmaterials-1];
+		for(prim = model->prims; prim < model->prims+model->nprims; prim++)
+			prim->mtl = mtl;
 	}
 
 	t0 = nanosec();
@@ -204,9 +212,9 @@ renderproc(void *)
 			t0 += Δt;
 
 			if(inception){
-				freememimage(model->tex->image);
+				freememimage(mtl->diffusemap->image);
 				seek(fd, 0, 0);
-				if((model->tex->image = readmemimage(fd)) == nil)
+				if((mtl->diffusemap->image = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
 		}
@@ -638,6 +646,8 @@ threadmain(int argc, char *argv[])
 	Viewport *v;
 	Channel *keyc;
 	Entity *subject;
+	Material *tmpmtl;
+	Primitive *prim;
 	char *texpath, *mdlpath, *s;
 	int i, fd, fbw, fbh, scale;
 	int blendtest = 0;
@@ -693,10 +703,16 @@ threadmain(int argc, char *argv[])
 			fd = open(texpath, OREAD);
 			if(fd < 0)
 				sysfatal("open: %r");
-			model->tex = alloctexture(sRGBTexture, nil);
-			if((model->tex->image = readmemimage(fd)) == nil)
+			tmpmtl = newmaterial("__tmp");
+			tmpmtl->diffusemap = alloctexture(sRGBTexture, nil);
+			if((tmpmtl->diffusemap->image = readmemimage(fd)) == nil)
 				sysfatal("readmemimage: %r");
 			close(fd);
+			model->addmaterial(model, *tmpmtl);
+			free(tmpmtl);
+			tmpmtl = &model->materials[model->nmaterials-1];
+			for(prim = model->prims; prim < model->prims+model->nprims; prim++)
+				prim->mtl = tmpmtl;
 		}
 	}
 	if(showskybox)
@@ -738,10 +754,10 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 	}
 	maincam = cams[3];
 	lights[0].p = Pt3(0,100,100,1);
-	lights[0].c = Pt3(0,1,0,1);
+	lights[0].c = Pt3(1,1,1,1);
 	lights[0].type = LightPoint;
 	lights[1].p = Pt3(0,100,-100,1);
-	lights[1].c = Pt3(1,0,0,1);
+	lights[1].c = Pt3(1,1,1,1);
 	lights[1].type = LightPoint;
 	/* to test spotlights */
 //	lights[0].dir = Vec3(0,-1,0);
