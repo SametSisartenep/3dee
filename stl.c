@@ -48,7 +48,7 @@ readstlmodel(int fd)
 static void
 usage(void)
 {
-	fprint(2, "usage: %s [stlfile]\n", argv0);
+	fprint(2, "usage: %s [-d] [stlfile]\n", argv0);
 	exits("usage");
 }
 

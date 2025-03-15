@@ -15,6 +15,7 @@ TOOLS
 	- med: a model editor (WIP)
 	- solar: a solar system planetarium (WIP)
 	- obj: an OBJ to model(6) conversion tool
+	- stl: an STL to model(6) conversion tool
 
 USAGE
 
@@ -105,6 +106,15 @@ USAGE
 
 	If no dir is specified, it writes the model(6) to stdout.  And if no
 	arguments are given, it reads the OBJ file from stdin.
+
+
+	stl [-d] [file]
+
+	This tool converts an STL file into a model(6) and writes it to stdout.
+	If no arguments are given, it reads the STL file from stdin.
+
+	Just like with obj, by default it will try to compress the resulting
+	model by deduplicating entries, to disable this feature use -d.
 
 CUBEMAPS
 
