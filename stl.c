@@ -19,9 +19,9 @@ loadstlmodel(Model *m, Stl *stl)
 	p.v[0].c = p.v[1].c = p.v[2].c = Pt3(1,1,1,1);
 
 	for(tri = stl->tris; tri < stl->tris+stl->ntris; tri++){
-		p.v[0].p = Pt3((*tri)->p0[0], (*tri)->p0[1], (*tri)->p0[2], 1);
-		p.v[1].p = Pt3((*tri)->p1[0], (*tri)->p1[1], (*tri)->p1[2], 1);
-		p.v[2].p = Pt3((*tri)->p2[0], (*tri)->p2[1], (*tri)->p2[2], 1);
+		p.v[0].p = Pt3((*tri)->v[0][0], (*tri)->v[0][1], (*tri)->v[0][2], 1);
+		p.v[1].p = Pt3((*tri)->v[1][0], (*tri)->v[1][1], (*tri)->v[1][2], 1);
+		p.v[2].p = Pt3((*tri)->v[2][0], (*tri)->v[2][1], (*tri)->v[2][2], 1);
 		p.v[0].n = Vec3((*tri)->n[0], (*tri)->n[1], (*tri)->n[2]);
 		p.v[1].n = p.v[2].n = p.v[0].n;
 
