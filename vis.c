@@ -756,9 +756,11 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 	lights[0].p = Pt3(0,100,100,1);
 	lights[0].c = Pt3(1,1,1,1);
 	lights[0].type = LightPoint;
+	lights[0].cutoff = 3000;
 	lights[1].p = Pt3(0,100,-100,1);
 	lights[1].c = Pt3(1,1,1,1);
 	lights[1].type = LightPoint;
+	lights[1].cutoff = 3000;
 	/* to test spotlights */
 //	lights[0].dir = Vec3(0,-1,0);
 //	lights[0].type = LightSpot;

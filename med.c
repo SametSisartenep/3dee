@@ -808,6 +808,7 @@ threadmain(int argc, char *argv[])
 	light.p = Pt3(0,100,100,1);
 	light.c = Pt3(1,1,1,1);
 	light.type = LightPoint;
+	light.cutoff = 10000;
 	scene->addlight(scene, &light);
 	tsampler = neartexsampler;
 
