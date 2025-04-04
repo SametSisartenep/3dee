@@ -12,11 +12,24 @@
 
 #define isdigit(c) ((c) >= '0' && (c) <= '9')
 
+typedef struct AABB AABB;
+struct AABB
+{
+	Point3 min;
+	Point3 max;
+	/* with its homologous bounding sphere */
+	Point3 c;
+	double r;
+};
+
 typedef struct Camcfg Camcfg;
 struct Camcfg
 {
-	Point3 p, lookat, up;
-	double fov, clipn, clipf;
+	Point3 p;
+	Point3 lookat;
+	Point3 up;
+	double fov;
+	double clipn, clipf;
 	int ptype;
 };
 
@@ -61,6 +74,7 @@ Model *model;
 Scene *scene;
 Mouse om;
 Quaternion orient = {1,0,0,0};
+AABB scenebbox;
 
 Camera *cams[4], *maincam;
 Camcfg camcfgs[4] = {
@@ -123,6 +137,30 @@ zoomout(void)
 {
 	maincam->fov = fclamp(maincam->fov + 1*DEG, 1*DEG, 180*DEG);
 	reloadcamera(maincam);
+}
+
+void
+updatebbox(Entity *e)
+{
+	static int inited;
+	Model *m;
+	Primitive *prim;
+	Vertex *v;
+
+	m = e->mdl;
+	for(prim = m->prims; prim < m->prims + m->nprims; prim++)
+	for(v = prim->v; v < prim->v + prim->type+1; v++){
+		if(!inited){
+			scenebbox.min = scenebbox.max = addpt3(e->p, v->p);
+			inited++;
+			continue;
+		}
+
+		scenebbox.min = minpt3(scenebbox.min, addpt3(e->p, v->p));
+		scenebbox.max = maxpt3(scenebbox.max, addpt3(e->p, v->p));
+	}
+	scenebbox.c = divpt3(addpt3(scenebbox.max, scenebbox.min), 2);
+	scenebbox.r = max(vec3len(scenebbox.min), vec3len(scenebbox.max));
 }
 
 void
@@ -599,6 +637,7 @@ mkblendtestscene(void)
 		mdl->addprim(mdl, t[1]);
 		ent = newentity(nil, mdl);
 		scene->addent(scene, ent);
+		updatebbox(ent);
 	}
 }
 
@@ -650,7 +689,6 @@ threadmain(int argc, char *argv[])
 	Primitive *prim;
 	char *texpath, *mdlpath, *s;
 	int i, fd, fbw, fbh, scale;
-	int blendtest = 0;
 
 	GEOMfmtinstall();
 	texpath = nil;
@@ -674,8 +712,6 @@ threadmain(int argc, char *argv[])
 	case 'p': doprof++; break;
 	default: usage();
 	}ARGEND;
-	if(argc < 1)
-		blendtest++;
 
 	confproc();
 
@@ -683,7 +719,7 @@ threadmain(int argc, char *argv[])
 		sysfatal("couldn't find gouraud shader");
 
 	scene = newscene(nil);
-	if(blendtest)
+	if(argc < 1)
 		mkblendtestscene();
 	else
 	while(argc--){
@@ -698,6 +734,9 @@ threadmain(int argc, char *argv[])
 		subject = newentity(mdlpath, model);
 //		subject->p.z = -argc*4;
 		scene->addent(scene, subject);
+		updatebbox(subject);
+
+fprint(2, "%s: %lud prims\n", mdlpath, model->nprims);
 
 		if(argc == 0 && texpath != nil){
 			fd = open(texpath, OREAD);
@@ -750,7 +789,8 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 				camcfgs[i].ptype, camcfgs[i].fov, camcfgs[i].clipn, camcfgs[i].clipf);
 		if(cams[i] == nil)
 			sysfatal("Camv: %r");
-		placecamera(cams[i], scene, camcfgs[i].p, camcfgs[i].lookat, camcfgs[i].up);
+		placecamera(cams[i], scene, addpt3(scenebbox.c, mulpt3(normvec3(camcfgs[i].p), 1.5*scenebbox.r)), scenebbox.c, camcfgs[i].up);
+		cams[i]->p.w = 1;
 	}
 	maincam = cams[3];
 	lights[0].p = Pt3(0,100,100,1);
