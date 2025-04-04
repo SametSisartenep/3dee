@@ -228,7 +228,12 @@ mkplanetinfobox(Planet *p, Rectangle r)
 	for(i = 0; i < NITEMS; i++){
 		switch(i){
 		case ID: snprint(buf, sizeof buf, "id: %d", p->id); break;
-		case POS: snprint(buf, sizeof buf, "position (in km): %V", mulpt3(p->body->p, ↓scale)); break;
+		case POS:
+			snprint(buf, sizeof buf, "position (in km): [%.3g %.3g %.3g]",
+				p->body->p.x*↓scale,
+				p->body->p.y*↓scale,
+				p->body->p.z*↓scale);
+			break;
 		case RADIUS: snprint(buf, sizeof buf, "radius (in km): %g", p->scale*↓scale); break;
 		}
 		items[i] = strdup(buf);
@@ -299,7 +304,7 @@ selectplanet(Planet *p)
 	esel->RFrame3 = e->RFrame3;
 
 	lockdisplay(display);
-	infobox = mkplanetinfobox(p, Rpt(subpt(viewr.max, Pt(400,200)), viewr.max));
+	infobox = mkplanetinfobox(p, Rpt(subpt(viewr.max, Pt(500,250)), viewr.max));
 	unlockdisplay(display);
 
 	memset(&aabb, 0, sizeof aabb);
