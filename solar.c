@@ -45,6 +45,8 @@ enum {
 
 	Cmdlookat = 0,
 	Cmdgoto,
+
+	↓scale = 5e4,
 };
 
 typedef struct Planet Planet;
@@ -157,10 +159,10 @@ Camcfg cameracfg = {
 	0,0,0,1,
 	0,0,1,0,
 	0,1,0,0,
-	80*DEG, 1, 1e12, PERSPECTIVE
+	80*DEG, 0.01, 1e9, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-double speed = 10;
+double speed = 10/↓scale;
 
 static int museummode;
 static int showskybox;
@@ -226,8 +228,8 @@ mkplanetinfobox(Planet *p, Rectangle r)
 	for(i = 0; i < NITEMS; i++){
 		switch(i){
 		case ID: snprint(buf, sizeof buf, "id: %d", p->id); break;
-		case POS: snprint(buf, sizeof buf, "position (in km): %V", p->body->p); break;
-		case RADIUS: snprint(buf, sizeof buf, "radius (in km): %g", p->scale); break;
+		case POS: snprint(buf, sizeof buf, "position (in km): %V", mulpt3(p->body->p, ↓scale)); break;
+		case RADIUS: snprint(buf, sizeof buf, "radius (in km): %g", p->scale*↓scale); break;
 		}
 		items[i] = strdup(buf);
 		if(items[i] == nil)
@@ -420,6 +422,7 @@ updateplanets(void)
 		planets[i].body->p.y = strtod(++p, nil);
 		p = strchr(p, '=');
 		planets[i].body->p.z = strtod(++p, nil);
+		planets[i].body->p = divpt3(planets[i].body->p, ↓scale);
 		planets[i].body->p.w = 1;
 		free(s);
 		fprint(2, "%s ready\n", planets[i].name);
@@ -448,7 +451,6 @@ Point3
 identvshader(Shaderparams *sp)
 {
 	Planet *p;
-	Point3 pos;
 
 	p = getplanet(sp->su->entity->name);
 
@@ -459,13 +461,12 @@ identvshader(Shaderparams *sp)
 			0, 0, p->scale, 0,
 			0, 0, 0, 1,
 		};
-		pos = xform3(sp->v->p, S);
+		sp->v->p = xform3(sp->v->p, S);
 		sp->v->mtl = p->mtl;
 		sp->v->c = p->mtl->diffuse;
-	}else
-		pos = sp->v->p;
+	}
 
-	return world2clip(sp->su->camera, model2world(sp->su->entity, pos));
+	return world2clip(sp->su->camera, model2world(sp->su->entity, sp->v->p));
 }
 
 Color
@@ -899,6 +900,7 @@ threadmain(int argc, char *argv[])
 		subject = newentity(planets[i].name, model);
 		scene->addent(scene, subject);
 		planets[i].body = subject;
+		planets[i].scale /= ↓scale;
 		for(j = 0; j < model->nmaterials; j++)
 			if(strcmp(planets[i].name, model->materials[j].name) == 0)
 				planets[i].mtl = &model->materials[j];
