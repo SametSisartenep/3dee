@@ -291,10 +291,13 @@ selectplanet(Planet *p)
 	esel = scene->getent(scene, "selection");
 	if(esel != nil)
 		scene->delent(scene, esel);
+
 	lockdisplay(display);
 	freeinfobox(infobox);
 	infobox = nil;
 	unlockdisplay(display);
+
+	/* if nil, we cleaned the selection and infobox, so now get out */
 	if(p == nil)
 		return;
 
@@ -321,21 +324,26 @@ selectplanet(Planet *p)
 	l.type = PLine;
 	l.v[0].c = l.v[1].c = Pt3(0.2666, 0.5333, 0.2666, 1);
 	/* bottom */
-	l.v[0].p = aabb.min; l.v[1].p = qrotate(aabb.min, Vec3(0,1,0), PI/2);
+	l.v[0].p = aabb.min;
+	l.v[1].p = qrotate(aabb.min, Vec3(0,1,0), PI/2);
 	msel->addprim(msel, l);
 	for(i = 0; i < 3; i++){
-		l.v[0].p = l.v[1].p; l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+		l.v[0].p = l.v[1].p;
+		l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
 		msel->addprim(msel, l);
 	}
 	/* top */
-	l.v[0].p = aabb.max; l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI/2);
+	l.v[0].p = aabb.max;
+	l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI/2);
 	msel->addprim(msel, l);
 	for(i = 0; i < 3; i++){
-		l.v[0].p = l.v[1].p; l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+		l.v[0].p = l.v[1].p;
+		l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
 		msel->addprim(msel, l);
 	}
 	/* struts */
-	l.v[0].p = aabb.min; l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI);
+	l.v[0].p = aabb.min;
+	l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI);
 	msel->addprim(msel, l);
 	for(i = 0; i < 3; i++){
 		l.v[0].p = qrotate(l.v[0].p, Vec3(0,1,0), PI/2);
