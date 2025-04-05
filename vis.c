@@ -99,7 +99,7 @@ Camcfg camcfgs[4] = {
 	80*DEG, 0.01, 1000, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-LightSource lights[2];
+LightSource *lights[2];
 
 static int showskybox;
 static int doprof;
@@ -311,7 +311,7 @@ lmb(void)
 		zr = v->fetchraster(v, "z-buffer");
 		nr = v->fetchraster(v, "normals");
 		c = ul2col(cr->data[p.y*Dx(fb->r) + p.x]);
-		n = nr != nil? ul2col(nr->data[p.y*Dx(fb->r) + p.x]): Vec3(0,0,0);
+		n = nr != nil? ul2col(nr->data[p.y*Dx(fb->r) + p.x]): ZP3;
 		z = *(float*)&zr->data[p.y*Dx(fb->r) + p.x];
 //		abuf = &fb->abuf;
 //		if(abuf->stk != nil){
@@ -380,15 +380,15 @@ mmb(void)
 	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
-		snprint(buf, sizeof buf, "%g %g %g", lights[0].p.x, lights[0].p.y, lights[0].p.z);
+		snprint(buf, sizeof buf, "%g %g %g", lights[0]->p.x, lights[0]->p.y, lights[0]->p.z);
 		if(enter("light pos", buf, sizeof buf, mctl, kctl, nil) <= 0)
 			break;
 		nf = tokenize(buf, f, 3);
 		if(nf != 3)
 			break;
-		lights[0].p.x = strtod(f[0], nil);
-		lights[0].p.y = strtod(f[1], nil);
-		lights[0].p.z = strtod(f[2], nil);
+		lights[0]->p.x = strtod(f[0], nil);
+		lights[0]->p.y = strtod(f[1], nil);
+		lights[0]->p.z = strtod(f[2], nil);
 		break;
 	case TSNEAREST:
 		tsampler = neartexsampler;
@@ -793,21 +793,14 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 		cams[i]->p.w = 1;
 	}
 	maincam = cams[3];
-	lights[0].p = Pt3(0,100,100,1);
-	lights[0].c = Pt3(1,1,1,1);
-	lights[0].type = LightPoint;
-	lights[0].cutoff = 3000;
-	lights[1].p = Pt3(0,100,-100,1);
-	lights[1].c = Pt3(1,1,1,1);
-	lights[1].type = LightPoint;
-	lights[1].cutoff = 3000;
+	lights[0] = newpointlight(Pt3(0,100,100,1), Pt3(1,1,1,1));
+	lights[0]->cutoff = 3000;
+	lights[1] = newpointlight(Pt3(0,100,-100,1), Pt3(1,1,1,1));
+	lights[1]->cutoff = 3000;
 	/* to test spotlights */
-//	lights[0].dir = Vec3(0,-1,0);
-//	lights[0].type = LightSpot;
-//	lights[0].θu = 30*DEG;
-//	lights[0].θp = 5*DEG;
-	scene->addlight(scene, &lights[0]);
-	scene->addlight(scene, &lights[1]);
+//	lights[0] = newspotlight(Pt3(0,100,100,1), Vec3(0,-1,0), Pt3(1,1,1,1), 30*DEG, 5*DEG);
+	scene->addlight(scene, lights[0]);
+	scene->addlight(scene, lights[1]);
 	tsampler = neartexsampler;
 
 	kctl = emalloc(sizeof *kctl);

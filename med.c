@@ -99,7 +99,7 @@ Camcfg camcfg = {
 	40*DEG, 0.01, 10, PERSPECTIVE
 };
 Point3 center = {0,0,0,1};
-LightSource light;	/* global point light */
+LightSource *light;	/* global point light */
 Compass compass;	/* 3d compass */
 Userlog *usrlog;
 
@@ -805,11 +805,9 @@ threadmain(int argc, char *argv[])
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 	cam = Cam(screenb->r, rctl, camcfg.ptype, camcfg.fov, camcfg.clipn, camcfg.clipf);
 	placecamera(cam, scene, camcfg.p, camcfg.lookat, camcfg.up);
-	light.p = Pt3(0,100,100,1);
-	light.c = Pt3(1,1,1,1);
-	light.type = LightPoint;
-	light.cutoff = 10000;
-	scene->addlight(scene, &light);
+	light = newpointlight(Pt3(0,100,100,1), Pt3(1,1,1,1));
+	light->cutoff = 10000;
+	scene->addlight(scene, light);
 	tsampler = neartexsampler;
 
 	setupcompass(&compass, rectaddpt(Rect(0,0,100,100), subpt(screenb->r.max, Pt(100,100))), rctl);

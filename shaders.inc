@@ -24,7 +24,7 @@ gouraudvshader(Shaderparams *sp)
 	}
 
 	lightc = getscenecolor(sp->su->camera->scene, sp->v->p, sp->v->n);
-	sp->v->c = Vec3(0,0,0);
+	sp->v->c = ZP3;
 
 	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, sp->v->p));
@@ -132,7 +132,7 @@ phongshader(Shaderparams *sp)
 	}
 
 	lightc = getscenecolor(sp->su->camera->scene, pos, n);
-	sp->v->c = Vec3(0,0,0);
+	sp->v->c = ZP3;
 
 	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, pos));
@@ -213,7 +213,7 @@ blinnshader(Shaderparams *sp)
 	}
 
 	lightc = getscenecolor(sp->su->camera->scene, pos, n);
-	sp->v->c = Vec3(0,0,0);
+	sp->v->c = ZP3;
 
 	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, pos));
@@ -332,11 +332,11 @@ triangleshader(Shaderparams *sp)
 		max(max(t.p0.x, t.p1.x), t.p2.x), max(max(t.p0.y, t.p1.y), t.p2.y)
 	);
 	if(!ptinrect(sp->p, bbox))
-		return Vec3(0,0,0);
+		return ZP3;
 
 	bc = barycoords(t, Pt2(sp->p.x,sp->p.y,1));
 	if(bc.x < 0 || bc.y < 0 || bc.z < 0)
-		return Vec3(0,0,0);
+		return ZP3;
 
 	/* wireframe version */
 	enum { THICKNESS = 8 };
@@ -361,7 +361,7 @@ triangleshader(Shaderparams *sp)
 
 	d = min(d01, min(d12, d20));
 	if(d > THICKNESS)
-		return Vec3(0,0,0);
+		return ZP3;
 
 	return Pt3(bc.x, bc.y, bc.z, 1);
 }
@@ -385,7 +385,7 @@ circleshader(Shaderparams *sp)
 	d = vec2len(subpt2(uv, Vec2(0.5,0.5)));
 
 	if(d > r + r*0.05 || d < r - r*0.05)
-		return Vec3(0,0,0);
+		return ZP3;
 
 	return Pt3(uv.x, uv.y, 0, 1);
 }
@@ -433,7 +433,7 @@ boxshader(Shaderparams *sp)
 	p.y = max(p.y, 0);
 
 	if(vec2len(p) > 0)
-		return Vec3(0,0,0);
+		return ZP3;
 
 	return Pt3(uv.x, uv.y, smoothstep(0,1,uv.x+uv.y), 1);
 }
