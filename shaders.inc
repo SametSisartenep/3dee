@@ -19,7 +19,7 @@ gouraudvshader(Shaderparams *sp)
 	else{
 		memset(&m, 0, sizeof m);
 		m.diffuse = sp->v->c;
-		m.specular = Pt3(1,1,1,1);
+		m.specular = (Color){1,1,1,1};
 		m.shininess = 1;
 	}
 
@@ -56,7 +56,7 @@ gouraudshader(Shaderparams *sp)
 	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
-		tc = Pt3(1,1,1,1);
+		tc = (Color){1,1,1,1};
 
 	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
@@ -100,11 +100,11 @@ phongshader(Shaderparams *sp)
 	pos = va->p;
 
 	va = sp->getattr(sp, "ambient");
-	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
+	m.ambient = va != nil? va->p: (Point3){1,1,1,1};
 	va = sp->getattr(sp, "diffuse");
 	m.diffuse = va != nil? va->p: sp->v->c;
 	va = sp->getattr(sp, "specular");
-	m.specular = va != nil? va->p: Pt3(1,1,1,1);
+	m.specular = va != nil? va->p: (Point3){1,1,1,1};
 	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
 
@@ -116,7 +116,7 @@ phongshader(Shaderparams *sp)
 			n = sampletexture(sp->v->mtl->normalmap, sp->v->uv, neartexsampler);
 			n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
-			TBN.p = Pt3(0,0,0,1);
+			TBN.p = (Point3){0,0,0,1};
 			TBN.bx = sp->v->tangent;		/* T */
 			TBN.bz = sp->v->n;			/* N */
 			TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
@@ -181,11 +181,11 @@ blinnshader(Shaderparams *sp)
 	pos = va->p;
 
 	va = sp->getattr(sp, "ambient");
-	m.ambient = va != nil? va->p: Pt3(1,1,1,1);
+	m.ambient = va != nil? va->p: (Point3){1,1,1,1};
 	va = sp->getattr(sp, "diffuse");
 	m.diffuse = va != nil? va->p: sp->v->c;
 	va = sp->getattr(sp, "specular");
-	m.specular = va != nil? va->p: Pt3(1,1,1,1);
+	m.specular = va != nil? va->p: (Point3){1,1,1,1};
 	va = sp->getattr(sp, "shininess");
 	m.shininess = va != nil? va->n: 1;
 
@@ -197,7 +197,7 @@ blinnshader(Shaderparams *sp)
 			n = sampletexture(sp->v->mtl->normalmap, sp->v->uv, neartexsampler);
 			n = normvec3(subpt3(mulpt3(n, 2), Vec3(1,1,1)));
 
-			TBN.p = Pt3(0,0,0,1);
+			TBN.p = (Point3){0,0,0,1};
 			TBN.bx = sp->v->tangent;		/* T */
 			TBN.bz = sp->v->n;			/* N */
 			TBN.by = crossvec3(TBN.bz, TBN.bx);	/* B */
@@ -281,7 +281,7 @@ toonshader(Shaderparams *sp)
 	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
 
-	return Pt3(intens, 0.6*intens, 0, 1);
+	return (Point3){intens, 0.6*intens, 0, 1};
 }
 
 Point3
@@ -300,7 +300,7 @@ identshader(Shaderparams *sp)
 	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
 		tc = sampletexture(sp->v->mtl->diffusemap, sp->v->uv, tsampler);
 	else
-		tc = Pt3(1,1,1,1);
+		tc = (Color){1,1,1,1};
 
 	sp->v->n.w = 1;
 	sp->toraster(sp, "normals", &sp->v->n);
