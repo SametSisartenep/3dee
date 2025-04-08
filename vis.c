@@ -240,14 +240,13 @@ renderproc(void *)
 		shootcamera(maincam, shader);
 
 		Δt = nanosec() - t0;
-		if(Δt > HZ2MS(60)*1000000ULL){
+		if(Δt > HZ2NS(60)){
 			lockdisplay(display);
 			draw(screenb, screenb->r, clr, nil, ZP);
 			maincam->view->draw(maincam->view, screenb, curraster);
 			unlockdisplay(display);
 
 			nbsend(drawc, nil);
-			t0 += Δt;
 
 			if(inception){
 				freememimage(mtl->diffusemap->image);
@@ -255,6 +254,7 @@ renderproc(void *)
 				if((mtl->diffusemap->image = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
+			t0 = nanosec();
 		}
 	}
 }

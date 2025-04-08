@@ -559,13 +559,13 @@ renderproc(void *)
 	for(;;){
 		shootcamera(camera, &shader);
 		Δt = nanosec() - t0;
-		if(Δt > HZ2MS(60)*1000000ULL){
+		if(Δt > HZ2NS(60)){
 			lockdisplay(display);
 			draw(screenb, screenb->r, bg, nil, ZP);
 			camera->view->draw(camera->view, screenb, nil);
 			unlockdisplay(display);
 			nbsend(drawc, nil);
-			t0 += Δt;
+			t0 = nanosec();
 		}
 	}
 }

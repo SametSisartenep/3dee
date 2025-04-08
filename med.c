@@ -456,7 +456,7 @@ renderproc(void *)
 		shootcamera(compass.cam, getshader("ident"));
 
 		Δt = nanosec() - t0;
-		if(Δt > HZ2MS(60)*1000000ULL){
+		if(Δt > HZ2NS(60)){
 			lockdisplay(display);
 			draw(screenb, screenb->r, bg, nil, ZP);
 			cam->view->draw(cam->view, screenb, nil);
@@ -464,7 +464,7 @@ renderproc(void *)
 			unlockdisplay(display);
 
 			nbsend(drawc, nil);
-			t0 += Δt;
+			t0 = nanosec();
 		}
 	}
 }
