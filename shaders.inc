@@ -32,13 +32,13 @@ gouraudvshader(Shaderparams *sp)
 		ambient = mulpt3(lightc, Ka);
 		ambient = modulapt3(ambient, m.diffuse);
 
-		Kd = max(0, dotvec3(sp->v->n, lightdir));
+		Kd = max(0, _Xdotvec3(sp->v->n, lightdir));
 		diffuse = mulpt3(lightc, Kd);
 		diffuse = modulapt3(diffuse, m.diffuse);
 
 		lookdir = normvec3(subpt3(sp->su->camera->p, sp->v->p));
 		lightdir = qrotate(lightdir, sp->v->n, PI); /* reflect */
-		spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
+		spec = pow(max(0, _Xdotvec3(lookdir, lightdir)), m.shininess);
 		specular = mulpt3(lightc, spec*Ks);
 		specular = modulapt3(specular, m.specular);
 
@@ -140,13 +140,13 @@ phongshader(Shaderparams *sp)
 		ambient = mulpt3(lightc, Ka);
 		ambient = modulapt3(ambient, m.diffuse);
 
-		Kd = max(0, dotvec3(n, lightdir));
+		Kd = max(0, _Xdotvec3(n, lightdir));
 		diffuse = mulpt3(lightc, Kd);
 		diffuse = modulapt3(diffuse, m.diffuse);
 
 		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 		lightdir = qrotate(lightdir, n, PI); /* reflect */
-		spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
+		spec = pow(max(0, _Xdotvec3(lookdir, lightdir)), m.shininess);
 		specular = mulpt3(lightc, spec*Ks);
 		specular = modulapt3(specular, m.specular);
 
@@ -221,13 +221,13 @@ blinnshader(Shaderparams *sp)
 		ambient = mulpt3(lightc, Ka);
 		ambient = modulapt3(ambient, m.diffuse);
 
-		Kd = max(0, dotvec3(n, lightdir));
+		Kd = max(0, _Xdotvec3(n, lightdir));
 		diffuse = mulpt3(lightc, Kd);
 		diffuse = modulapt3(diffuse, m.diffuse);
 
 		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
 		lightdir = normvec3(addpt3(lookdir, lightdir)); /* half vector */
-		spec = pow(max(0, dotvec3(lookdir, lightdir)), m.shininess);
+		spec = pow(max(0, _Xdotvec3(lookdir, lightdir)), m.shininess);
 		specular = mulpt3(lightc, spec*Ks);
 		specular = modulapt3(specular, m.specular);
 
@@ -256,7 +256,7 @@ toonvshader(Shaderparams *sp)
 	intens = 0;
 	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, sp->v->p));
-		intens += max(0, dotvec3(sp->v->n, lightdir));
+		intens += max(0, _Xdotvec3(sp->v->n, lightdir));
 	}
 	sp->setattr(sp, "intensity", VANumber, &intens);
 	if(sp->v->mtl != nil)
