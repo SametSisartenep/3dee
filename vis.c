@@ -232,9 +232,8 @@ renderproc(void *)
 			prim->mtl = mtl;
 	}
 
-	t0 = nanosec();
+	time = t0 = nanosec();
 	for(;;){
-		time = t0;
 		setuniform(shader, "time", VANumber, &time);
 
 		shootcamera(maincam, shader);
@@ -254,8 +253,9 @@ renderproc(void *)
 				if((mtl->diffusemap->image = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
-			t0 = nanosec();
-		}
+			time = t0 = nanosec();
+		}else
+			time = t0 + Δt;
 	}
 }
 
