@@ -75,6 +75,7 @@ Scene *scene;
 Mouse om;
 Quaternion orient = {1,0,0,0};
 AABB scenebbox;
+QLock scenelk;
 
 Camera *cams[4], *maincam;
 Camcfg camcfgs[4] = {
@@ -236,7 +237,9 @@ renderproc(void *)
 	for(;;){
 		setuniform(shader, "time", VANumber, &time);
 
+		qlock(&scenelk);
 		shootcamera(maincam, shader);
+		qunlock(&scenelk);
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
@@ -281,11 +284,13 @@ lmb(void)
 		qball(screen->r, om.xy, mctl->xy, &orient, nil);
 		Δorient = mulq(orient, invq(Δorient));
 
+		qlock(&scenelk);
 		for(e = scene->ents.next; e != &scene->ents; e = e->next){
 			e->bx = vcs2world(maincam, qsandwichpt3(Δorient, world2vcs(maincam, e->bx)));
 			e->by = vcs2world(maincam, qsandwichpt3(Δorient, world2vcs(maincam, e->by)));
 			e->bz = vcs2world(maincam, qsandwichpt3(Δorient, world2vcs(maincam, e->bz)));
 		}
+		qunlock(&scenelk);
 	}else{	/* DBG only */
 		Framebuf *fb;
 		Viewport *v;
@@ -380,6 +385,7 @@ mmb(void)
 	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
+		qlock(&scenelk);
 		snprint(buf, sizeof buf, "%g %g %g", lights[0]->p.x, lights[0]->p.y, lights[0]->p.z);
 		if(enter("light pos", buf, sizeof buf, mctl, kctl, nil) <= 0)
 			break;
@@ -389,6 +395,7 @@ mmb(void)
 		lights[0]->p.x = strtod(f[0], nil);
 		lights[0]->p.y = strtod(f[1], nil);
 		lights[0]->p.z = strtod(f[2], nil);
+		qunlock(&scenelk);
 		break;
 	case TSNEAREST:
 		tsampler = neartexsampler;

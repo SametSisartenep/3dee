@@ -153,6 +153,7 @@ int kdown;
 Tm date;
 char datestr[16];
 Scene *scene;
+QLock scenelk;
 
 Camera *camera;
 Camcfg cameracfg = {
@@ -287,10 +288,12 @@ selectplanet(Planet *p)
 	if(p == oldp)
 		return;
 
+	qlock(&scenelk);
 	oldp = selplanet = p;
 	esel = scene->getent(scene, "selection");
 	if(esel != nil)
 		scene->delent(scene, esel);
+	qunlock(&scenelk);
 
 	lockdisplay(display);
 	freeinfobox(infobox);
@@ -351,7 +354,9 @@ selectplanet(Planet *p)
 		msel->addprim(msel, l);
 	}
 
+	qlock(&scenelk);
 	scene->addent(scene, esel);
+	qunlock(&scenelk);
 }
 
 static void
@@ -423,6 +428,7 @@ updateplanets(void)
 	int i;
 
 	fprint(2, "loading planet states...\n");
+	qlock(&scenelk);
 	for(i = 1; i < nelem(planets); i++){
 		s = getplanetstate(planets[i].id, &date);
 		if(s == nil){
@@ -440,6 +446,7 @@ updateplanets(void)
 		free(s);
 		fprint(2, "%s ready\n", planets[i].name);
 	}
+	qunlock(&scenelk);
 }
 
 static Planet *
@@ -557,7 +564,10 @@ renderproc(void *)
 
 	t0 = nanosec();
 	for(;;){
+		qlock(&scenelk);
 		shootcamera(camera, &shader);
+		qunlock(&scenelk);
+
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
 			lockdisplay(display);
