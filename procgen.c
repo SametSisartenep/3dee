@@ -148,6 +148,7 @@ threadmain(int argc, char *argv[])
 	Memimage *out;
 	Point dim;
 	int skip;
+	double time;
 
 	dim = Pt(800,400);
 	skip = 0;
@@ -191,7 +192,11 @@ threadmain(int argc, char *argv[])
 	mdl->addprim(mdl, quad[1]);
 	scn->addent(scn, ent);
 
-	do shootcamera(cam, &shaders); while(skip--);
+	do{
+		time = nanosec();
+		setuniform(&shaders, "time", VANumber, &time);
+		shootcamera(cam, &shaders);
+	}while(skip--);
 	cam->view->memdraw(cam->view, out, nil);
 	writememimage(1, out);
 
