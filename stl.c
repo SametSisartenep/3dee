@@ -39,7 +39,7 @@ readstlmodel(int fd)
 
 	m = newmodel();
 	if((stl = readstl(fd)) == nil)
-		sysfatal("readst: %r");
+		sysfatal("readstl: %r");
 	loadstlmodel(m, stl);
 	freestl(stl);
 	return m;
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
 
 	m = readstlmodel(fd);
 	if(m == nil)
-		sysfatal("sysfatal: %r");
+		sysfatal("readstlmodel: %r");
 
 	if(writemodel(1, m, dedup) == 0)
 		sysfatal("writemodel: %r");
