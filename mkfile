@@ -9,6 +9,7 @@ TARG=\
 	procgen\
 	obj\
 	stl\
+	tostl\
 
 OFILES=\
 	alloc.$O\

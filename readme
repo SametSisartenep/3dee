@@ -16,6 +16,7 @@ TOOLS
 	- solar: a solar system planetarium (WIP)
 	- obj: an OBJ to model(6) conversion tool
 	- stl: an STL to model(6) conversion tool
+	- tostl: a model(6) to STL conversion tool
 
 USAGE
 
@@ -115,6 +116,15 @@ USAGE
 
 	Just like with obj, by default it will try to compress the resulting
 	model by deduplicating entries, to disable this feature use -d.
+
+
+	tostl [-t] [file]
+
+	Converts a model(6) into an STL model and writes it to stdout.
+	If there are no arguments, it will read the model(6) from stdin.
+
+	Use the t option to write an ASCII STL file, otherwise a
+	binary one will be written.
 
 CUBEMAPS
 
