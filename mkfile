@@ -10,6 +10,7 @@ TARG=\
 	obj\
 	stl\
 	tostl\
+	plot3\
 
 OFILES=\
 	alloc.$O\
