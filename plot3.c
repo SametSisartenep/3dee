@@ -11,6 +11,10 @@
 #include "fns.h"
 
 typedef struct AABB AABB;
+typedef struct PColor PColor;
+typedef struct Plotpt Plotpt;
+typedef struct Plot Plot;
+
 struct AABB
 {
 	Point3 min;
@@ -20,21 +24,25 @@ struct AABB
 	double r;
 };
 
-typedef struct Plot Plot;
-struct Plot
-{
-	Point3 *pts;
-	ulong npts;
-	AABB bbox;
-	Scene *scn;
-};
-
-typedef struct PColor PColor;
 struct PColor
 {
 	char *k;
 	ulong v;
 	Color c;
+};
+
+struct Plotpt
+{
+	Point3 p;
+	PColor *c;
+};
+
+struct Plot
+{
+	Plotpt *pts;
+	ulong npts;
+	AABB bbox;
+	Scene *scn;
 };
 
 Mousectl *mctl;
@@ -98,7 +106,7 @@ updatebboxfromtheplot(void)
 	static int inited;
 	Point3 *lastpt;
 
-	lastpt = &theplot.pts[theplot.npts-1];
+	lastpt = &theplot.pts[theplot.npts-1].p;
 
 	if(!inited){
 		theplot.bbox.min = theplot.bbox.max = *lastpt;
@@ -116,8 +124,8 @@ void
 addpttotheplot(Point3 p)
 {
 	if(theplot.npts % 4 == 0)
-		theplot.pts = erealloc(theplot.pts, (theplot.npts + 4)*sizeof(Point3));
-	theplot.pts[theplot.npts++] = p;
+		theplot.pts = erealloc(theplot.pts, (theplot.npts + 4)*sizeof(Plotpt));
+	theplot.pts[theplot.npts++] = (Plotpt){p, brush};
 	updatebboxfromtheplot();
 }
 
@@ -195,7 +203,7 @@ understandtheplot(void)
 	Entity *ent;
 	Scene *scn;
 	Primitive prim;
-	Point3 *p;
+	Plotpt *p;
 
 	mdl = newmodel();
 	ent = newentity(nil, mdl);
@@ -205,12 +213,15 @@ understandtheplot(void)
 
 	memset(&prim, 0, sizeof prim);
 	prim.type = PPoint;
-	prim.v[0].c = brush->c;
 
 	for(p = theplot.pts; p < theplot.pts + theplot.npts; p++){
-		prim.v[0].p = *p;
+		prim.v[0].p = p->p;
+		prim.v[0].c = p->c->c;
 		mdl->addprim(mdl, prim);
 	}
+	free(theplot.pts);
+	theplot.pts = nil;
+	theplot.npts = 0;
 	frametheplot();
 }
 
