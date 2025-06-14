@@ -175,16 +175,16 @@ frametheplot(void)
 	line.v[0].c = line.v[1].c = Pt3(0.4,0.4,0.4,1);
 
 	/* x scale */
-	line.v[0].p = Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1);
-	line.v[1].p = addpt3(line.v[0].p, Vec3(biggestbbox(x), 0, 0));
+	line.v[0].p = Pt3(smallestbbox(x), smallestbbox(y), smallestbbox(z), 1);
+	line.v[1].p = Pt3(biggestbbox(x), smallestbbox(y), smallestbbox(z), 1);
 	mdl->addprim(mdl, line);
 
 	/* y scale */
-	line.v[1].p = addpt3(line.v[0].p, Vec3(0, biggestbbox(y), 0));
+	line.v[1].p = Pt3(smallestbbox(x), biggestbbox(y), smallestbbox(z), 1);
 	mdl->addprim(mdl, line);
 
 	/* z scale */
-	line.v[1].p = addpt3(line.v[0].p, Vec3(0, 0, smallestbbox(z)));
+	line.v[1].p = Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1);
 	mdl->addprim(mdl, line);
 }
 
