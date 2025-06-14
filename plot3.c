@@ -39,6 +39,7 @@ struct PColor
 
 Mousectl *mctl;
 Keyboardctl *kctl;
+Mouse om;
 Channel *drawc;
 Image *screenb;
 Plot theplot;
@@ -261,12 +262,38 @@ zoomout(void)
 }
 
 void
+lmb(void)
+{
+	static Quaternion orient = {1,0,0,0};
+	Quaternion Δorient;
+	Point3 v;
+
+	if((om.buttons^mctl->buttons) != 0)
+		return;
+
+	Δorient = orient;
+	qball(screen->r, om.xy, mctl->xy, &orient, nil);
+	Δorient = mulq(Δorient, invq(orient));
+
+	/* orbit camera around the center */
+	v = subpt3(cam->p, theplot.bbox.c);
+	v = vcs2world(cam, qsandwichpt3(Δorient, world2vcs(cam, v)));
+	movecamera(cam, addpt3(theplot.bbox.c, v));
+	aimcamera(cam, theplot.bbox.c);
+
+	redrawb();
+}
+
+void
 mouse(void)
 {
+	if(mctl->buttons & 1)
+		lmb();
 	if(mctl->buttons & 8)
 		zoomin();
 	if(mctl->buttons & 16)
 		zoomout();
+	om = mctl->Mouse;
 }
 
 void
