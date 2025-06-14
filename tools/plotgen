@@ -1,0 +1,47 @@
+#!/bin/rc
+rfork en
+
+flagfmt='s:step step'
+args='lo hi f(x,z)'
+
+if(! ifs=() eval `{aux/getflags $*} || ! ~ $#* 3){
+	aux/usage
+	exit usage
+}
+
+if(~ $#step 0)
+	step=0.1
+if not
+	step=$step(1)
+
+hoc <<EOF
+func lanczos(x) {
+	if(x == 0) return 1
+	if(x < -a || x >= a) return 0
+	return a*sin(PI*x)*sin(PI*x/a)/(PI^2*x^2)
+}
+
+print "co blue\n"
+
+lo = $1
+hi = $2
+a = hi - lo
+step = $step
+if(step >= a) step = a/100
+
+for(x = lo; x < hi; x += step){
+for(z = lo; z < hi; z += step){
+	y = $3
+	if(y > 0 && y < 0.1) print "co red\n"
+	if(y >= 0.1 && y < 0.5) print "co green\n"
+	if(y >= 0.5 && y < 0.75) print "co blue\n"
+	if(y >= 0.75) print "co black\n"
+	print x
+	print " "
+	print y
+	print " "
+	print z
+	print "\n"
+}
+}
+EOF
