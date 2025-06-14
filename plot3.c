@@ -29,12 +29,28 @@ struct Plot
 	Scene *scn;
 };
 
+typedef struct PColor PColor;
+struct PColor
+{
+	char *k;
+	ulong v;
+	Color c;
+};
+
 Mousectl *mctl;
 Keyboardctl *kctl;
 Channel *drawc;
 Image *screenb;
 Plot theplot;
 Camera *cam;
+PColor pal[] = {
+	{ .k = "black",		.v = DBlack },
+	{ .k = "white",		.v = DWhite },
+	{ .k = "red",		.v = DRed },
+	{ .k = "green",		.v = DGreen },
+	{ .k = "blue",		.v = DBlue },
+	{ .k = "yellow",	.v = DYellow },
+}, *brush;
 
 static Point3
 vs(Shaderparams *sp)
@@ -52,6 +68,28 @@ Shadertab shaders = {
 	.vs = vs,
 	.fs = fs
 };
+
+void
+initpalette(void)
+{
+	int i;
+
+	for(i = 0; i < nelem(pal); i++)
+		pal[i].c = ul2col(pal[i].v);
+	brush = &pal[0];
+}
+
+void
+soakbrush(char *ck)
+{
+	int i;
+
+	for(i = 0; i < nelem(pal); i++)
+		if(strcmp(ck, pal[i].k) == 0){
+			brush = &pal[i];
+			break;
+		}
+}
 
 void
 updatebboxfromtheplot(void)
@@ -77,7 +115,7 @@ void
 addpttotheplot(Point3 p)
 {
 	if(theplot.npts % 4 == 0)
-		theplot.pts = erealloc(theplot.pts, (theplot.npts + 4)*sizeof(Plot));
+		theplot.pts = erealloc(theplot.pts, (theplot.npts + 4)*sizeof(Point3));
 	theplot.pts[theplot.npts++] = p;
 	updatebboxfromtheplot();
 }
@@ -100,8 +138,13 @@ readtheplot(int fd)
 	while((line = Brdstr(bin, '\n', 1)) != nil){
 		lineno++;
 		nf = tokenize(line, f, nelem(f));
+		if(nf == 2 && strncmp(f[0], "co", 2) == 0){
+			soakbrush(f[1]);
+			free(line);
+			continue;
+		}
 		if(nf != 3){
-			fprint(2, "not enough fields. ignoring line %uld\n", lineno);
+			fprint(2, "not enough coordinates. ignoring line %uld\n", lineno);
 			free(line);
 			continue;
 		}
@@ -128,7 +171,7 @@ frametheplot(void)
 	theplot.scn->addent(theplot.scn, ent);
 
 	line.type = PLine;
-	line.v[0].c = line.v[1].c = Pt3(0,0,0,1);
+	line.v[0].c = line.v[1].c = Pt3(0.4,0.4,0.4,1);
 
 	/* x scale */
 	line.v[0].p = Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1);
@@ -161,7 +204,7 @@ understandtheplot(void)
 
 	memset(&prim, 0, sizeof prim);
 	prim.type = PPoint;
-	prim.v[0].c = Pt3(0,0,0,1);
+	prim.v[0].c = brush->c;
 
 	for(p = theplot.pts; p < theplot.pts + theplot.npts; p++){
 		prim.v[0].p = *p;
@@ -171,12 +214,20 @@ understandtheplot(void)
 }
 
 void
-redraw(void)
+redrawb(void)
 {
 	shootcamera(cam, &shaders);
 	lockdisplay(display);
 	draw(screenb, screenb->r, display->white, nil, ZP);
 	cam->view->draw(cam->view, screenb, nil);
+	unlockdisplay(display);
+	nbsend(drawc, nil);
+}
+
+void
+redraw(void)
+{
+	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
 	flushimage(display, 1);
 	unlockdisplay(display);
@@ -194,8 +245,28 @@ drawproc(void *)
 }
 
 void
+zoomin(void)
+{
+	cam->fov = fclamp(cam->fov - 1*DEG, 1*DEG, 180*DEG);
+	reloadcamera(cam);
+	redrawb();
+}
+
+void
+zoomout(void)
+{
+	cam->fov = fclamp(cam->fov + 1*DEG, 1*DEG, 180*DEG);
+	reloadcamera(cam);
+	redrawb();
+}
+
+void
 mouse(void)
 {
+	if(mctl->buttons & 8)
+		zoomin();
+	if(mctl->buttons & 16)
+		zoomout();
 }
 
 void
@@ -237,6 +308,7 @@ threadmain(int argc, char *argv[])
 	if(argc != 0)
 		usage();
 
+	initpalette();
 	readtheplot(0);
 	understandtheplot();
 
@@ -244,7 +316,7 @@ threadmain(int argc, char *argv[])
 		sysfatal("memimageinit: %r");
 	if((rctl = initgraphics()) == nil)
 		sysfatal("initgraphics: %r");
-	if(initdraw(nil, nil, "solar") < 0)
+	if(initdraw(nil, nil, "plot3") < 0)
 		sysfatal("initdraw: %r");
 	if((mctl = initmouse(nil, screen)) == nil)
 		sysfatal("initmouse: %r");
@@ -260,7 +332,7 @@ threadmain(int argc, char *argv[])
 
 	drawc = chancreate(sizeof(void*), 1);
 	proccreate(drawproc, nil, mainstacksize);
-	nbsend(drawc, nil);
+	redrawb();
 
 	enum {MOUSE, RESIZE, KEY};
 	Alt a[] = {
