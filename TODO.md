@@ -30,5 +30,5 @@
 
 - [ ] Implement a subset of the plot(6) commands
 - [ ] Add text to the scales
-	Could be done with quads and textures using string(2), or with vector fonts.
+	- Could be done with quads and textures using string(2), or with vector fonts.
 - [ ] Add surface rendering (triangles + quads should suffice)
