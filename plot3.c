@@ -123,8 +123,8 @@ updatebboxfromtheplot(void)
 void
 addpttotheplot(Point3 p)
 {
-	if(theplot.npts % 4 == 0)
-		theplot.pts = erealloc(theplot.pts, (theplot.npts + 4)*sizeof(Plotpt));
+	if(theplot.npts % 16 == 0)
+		theplot.pts = erealloc(theplot.pts, (theplot.npts + 16)*sizeof(Plotpt));
 	theplot.pts[theplot.npts++] = (Plotpt){p, brush};
 	updatebboxfromtheplot();
 }
@@ -173,7 +173,9 @@ frametheplot(void)
 {
 	Model *mdl;
 	Entity *ent;
-	Primitive line;
+	Primitive line, mark;
+	Point3 stepv;
+	int i;
 
 	mdl = newmodel();
 	ent = newentity("axis scales", mdl);
@@ -181,19 +183,41 @@ frametheplot(void)
 
 	line.type = PLine;
 	line.v[0].c = line.v[1].c = Pt3(0.4,0.4,0.4,1);
+	mark = line;
 
 	/* x scale */
 	line.v[0].p = Pt3(smallestbbox(x), smallestbbox(y), smallestbbox(z), 1);
 	line.v[1].p = Pt3(biggestbbox(x), smallestbbox(y), smallestbbox(z), 1);
 	mdl->addprim(mdl, line);
+	stepv = subpt3(line.v[1].p, line.v[0].p);
+	stepv = divpt3(stepv, 10);
+	for(i = 1; i <= 10; i++){
+		mark.v[0].p = addpt3(line.v[0].p, mulpt3(stepv, i));
+		mark.v[1].p = addpt3(mark.v[0].p, qrotate(stepv, Vec3(0,1,0), 90*DEG));
+		mdl->addprim(mdl, mark);
+	}
 
 	/* y scale */
 	line.v[1].p = Pt3(smallestbbox(x), biggestbbox(y), smallestbbox(z), 1);
 	mdl->addprim(mdl, line);
+	stepv = subpt3(line.v[1].p, line.v[0].p);
+	stepv = divpt3(stepv, 10);
+	for(i = 1; i <= 10; i++){
+		mark.v[0].p = addpt3(line.v[0].p, mulpt3(stepv, i));
+		mark.v[1].p = addpt3(mark.v[0].p, qrotate(stepv, normvec3(Vec3(-1,0,1)), 90*DEG));
+		mdl->addprim(mdl, mark);
+	}
 
 	/* z scale */
 	line.v[1].p = Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1);
 	mdl->addprim(mdl, line);
+	stepv = subpt3(line.v[1].p, line.v[0].p);
+	stepv = divpt3(stepv, 10);
+	for(i = 1; i <= 10; i++){
+		mark.v[0].p = addpt3(line.v[0].p, mulpt3(stepv, i));
+		mark.v[1].p = addpt3(mark.v[0].p, qrotate(stepv, Vec3(0,1,0), -90*DEG));
+		mdl->addprim(mdl, mark);
+	}
 }
 
 void
@@ -213,7 +237,6 @@ understandtheplot(void)
 
 	memset(&prim, 0, sizeof prim);
 	prim.type = PPoint;
-
 	for(p = theplot.pts; p < theplot.pts + theplot.npts; p++){
 		prim.v[0].p = p->p;
 		prim.v[0].c = p->c->c;

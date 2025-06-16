@@ -15,6 +15,13 @@ if not
 	step=$step(1)
 
 hoc <<EOF
+func sign(x) {
+	if(x < 0) return -1
+	return 1
+}
+func round(x) {
+	return int(x + 0.5)
+}
 func lanczos(x) {
 	if(x == 0) return 1
 	if(x < -a || x >= a) return 0
@@ -32,10 +39,10 @@ if(step >= a) step = a/100
 for(x = lo; x < hi; x += step){
 for(z = lo; z < hi; z += step){
 	y = $3
-	if(y > 0 && y < 0.1) print "co red\n"
-	if(y >= 0.1 && y < 0.5) print "co green\n"
-	if(y >= 0.5 && y < 0.75) print "co blue\n"
-	if(y >= 0.75) print "co black\n"
+#	if(y > 0 && y < 0.1) print "co red\n"
+#	if(y >= 0.1 && y < 0.5) print "co green\n"
+#	if(y >= 0.5 && y < 0.75) print "co blue\n"
+#	if(y >= 0.75) print "co black\n"
 	print x
 	print " "
 	print y
