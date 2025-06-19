@@ -169,17 +169,17 @@ loadobjmodel(Model *m, OBJ *obj)
 
 			if(objmtl->map_Kd != nil){
 				mtl->diffusemap = alloctexture(sRGBTexture, nil);
-				mtl->diffusemap->image = dupmemimage(objmtl->map_Kd);
+				mtl->diffusemap->image = dupmemimage(objmtl->map_Kd->image);
 			}
 
 			if(objmtl->map_Ks != nil){
 				mtl->specularmap = alloctexture(sRGBTexture, nil);
-				mtl->specularmap->image = dupmemimage(objmtl->map_Ks);
+				mtl->specularmap->image = dupmemimage(objmtl->map_Ks->image);
 			}
 
 			if(objmtl->norm != nil){
 				mtl->normalmap = alloctexture(RAWTexture, nil);
-				mtl->normalmap->image = dupmemimage(objmtl->norm);
+				mtl->normalmap->image = dupmemimage(objmtl->norm->image);
 			}
 
 			addmtlmap(&mtlmap, objmtl, m->nmaterials-1);
