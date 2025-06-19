@@ -141,6 +141,55 @@ zoomout(void)
 }
 
 void
+viewabuffer(void)
+{
+	Viewport *v;
+	Framebuf *fb;
+	Abuf *abuf;
+	Astk *astk;
+	Memimage *ri;
+	Point p;
+	int c, pfd[2], cpid;
+
+	v = maincam->view;
+	qlock(v->fbctl);
+	fb = v->getfb(v);
+	abuf = &fb->abuf;
+	if(abuf->stk == nil){
+		qunlock(v->fbctl);
+		return;
+	}
+	ri = eallocmemimage(fb->r, GREY8);
+	for(p.y = 0; p.y < Dy(fb->r); p.y++)
+	for(p.x = 0; p.x < Dx(fb->r); p.x++){
+		astk = &abuf->stk[p.y*Dx(fb->r) + p.x];
+		c = min(max(astk->size*20, 0), 0xFF);
+		*byteaddr(ri, p) = c;
+	}
+	if(pipe(pfd) < 0)
+		sysfatal("pipe: %r");
+	switch(cpid = fork()){
+	case -1:
+		sysfatal("fork: %r");
+	case 0:
+		close(pfd[1]);
+		dup(pfd[0], 0);
+		close(pfd[0]);
+		execl("/bin/page", "page", "-w", nil);
+		sysfatal("execl: %r");
+	default:
+		close(pfd[0]);
+		if(writememimage(pfd[1], ri) < 0)
+			sysfatal("writememimage: %r");
+		close(pfd[1]);
+		freememimage(ri);
+		if(waitpid() != cpid)
+			sysfatal("child ran away");
+	}
+	qunlock(v->fbctl);
+}
+
+void
 updatebbox(Entity *e)
 {
 	static int inited;
@@ -355,6 +404,8 @@ mmb(void)
 		TGLBLEND,
 		TGLDEPTH,
 		TGLABUFF,
+		SP5,
+		VIEWABUF,
 	};
 	static char *items[] = {
 	 [MOVELIGHT]	"move light",
@@ -374,7 +425,9 @@ mmb(void)
 			"",
 	 [TGLBLEND]	"toggle blending",
 	 [TGLDEPTH]	"toggle depth testing",
-	 [TGLABUFF]	"toggle the A-buffer",
+	 [TGLABUFF]	"toggle the a-buffer",
+			"",
+	 [VIEWABUF]	"view a-buffer",
 		nil,
 	};
 	static Menu menu = { .item = items };
@@ -443,6 +496,9 @@ mmb(void)
 		break;
 	case TGLABUFF:
 		maincam->rendopts ^= ROAbuff;
+		break;
+	case VIEWABUF:
+		viewabuffer();
 		break;
 	}
 	unlockdisplay(display);
@@ -822,18 +878,17 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 	proccreate(renderproc, nil, mainstacksize);
 	proccreate(drawproc, nil, mainstacksize);
 
-	for(;;){
-		enum {MOUSE, RESIZE, KEY};
-		Alt a[] = {
-			{mctl->c, &mctl->Mouse, CHANRCV},
-			{mctl->resizec, nil, CHANRCV},
-			{keyc, nil, CHANRCV},
-			{nil, nil, CHANEND}
-		};
+	enum {MOUSE, RESIZE, KEY};
+	Alt a[] = {
+		{mctl->c, &mctl->Mouse, CHANRCV},
+		{mctl->resizec, nil, CHANRCV},
+		{keyc, nil, CHANRCV},
+		{nil, nil, CHANEND}
+	};
+	for(;;)
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
 		case KEY: handlekeys(); break;
 		}
-	}
 }

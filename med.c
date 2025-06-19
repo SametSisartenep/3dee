@@ -825,18 +825,17 @@ threadmain(int argc, char *argv[])
 	proccreate(renderproc, nil, mainstacksize);
 	proccreate(drawproc, nil, mainstacksize);
 
-	for(;;){
-		enum {MOUSE, RESIZE, KEY};
-		Alt a[] = {
-			{mctl->c, &mctl->Mouse, CHANRCV},
-			{mctl->resizec, nil, CHANRCV},
-			{keyc, nil, CHANRCV},
-			{nil, nil, CHANEND}
-		};
+	enum {MOUSE, RESIZE, KEY};
+	Alt a[] = {
+		{mctl->c, &mctl->Mouse, CHANRCV},
+		{mctl->resizec, nil, CHANRCV},
+		{keyc, nil, CHANRCV},
+		{nil, nil, CHANEND}
+	};
+	for(;;)
 		switch(alt(a)){
 		case MOUSE: mouse(); break;
 		case RESIZE: resize(); break;
 		case KEY: handlekeys(); break;
 		}
-	}
 }
