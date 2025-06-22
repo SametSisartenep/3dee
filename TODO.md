@@ -6,7 +6,7 @@
 	- [ ] Tools to modify existing geometry
 	- [ ] Tools to create geometry parametrically
 	- [ ] CSG tools (?)
-- [ ] CAD tools
+- [ ] CAD/CAM tools
 - [ ] FEA tools
 - [ ] CFD tools
 

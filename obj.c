@@ -325,7 +325,7 @@ usage(void)
 }
 
 void
-threadmain(int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	Model *m;
 	char *infile, *dstdir;
