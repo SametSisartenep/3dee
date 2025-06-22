@@ -8,6 +8,7 @@ TARG=\
 	projtest\
 	procgen\
 	obj\
+	toobj\
 	stl\
 	tostl\
 	plot3\

@@ -132,20 +132,11 @@ loadobjmodel(Model *m, OBJ *obj)
 	Point3 n;					/* surface normal */
 	int i, idx, nt, maxnt, neednormal, gottaclean;
 
-	if(obj == nil)
-		return 0;
-
 	pverts = obj->vertdata[OBJVGeometric].verts;
 	tverts = obj->vertdata[OBJVTexture].verts;
 	nverts = obj->vertdata[OBJVNormal].verts;
 	trielems = nil;
 	maxnt = 0;
-
-	if(m->prims != nil){
-		free(m->prims);
-		m->prims = nil;
-	}
-	m->nprims = 0;
 
 	mtlmap.head = nil;
 	for(i = 0; obj->materials != nil && i < nelem(obj->materials->mattab); i++)
@@ -154,11 +145,10 @@ loadobjmodel(Model *m, OBJ *obj)
 			mtl = &m->materials[m->nmaterials-1];
 			memset(mtl, 0, sizeof *mtl);
 
-			if(objmtl->name != nil){
-				mtl->name = strdup(objmtl->name);
-				if(mtl->name == nil)
-					sysfatal("strdup: %r");
-			}
+			mtl->name = strdup(objmtl->name);
+			if(mtl->name == nil)
+				sysfatal("strdup: %r");
+
 			if(objmtl->Ka.a > 0)
 				mtl->ambient = objmtl->Ka;
 			if(objmtl->Kd.a > 0)
