@@ -1,6 +1,6 @@
 # General
 
-- [ ] Write a toobj(1) tool
+- [+] Write a toobj(1) tool
 - [ ] Write gltf/togltf(1) tools (needs a libgltf)
 - [ ] Write tools to manipulate geometry
 	- [ ] Tools to modify existing geometry
