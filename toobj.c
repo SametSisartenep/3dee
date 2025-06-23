@@ -96,78 +96,38 @@ loadobjmodel(OBJ *obj, Model *m)
 		switch(prim->type){
 		case PPoint:
 			e = objallocelem(OBJEPoint);
+			break;
+		case PLine:
+			e = objallocelem(OBJELine);
+			break;
+		case PTriangle:
+			e = objallocelem(OBJEFace);
+			break;
+		default:
+			continue;
+		}
 
-			v = GP3V(prim->v[0].p);
+		for(i = 0; i < prim->type+1; i++){
+			v = GP3V(prim->v[i].p);
 			idx = objaddvertex(obj, v, OBJVGeometric);
 			objaddelemidx(e, OBJVGeometric, idx);
 
-			if(memcmp(&prim->v[0].n, &ZP3, sizeof(Point3)) != 0){
-				v = GP3V(prim->v[0].n);
+			if(memcmp(&prim->v[i].n, &ZP3, sizeof(Point3)) != 0){
+				v = GP3V(prim->v[i].n);
 				idx = objaddvertex(obj, v, OBJVNormal);
 				objaddelemidx(e, OBJVNormal, idx);
 			}
 
-			if(memcmp(&prim->v[0].uv, &ZP2, sizeof(Point2)) != 0){
-				v = GP2V(prim->v[0].uv);
+			if(memcmp(&prim->v[i].uv, &ZP2, sizeof(Point2)) != 0){
+				v = GP2V(prim->v[i].uv);
 				idx = objaddvertex(obj, v, OBJVTexture);
 				objaddelemidx(e, OBJVTexture, idx);
 			}
-
-			if(prim->mtl != nil)
-				e->mtl = objgetmtl(obj->materials, prim->mtl->name);
-			objaddelem(o, e);
-			break;
-		case PLine:
-			e = objallocelem(OBJELine);
-
-			for(i = 0; i < prim->type+1; i++){
-				v = GP3V(prim->v[i].p);
-				idx = objaddvertex(obj, v, OBJVGeometric);
-				objaddelemidx(e, OBJVGeometric, idx);
-
-				if(memcmp(&prim->v[i].n, &ZP3, sizeof(Point3)) != 0){
-					v = GP3V(prim->v[i].n);
-					idx = objaddvertex(obj, v, OBJVNormal);
-					objaddelemidx(e, OBJVNormal, idx);
-				}
-
-				if(memcmp(&prim->v[i].uv, &ZP2, sizeof(Point2)) != 0){
-					v = GP2V(prim->v[i].uv);
-					idx = objaddvertex(obj, v, OBJVTexture);
-					objaddelemidx(e, OBJVTexture, idx);
-				}
-			}
-
-			if(prim->mtl != nil)
-				e->mtl = objgetmtl(obj->materials, prim->mtl->name);
-			objaddelem(o, e);
-			break;
-		case PTriangle:
-			e = objallocelem(OBJEFace);
-
-			for(i = 0; i < prim->type+1; i++){
-				v = GP3V(prim->v[i].p);
-				idx = objaddvertex(obj, v, OBJVGeometric);
-				objaddelemidx(e, OBJVGeometric, idx);
-
-				if(memcmp(&prim->v[i].n, &ZP3, sizeof(Point3)) != 0){
-					v = GP3V(prim->v[i].n);
-					idx = objaddvertex(obj, v, OBJVNormal);
-					objaddelemidx(e, OBJVNormal, idx);
-				}
-
-				if(memcmp(&prim->v[i].uv, &ZP2, sizeof(Point2)) != 0){
-					v = GP2V(prim->v[i].uv);
-					idx = objaddvertex(obj, v, OBJVTexture);
-					objaddelemidx(e, OBJVTexture, idx);
-				}
-			}
-
-			if(prim->mtl != nil)
-				e->mtl = objgetmtl(obj->materials, prim->mtl->name);
-			objaddelem(o, e);
-			break;
 		}
+
+		if(prim->mtl != nil)
+			e->mtl = objgetmtl(obj->materials, prim->mtl->name);
+		objaddelem(o, e);
 	}
 
 	return m->nprims;
