@@ -4,6 +4,7 @@
 #include <draw.h>
 #include <memdraw.h>
 #include <geometry.h>
+#include <pool.h>
 #include "libgraphics/graphics.h"
 #include "fns.h"
 #include "libobj/obj.h"
@@ -43,7 +44,8 @@ loadobjmodel(OBJ *obj, Model *m)
 	Material *mtl;
 	int i, idx;
 
-	obj->materials = objallocmtl("main.mtl");
+	if(m->nmaterials > 0)
+		obj->materials = objallocmtl("main.mtl");
 	for(mtl = m->materials; mtl < m->materials + m->nmaterials; mtl++){
 		objmtl = objallocmt(mtl->name);
 
@@ -185,6 +187,9 @@ main(int argc, char *argv[])
 	OBJ *obj;
 	char *infile, *dstdir;
 	int fd;
+
+	/* we could be dealing with some pretty beefy data */
+	mainmem->maxsize = (uintptr)~0;
 
 	OBJfmtinstall();
 	ARGBEGIN{
