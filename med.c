@@ -239,86 +239,114 @@ void
 materializefrustum(void)
 {
 	Primitive l;
+	Vertex v;
 	Point3 p[4];
-	int i;
+	usize vidx0;
+	int i, j;
 
 	p[0] = Pt3(0,0,1,1);
 	p[1] = Pt3(Dx(cam->view->r),0,1,1);
 	p[2] = Pt3(Dx(cam->view->r),Dy(cam->view->r),1,1);
 	p[3] = Pt3(0,Dy(cam->view->r),1,1);
-	memset(&l, 0, sizeof l);
-	l.type = PLine;
-	l.v[0].c = l.v[1].c = Pt3(1,1,1,1);
+	l = mkprim(PLine);
+	v = mkvert();
+	v.c = model->addcolor(model, Pt3(1,1,1,1));
 
-	for(i = 0; i < nelem(p); i++){
-		/* front frame */
-		l.v[0].p = world2model(subject, viewport2world(cam, p[i]));
-		l.v[1].p = world2model(subject, viewport2world(cam, p[(i+1)%nelem(p)]));
-		qlock(&scenelk);
-		model->addprim(model, l);
-		qunlock(&scenelk);
+	qlock(&scenelk);
+	vidx0 = model->verts->nitems;
+	/* add front, middle and back frames' vertices */
+	for(i = 0; i < 3; i++)
+		for(j = 0; j < nelem(p); j++){
+			v.p = model->addposition(model, world2model(subject, viewport2world(cam, p[i])));
+			p[i] = addpt3(p[i], Vec3(0,0,0.5));
+			model->addvert(model, v);
+		}
 
-		/* middle frame */
-		l.v[0].p = world2model(subject, viewport2world(cam, subpt3(p[i], Vec3(0,0,0.5))));
-		l.v[1].p = world2model(subject, viewport2world(cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,0.5))));
-		qlock(&scenelk);
-		model->addprim(model, l);
-		qunlock(&scenelk);
+	/* build the frames */
+	for(i = 0; i < 3; i++)
+		for(j = 1; j <= nelem(p); j++){
+			l.v[0] = vidx0 + 4*i + j-1;
+			l.v[1] = vidx0 + 4*i + j%4;
+			model->addprim(model, l);
+		}
 
-		/* back frame */
-		l.v[0].p = world2model(subject, viewport2world(cam, subpt3(p[i], Vec3(0,0,1))));
-		l.v[1].p = world2model(subject, viewport2world(cam, subpt3(p[(i+1)%nelem(p)], Vec3(0,0,1))));
-		qlock(&scenelk);
-		model->addprim(model, l);
-		qunlock(&scenelk);
-
-		/* struts */
-		l.v[1].p = world2model(subject, viewport2world(cam, p[i]));
-		qlock(&scenelk);
-		model->addprim(model, l);
-		qunlock(&scenelk);
-	}
+	/* connect the frames with struts */
+	for(i = 0; i < nelem(p); i++)
+		for(j = 1; j < 3; j++){
+			l.v[0] = vidx0 + 4*(j-1) + i;
+			l.v[1] = vidx0 + 4*j + i;
+			model->addprim(model, l);
+		}
+	qunlock(&scenelk);
 }
 
 void
 addcube(void)
 {
-	static Point3 axis[3] = {{0,1,0,0}, {1,0,0,0}, {0,0,1,0}};
-	Primitive t[2];
-	Point3 p, v1, v2;
-	int i, j, k;
+	static int pindices[] = {
+		/* front */
+		0, 1, 4+1, 4+0,
+		/* bottom */
+		0, 3, 2, 1,
+		/* right */
+		1, 2, 4+2, 4+1,
+		/* back */
+		3, 4+3, 4+2, 2,
+		/* top */
+		4+0, 4+1, 4+2, 4+3,
+		/* left */
+		0, 4+0, 4+3, 3,
+	};
+	static Point3 axes[3] = {{0,1,0,0}, {1,0,0,0}, {0,0,1,0}};
+	Primitive t;
+	Vertex v;
+	Point3 p;
+	usize pidx0, nidx0, vidx0;
+	int i;
 
-	memset(t, 0, sizeof t);
-	t[0].type = t[1].type = PTriangle;
+	t = mkprim(PTriangle);
+	v = mkvert();
 
-	/* build the first face/quad, facing the positive z axis */
-	p = Vec3(-0.5,-0.5,0.5);
-	v1 = Vec3(1,0,0);
-	v2 = Vec3(0,1,0);
-	t[0].v[0].p = addpt3(center, p);
-	t[0].v[0].n = t[0].v[1].n = t[0].v[2].n = t[1].v[2].n = Vec3(0,0,1);
-	t[0].v[1].p = addpt3(center, addpt3(p, v1));
-	t[0].v[2].p = addpt3(center, addpt3(p, addpt3(v1, v2)));
-	t[0].v[0].c = t[0].v[1].c = t[0].v[2].c = Pt3(1,1,1,1);
-	t[1].v[0] = t[0].v[0];
-	t[1].v[1] = t[0].v[2];
-	t[1].v[2].p = addpt3(center, addpt3(p, v2));
-	t[1].v[2].c = Pt3(1,1,1,1);
+	v.c = model->addcolor(model, Pt3(1,1,1,1));
 
-	/* make a cube by rotating the reference face */
-	for(i = 0; i < 6; i++){
-		if(i > 0)
-			for(j = 0; j < 2; j++)
-				for(k = 0; k < 3; k++){
-					t[j].v[k].p = qrotate(t[j].v[k].p, axis[i%3], PI/2);
-					t[j].v[k].n = qrotate(t[j].v[k].n, axis[i%3], PI/2);
-				}
-
-		qlock(&scenelk);
-		model->addprim(model, t[0]);
-		model->addprim(model, t[1]);
-		qunlock(&scenelk);
+	qlock(&scenelk);
+	/* build bottom and top vertex quads around y-axis */
+	pidx0 = model->positions->nitems;
+	p = Pt3(-0.5,-0.5,0.5,1);
+	for(i = 0; i < 8; i++){
+		if(i == 4)
+			p.y++;
+		model->addposition(model, p);
+		p = qrotate(p, Vec3(0,1,0), PI/2);
 	}
+
+	/* build normals */
+	nidx0 = model->normals->nitems;
+	p = Vec3(0,0,1);
+	for(i = 0; i < 6; i++){
+		model->addnormal(model, p);
+		p = qrotate(p, axes[(i+1)%3], PI/2);
+	}
+
+	/* build vertices */
+	vidx0 = model->verts->nitems;
+	for(i = 0; i < nelem(pindices); i++){
+		v.p = pidx0 + pindices[i];
+		v.n = nidx0 + i/4;
+		model->addvert(model, v);
+	}
+
+	/* triangulate vertices */
+	for(i = 0; i < 6; i++){
+		t.v[0] = vidx0 + 4*i + 0;
+		t.v[1] = vidx0 + 4*i + 1;
+		t.v[2] = vidx0 + 4*i + 2;
+		model->addprim(model, t);
+		t.v[1] = vidx0 + 4*i + 2;
+		t.v[2] = vidx0 + 4*i + 3;
+		model->addprim(model, t);
+	}
+	qunlock(&scenelk);
 }
 
 static void
@@ -326,25 +354,33 @@ addbasis(Scene *s)
 {
 	Entity *e;
 	Model *m;
-	Primitive prims[3];
+	Vertex v;
+	Primitive l;
+	int i;
 
 	m = newmodel();
 	e = newentity("basis", m);
 
-	memset(prims, 0, sizeof prims);
-	prims[0].type = prims[1].type = prims[2].type = PLine;
-	prims[0].v[0].p = prims[1].v[0].p = prims[2].v[0].p = center;
-	prims[0].v[0].c = prims[1].v[0].c = prims[2].v[0].c = Pt3(0,0,0,1);
-	prims[0].v[1].p = addpt3(center, e->bx);
-	prims[0].v[1].c = Pt3(1,0,0,1);
-	prims[1].v[1].p = addpt3(center, e->by);
-	prims[1].v[1].c = Pt3(0,1,0,1);
-	prims[2].v[1].p = addpt3(center, e->bz);
-	prims[2].v[1].c = Pt3(0,0,1,1);
+	v = mkvert();
+	v.p = m->addposition(m, center);
+	v.c = m->addcolor(m, Pt3(0,0,0,1));
+	m->addvert(m, v);
+	v.p = m->addposition(m, addpt3(center, e->bx));
+	v.c = m->addcolor(m, Pt3(1,0,0,1));
+	m->addvert(m, v);
+	v.p = m->addposition(m, addpt3(center, e->by));
+	v.c = m->addcolor(m, Pt3(0,1,0,1));
+	m->addvert(m, v);
+	v.p = m->addposition(m, addpt3(center, e->bz));
+	v.c = m->addcolor(m, Pt3(0,0,1,1));
+	m->addvert(m, v);
 
-	m->addprim(m, prims[0]);
-	m->addprim(m, prims[1]);
-	m->addprim(m, prims[2]);
+	l = mkprim(PLine);
+	l.v[0] = 0;
+	for(i = 0; i < 3; i++){
+		l.v[1] = i+1;
+		m->addprim(m, l);
+	}
 
 	s->addent(s, e);
 }
@@ -488,8 +524,12 @@ lmb(void)
 	static Quaternion orient = {1,0,0,0};
 	Quaternion Δorient;
 	Point3 p, cp0, cp1, cv;
+	Primitive *prim, *lastprim;
+	Vertex *v;
 	double cr;
-	int i, j;
+	int i, cidx;
+
+	cidx = -1;
 
 	switch(opmode){
 	case OMOrbit:
@@ -524,10 +564,16 @@ lmb(void)
 		cv = viewport2world(cam, Pt3(mctl->xy.x+10, mctl->xy.y, 1, 1));
 		cr = vec3len(subpt3(cv, cp0)) * cam->clip.f/cam->clip.n;
 
-		for(i = 0; i < model->nprims; i++)
-			for(j = 0; j < model->prims[i].type+1; j++){
-				if(ptincone(model->prims[i].v[j].p, cam->p, cp1, cr))
-					model->prims[i].v[j].c = Pt3(0.5,0.5,0,1);
+		if(cidx < 0)
+			cidx = model->addcolor(model, Pt3(0.5,0.5,0,1));
+
+		lastprim = itemarrayget(model->prims, model->prims->nitems-1);
+		for(prim = model->prims->items; prim <= lastprim; prim++)
+			for(i = 0; i < prim->type+1; i++){
+				v = itemarrayget(model->verts, prim->v[i]);
+				p = *(Point3*)itemarrayget(model->positions, v->p);
+				if(ptincone(p, cam->p, cp1, cr))
+					v->c = cidx;
 			}
 		break;
 	}
@@ -573,7 +619,7 @@ mmb(void)
 			usrlog->send(usrlog, "create: %r");
 			break;
 		}
-		writemodel(fd, model, 1);
+		writemodel(fd, model);
 		close(fd);
 		break;
 	case QUIT:

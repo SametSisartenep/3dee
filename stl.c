@@ -11,24 +11,26 @@
 static int
 loadstlmodel(Model *m, Stl *stl)
 {
-	Primitive p;
+	Primitive prim;
+	Vertex v;
 	Stltri **tri;
+	int i;
 
-	memset(&p, 0, sizeof p);
-	p.type = PTriangle;
-	p.v[0].c = p.v[1].c = p.v[2].c = Pt3(1,1,1,1);
+	prim = mkprim(PTriangle);
+	v = mkvert();
+	v.c = m->addcolor(m, Pt3(1,1,1,1));
 
 	for(tri = stl->tris; tri < stl->tris+stl->ntris; tri++){
-		p.v[0].p = Pt3((*tri)->v[0][0], (*tri)->v[0][1], (*tri)->v[0][2], 1);
-		p.v[1].p = Pt3((*tri)->v[1][0], (*tri)->v[1][1], (*tri)->v[1][2], 1);
-		p.v[2].p = Pt3((*tri)->v[2][0], (*tri)->v[2][1], (*tri)->v[2][2], 1);
-		p.v[0].n = Vec3((*tri)->n[0], (*tri)->n[1], (*tri)->n[2]);
-		p.v[1].n = p.v[2].n = p.v[0].n;
+		v.n = m->addnormal(m, Vec3((*tri)->n[0], (*tri)->n[1], (*tri)->n[2]));
+		for(i = 0; i < 3; i++){
+			v.p = m->addposition(m, Pt3((*tri)->v[i][0], (*tri)->v[i][1], (*tri)->v[i][2], 1));
+			prim.v[i] = m->addvert(m, v);
+		}
 
-		m->addprim(m, p);
+		m->addprim(m, prim);
 	}
 
-	return m->nprims;
+	return m->prims->nitems;
 }
 
 static Model *
@@ -62,7 +64,7 @@ main(int argc, char *argv[])
 	dedup = 1;
 	infile = "/fd/0";
 	ARGBEGIN{
-	case 'd': dedup--; break;
+	case 'd': dedup--; break;	/* TODO waiting for a Model compaction routine */
 	default: usage();
 	}ARGEND;
 	if(argc == 1)
@@ -78,7 +80,7 @@ main(int argc, char *argv[])
 	if(m == nil)
 		sysfatal("readstlmodel: %r");
 
-	if(writemodel(1, m, dedup) == 0)
+	if(writemodel(1, m) == 0)
 		sysfatal("writemodel: %r");
 
 	exits(nil);

@@ -147,6 +147,7 @@ threadmain(int argc, char *argv[])
 {
 	Memimage *out;
 	Point dim;
+	Vertex v;
 	int skip;
 	double time;
 
@@ -181,13 +182,17 @@ threadmain(int argc, char *argv[])
 	cam = Cam(out->r, rctl, ORTHOGRAPHIC, 40*DEG, 1, 10);
 	placecamera(cam, scn, Pt3(0,0,0,1), Vec3(0,0,-1), Vec3(0,1,0));
 
-	quad[0].type = quad[1].type = PTriangle;
-	quad[0].v[0].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.max.y, 1, 1)));
-	quad[0].v[1].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.min.y, 1, 1)));
-	quad[0].v[2].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.min.y, 1, 1)));
-	quad[1].v[0].p = quad[0].v[0].p;
-	quad[1].v[1].p = vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.max.y, 1, 1)));
-	quad[1].v[2].p = quad[0].v[1].p;
+	quad[0] = quad[1] = mkprim(PTriangle);
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.max.y, 1, 1))));
+	quad[0].v[0] = mdl->addvert(mdl, v);
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.min.y, 1, 1))));
+	quad[0].v[1] = mdl->addvert(mdl, v);
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.min.y, 1, 1))));
+	quad[0].v[2] = mdl->addvert(mdl, v);
+	quad[1].v[0] = quad[0].v[0];
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.max.y, 1, 1))));
+	quad[1].v[1] = mdl->addvert(mdl, v);
+	quad[1].v[2] = quad[0].v[1];
 	mdl->addprim(mdl, quad[0]);
 	mdl->addprim(mdl, quad[1]);
 	scn->addent(scn, ent);

@@ -11,14 +11,16 @@
 static int
 loadstlmodel(Stl *stl, Model *m)
 {
-	Primitive *p;
+	Primitive *prim, *lastprim;
+	Vertex *v;
+	Point3 *p;
 	Stltri **tri, *t;
 	int i;
 
 	snprint((char*)stl->hdr, sizeof(stl->hdr), "Exported with libstl from ⑨");
 
 	/* XXX we assume all prims are triangles */
-	stl->ntris = m->nprims;
+	stl->ntris = m->prims->nitems;
 	stl->tris = emalloc(stl->ntris*sizeof(Stltri*));
 
 	/* since we don't use attributes we can allocate tris in bulk */
@@ -28,20 +30,26 @@ loadstlmodel(Stl *stl, Model *m)
 		*tri = &t[tri - stl->tris];
 
 	tri = stl->tris;
-	for(p = m->prims; p < m->prims+m->nprims; p++){
-		if(p->type != PTriangle){
+	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
+	for(prim = m->prims->items; prim <= lastprim; prim++){
+		if(prim->type != PTriangle){
 			stl->ntris--;
 			continue;
 		}
 
-		(*tri)->n[0] = p->v[0].n.x;
-		(*tri)->n[1] = p->v[0].n.y;
-		(*tri)->n[2] = p->v[0].n.z;
+		v = itemarrayget(m->verts, prim->v[0]);
+		p = itemarrayget(m->normals, v->n);
+
+		(*tri)->n[0] = p->x;
+		(*tri)->n[1] = p->y;
+		(*tri)->n[2] = p->z;
 
 		for(i = 0; i < 3; i++){
-			(*tri)->v[i][0] = p->v[i].p.x;
-			(*tri)->v[i][1] = p->v[i].p.y;
-			(*tri)->v[i][2] = p->v[i].p.z;
+			v = itemarrayget(m->verts, prim->v[i]);
+			p = itemarrayget(m->positions, v->p);
+			(*tri)->v[i][0] = p->x;
+			(*tri)->v[i][1] = p->y;
+			(*tri)->v[i][2] = p->z;
 		}
 		tri++;
 	}

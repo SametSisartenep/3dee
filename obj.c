@@ -8,6 +8,18 @@
 #include "fns.h"
 #include "libobj/obj.h"
 
+static Point3
+VGP3(OBJVertex v)
+{
+	return Pt3(v.x, v.y, v.z, 1);
+}
+
+static Point2
+VGP2(OBJVertex v)
+{
+	return Pt2(v.x, v.y, 1);
+}
+
 /*
  * fan triangulation.
  *
@@ -121,16 +133,17 @@ clrmtlmap(OBJ2MtlMap *map)
 static int
 loadobjmodel(Model *m, OBJ *obj)
 {
-	Primitive *p;
-	OBJVertex *pverts, *tverts, *nverts, *v;	/* geometric, texture and normals vertices */
+	Primitive prim;
+	Vertex v, *vp;
+	OBJVertex *pverts, *tverts, *nverts;		/* geometric, texture and normals vertices */
 	OBJElem **trielems, *e, *ne;
 	OBJObject *o;
 	OBJIndexArray *idxtab;
 	OBJ2MtlMap mtlmap;
 	OBJMaterial *objmtl;
 	Material *mtl;
-	Point3 n;					/* surface normal */
-	int i, idx, nt, maxnt, neednormal, gottaclean;
+	int i, idx, nt, maxnt, hastexcoords, neednormal, gottaclean;
+	int defcolidx, nidx;				/* default color and normal indices */
 
 	pverts = obj->vertdata[OBJVGeometric].verts;
 	tverts = obj->vertdata[OBJVTexture].verts;
@@ -175,6 +188,14 @@ loadobjmodel(Model *m, OBJ *obj)
 			addmtlmap(&mtlmap, objmtl, m->nmaterials-1);
 		}
 
+	for(i = 0; i < obj->vertdata[OBJVGeometric].nvert; i++)
+		m->addposition(m, VGP3(pverts[i]));
+	for(i = 0; i < obj->vertdata[OBJVNormal].nvert; i++)
+		m->addnormal(m, VGP3(nverts[i]));
+	for(i = 0; i < obj->vertdata[OBJVTexture].nvert; i++)
+		m->addtexcoord(m, VGP2(tverts[i]));
+	defcolidx = m->addcolor(m, Pt3(1,1,1,1));
+
 	for(i = 0; i < nelem(obj->objtab); i++)
 		for(o = obj->objtab[i]; o != nil; o = o->next)
 			for(e = o->child; e != nil; e = ne){
@@ -182,42 +203,37 @@ loadobjmodel(Model *m, OBJ *obj)
 
 				switch(e->type){
 				case OBJEPoint:
-					m->prims = erealloc(m->prims, ++m->nprims*sizeof(*m->prims));
-					p = &m->prims[m->nprims-1];
-					memset(p, 0, sizeof *p);
-					p->type = PPoint;
-					p->mtl = getmtlmap(&mtlmap, e->mtl);
+					prim = mkprim(PPoint);
+					prim.mtl = getmtlmap(&mtlmap, e->mtl);
 
+					v = mkvert();
 					idxtab = &e->indextab[OBJVGeometric];
-					v = &pverts[idxtab->indices[0]];
-					p->v[0].p = Pt3(v->x, v->y, v->z, v->w);
-					p->v[0].c = Pt3(1,1,1,1);
+					v.p = idxtab->indices[0];
+					v.c = defcolidx;
 
 					idxtab = &e->indextab[OBJVTexture];
-					if(idxtab->nindex == 1){
-						v = &tverts[idxtab->indices[0]];
-						p->v[0].uv = Pt2(v->u, v->v, 1);
-					}
+					if(idxtab->nindex == 1)
+						v.uv = idxtab->indices[0];
+
+					prim.v[0] = m->addvert(m, v);
+					m->addprim(m, prim);
 					break;
 				case OBJELine:
-					m->prims = erealloc(m->prims, ++m->nprims*sizeof(*m->prims));
-					p = &m->prims[m->nprims-1];
-					memset(p, 0, sizeof *p);
-					p->type = PLine;
-					p->mtl = getmtlmap(&mtlmap, e->mtl);
+					prim = mkprim(PLine);
+					prim.mtl = getmtlmap(&mtlmap, e->mtl);
 
 					for(idx = 0; idx < 2; idx++){
+						v = mkvert();
 						idxtab = &e->indextab[OBJVGeometric];
-						v = &pverts[idxtab->indices[idx]];
-						p->v[idx].p = Pt3(v->x, v->y, v->z, v->w);
-						p->v[idx].c = Pt3(1,1,1,1);
+						v.p = idxtab->indices[idx];
+						v.c = defcolidx;
 
 						idxtab = &e->indextab[OBJVTexture];
-						if(idxtab->nindex == 2){
-							v = &tverts[idxtab->indices[idx]];
-							p->v[idx].uv = Pt2(v->u, v->v, 1);
-						}
+						if(idxtab->nindex == 2)
+							v.uv = idxtab->indices[idx];
+						prim.v[idx] = m->addvert(m, v);
 					}
+					m->addprim(m, prim);
 					break;
 				case OBJEFace:
 					idxtab = &e->indextab[OBJVGeometric];
@@ -238,54 +254,78 @@ loadobjmodel(Model *m, OBJ *obj)
 
 					while(nt-- > 0){
 						e = trielems[nt];
+						hastexcoords = 0;
 						neednormal = 0;
 
-						m->prims = erealloc(m->prims, ++m->nprims*sizeof(*m->prims));
-						p = &m->prims[m->nprims-1];
-						memset(p, 0, sizeof *p);
-						p->type = PTriangle;
-						p->mtl = getmtlmap(&mtlmap, e->mtl);
+						prim = mkprim(PTriangle);
+						prim.mtl = getmtlmap(&mtlmap, e->mtl);
 
 						for(idx = 0; idx < 3; idx++){
+							v = mkvert();
 							idxtab = &e->indextab[OBJVGeometric];
-							v = &pverts[idxtab->indices[idx]];
-							p->v[idx].p = Pt3(v->x, v->y, v->z, v->w);
-							p->v[idx].c = Pt3(1,1,1,1);
+							v.p = idxtab->indices[idx];
+							v.c = defcolidx;
 
 							idxtab = &e->indextab[OBJVNormal];
-							if(idxtab->nindex == 3){
-								v = &nverts[idxtab->indices[idx]];
-								p->v[idx].n = normvec3(Vec3(v->i, v->j, v->k));
-							}else
+							if(idxtab->nindex == 3)
+								v.n = idxtab->indices[idx];
+							else
 								neednormal = 1;
 
 							idxtab = &e->indextab[OBJVTexture];
 							if(idxtab->nindex == 3){
-								v = &tverts[idxtab->indices[idx]];
-								p->v[idx].uv = Pt2(v->u, v->v, 1);
+								hastexcoords = 1;
+								v.uv = idxtab->indices[idx];
 							}
+							prim.v[idx] = m->addvert(m, v);
 						}
-						if(p->v[0].uv.w != 0){
-							Point3 e0, e1;
-							Point2 Δuv0, Δuv1;
+
+						if(hastexcoords){
+							Point3 *p[3], e0, e1, tangent;
+							Point2 *uv[3], Δuv0, Δuv1;
 							double det;
 
-							e0 = subpt3(p->v[1].p, p->v[0].p);
-							e1 = subpt3(p->v[2].p, p->v[0].p);
-							Δuv0 = subpt2(p->v[1].uv, p->v[0].uv);
-							Δuv1 = subpt2(p->v[2].uv, p->v[0].uv);
+							for(idx = 0; idx < 3; idx++){
+								vp = itemarrayget(m->verts, prim.v[idx]);
+								p[idx] = itemarrayget(m->positions, vp->p);
+								uv[idx] = itemarrayget(m->texcoords, vp->uv);
+							}
+
+							e0 = subpt3(*p[1], *p[0]);
+							e1 = subpt3(*p[2], *p[0]);
+							Δuv0 = subpt2(*uv[1], *uv[0]);
+							Δuv1 = subpt2(*uv[2], *uv[0]);
 
 							det = Δuv0.x * Δuv1.y - Δuv1.x * Δuv0.y;
 							det = det == 0? 0: 1.0/det;
-							p->tangent.x = det*(Δuv1.y * e0.x - Δuv0.y * e1.x);
-							p->tangent.y = det*(Δuv1.y * e0.y - Δuv0.y * e1.y);
-							p->tangent.z = det*(Δuv1.y * e0.z - Δuv0.y * e1.z);
-							p->tangent = normvec3(p->tangent);
+
+							tangent.x = det*(Δuv1.y * e0.x - Δuv0.y * e1.x);
+							tangent.y = det*(Δuv1.y * e0.y - Δuv0.y * e1.y);
+							tangent.z = det*(Δuv1.y * e0.z - Δuv0.y * e1.z);
+							tangent.w = 0;
+							tangent = normvec3(tangent);
+
+							prim.tangent = m->addtangent(m, tangent);
 						}
+
 						if(neednormal){
-							n = normvec3(crossvec3(subpt3(p->v[1].p, p->v[0].p), subpt3(p->v[2].p, p->v[0].p)));
-							p->v[0].n = p->v[1].n = p->v[2].n = n;
+							Point3 *p[3], n;
+
+							for(idx = 0; idx < 3; idx++){
+								vp = itemarrayget(m->verts, prim.v[idx]);
+								p[idx] = itemarrayget(m->positions, vp->p);
+							}
+
+							n = normvec3(crossvec3(subpt3(*p[1], *p[0]), subpt3(*p[2], *p[0])));
+							nidx = m->addnormal(m, n);
+							for(idx = 0; idx < 3; idx++){
+								vp = itemarrayget(m->verts, prim.v[idx]);
+								vp->n = nidx;
+							}
 						}
+
+						m->addprim(m, prim);
+
 						if(gottaclean){
 							free(e->indextab[OBJVGeometric].indices);
 							free(e->indextab[OBJVNormal].indices);
@@ -300,7 +340,7 @@ loadobjmodel(Model *m, OBJ *obj)
 
 	free(trielems);
 	clrmtlmap(&mtlmap);
-	return m->nprims;
+	return m->prims->nitems;
 }
 
 static Model *
@@ -333,7 +373,7 @@ main(int argc, char *argv[])
 
 	dedup = 1;
 	ARGBEGIN{
-	case 'd': dedup--; break;
+	case 'd': dedup--; break;	/* TODO waiting for a Model compaction routine */
 	default: usage();
 	}ARGEND;
 	if(argc > 2)
@@ -347,10 +387,10 @@ main(int argc, char *argv[])
 		sysfatal("readobjmodel: %r");
 
 	if(dstdir == nil){
-		if(writemodel(1, m, dedup) == 0)
+		if(writemodel(1, m) == 0)
 			sysfatal("writemodel: %r");
 	}else{
-		if(exportmodel(dstdir, m, dedup) < 0)
+		if(exportmodel(dstdir, m) < 0)
 			sysfatal("exportmodel: %r");
 	}
 

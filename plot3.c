@@ -174,48 +174,67 @@ frametheplot(void)
 	Model *mdl;
 	Entity *ent;
 	Primitive line, mark;
-	Point3 stepv;
+	Vertex v;
+	Point3 stepv, p0, p1, mp0;
 	int i;
 
 	mdl = newmodel();
 	ent = newentity("axis scales", mdl);
 	theplot.scn->addent(theplot.scn, ent);
 
-	line.type = PLine;
-	line.v[0].c = line.v[1].c = Pt3(0.4,0.4,0.4,1);
+	line = mkprim(PLine);
+	v = mkvert();
+	v.c = mdl->addcolor(mdl, Pt3(0.4,0.4,0.4,1));
 	mark = line;
 
 	/* x scale */
-	line.v[0].p = Pt3(smallestbbox(x), smallestbbox(y), smallestbbox(z), 1);
-	line.v[1].p = Pt3(biggestbbox(x), smallestbbox(y), smallestbbox(z), 1);
+	v.p = mdl->addposition(mdl, Pt3(smallestbbox(x), smallestbbox(y), smallestbbox(z), 1));
+	line.v[0] = mdl->addvert(mdl, v);
+	v.p = mdl->addposition(mdl, Pt3(biggestbbox(x), smallestbbox(y), smallestbbox(z), 1));
+	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
-	stepv = subpt3(line.v[1].p, line.v[0].p);
+	p0 = *(Point3*)itemarrayget(mdl->positions, v.p - 1);
+	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
+	stepv = subpt3(p1, p0);
 	stepv = divpt3(stepv, 10);
 	for(i = 1; i <= 10; i++){
-		mark.v[0].p = addpt3(line.v[0].p, mulpt3(stepv, i));
-		mark.v[1].p = addpt3(mark.v[0].p, qrotate(stepv, Vec3(0,1,0), 90*DEG));
+		mp0 = addpt3(p0, mulpt3(stepv, i));
+		v.p = mdl->addposition(mdl, mp0);
+		mark.v[0] = mdl->addvert(mdl, v);
+		v.p = mdl->addposition(mdl, addpt3(mp0, qrotate(stepv, Vec3(0,1,0), 90*DEG)));
+		mark.v[1] = mdl->addvert(mdl, v);
 		mdl->addprim(mdl, mark);
 	}
 
 	/* y scale */
-	line.v[1].p = Pt3(smallestbbox(x), biggestbbox(y), smallestbbox(z), 1);
+	v.p = mdl->addposition(mdl, Pt3(smallestbbox(x), biggestbbox(y), smallestbbox(z), 1));
+	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
-	stepv = subpt3(line.v[1].p, line.v[0].p);
+	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
+	stepv = subpt3(p1, p0);
 	stepv = divpt3(stepv, 10);
 	for(i = 1; i <= 10; i++){
-		mark.v[0].p = addpt3(line.v[0].p, mulpt3(stepv, i));
-		mark.v[1].p = addpt3(mark.v[0].p, qrotate(stepv, normvec3(Vec3(-1,0,1)), 90*DEG));
+		mp0 = addpt3(p0, mulpt3(stepv, i));
+		v.p = mdl->addposition(mdl, mp0);
+		mark.v[0] = mdl->addvert(mdl, v);
+		v.p = mdl->addposition(mdl, addpt3(mp0, qrotate(stepv, normvec3(Vec3(-1,0,1)), 90*DEG)));
+		mark.v[1] = mdl->addvert(mdl, v);
 		mdl->addprim(mdl, mark);
 	}
 
 	/* z scale */
-	line.v[1].p = Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1);
+	v.p = mdl->addposition(mdl, Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1));
+	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
-	stepv = subpt3(line.v[1].p, line.v[0].p);
+	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
+	stepv = subpt3(p1, p0);
 	stepv = divpt3(stepv, 10);
 	for(i = 1; i <= 10; i++){
-		mark.v[0].p = addpt3(line.v[0].p, mulpt3(stepv, i));
-		mark.v[1].p = addpt3(mark.v[0].p, qrotate(stepv, Vec3(0,1,0), -90*DEG));
+		mp0 = addpt3(p0, mulpt3(stepv, i));
+		v.p = mdl->addposition(mdl, mp0);
+		mark.v[0] = mdl->addvert(mdl, v);
+		v.p = mdl->addposition(mdl, addpt3(mp0, qrotate(stepv, Vec3(0,1,0), -90*DEG)));
+		mark.v[1] = mdl->addvert(mdl, v);
 		mdl->addprim(mdl, mark);
 	}
 }
@@ -227,6 +246,8 @@ understandtheplot(void)
 	Entity *ent;
 	Scene *scn;
 	Primitive prim;
+	Vertex v;
+	static Color prevcol;
 	Plotpt *p;
 
 	mdl = newmodel();
@@ -235,11 +256,15 @@ understandtheplot(void)
 	scn->addent(scn, ent);
 	theplot.scn = scn;
 
-	memset(&prim, 0, sizeof prim);
-	prim.type = PPoint;
+	prim = mkprim(PPoint);
+	v = mkvert();
 	for(p = theplot.pts; p < theplot.pts + theplot.npts; p++){
-		prim.v[0].p = p->p;
-		prim.v[0].c = p->c->c;
+		v.p = mdl->addposition(mdl, p->p);
+		if(!eqpt3(prevcol, p->c->c)){
+			v.c = mdl->addcolor(mdl, p->c->c);
+			prevcol = p->c->c;
+		}
+		prim.v[0] = mdl->addvert(mdl, v);
 		mdl->addprim(mdl, prim);
 	}
 	free(theplot.pts);

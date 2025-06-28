@@ -194,20 +194,25 @@ updatebbox(Entity *e)
 {
 	static int inited;
 	Model *m;
-	Primitive *prim;
+	Primitive *prim, *lastprim;
 	Vertex *v;
+	Point3 *p;
+	int i;
 
 	m = e->mdl;
-	for(prim = m->prims; prim < m->prims + m->nprims; prim++)
-	for(v = prim->v; v < prim->v + prim->type+1; v++){
+	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
+	for(prim = m->prims->items; prim <= lastprim; prim++)
+	for(i = 0; i < prim->type+1; i++){
+		v = itemarrayget(m->verts, prim->v[i]);
+		p = itemarrayget(m->positions, v->p);
 		if(!inited){
-			scenebbox.min = scenebbox.max = addpt3(e->p, v->p);
+			scenebbox.min = scenebbox.max = addpt3(e->p, *p);
 			inited++;
 			continue;
 		}
 
-		scenebbox.min = minpt3(scenebbox.min, addpt3(e->p, v->p));
-		scenebbox.max = maxpt3(scenebbox.max, addpt3(e->p, v->p));
+		scenebbox.min = minpt3(scenebbox.min, addpt3(e->p, *p));
+		scenebbox.max = maxpt3(scenebbox.max, addpt3(e->p, *p));
 	}
 	scenebbox.c = divpt3(addpt3(scenebbox.max, scenebbox.min), 2);
 	scenebbox.r = max(vec3len(scenebbox.min), vec3len(scenebbox.max));
@@ -259,7 +264,7 @@ void
 renderproc(void *)
 {
 	Material *mtl;
-	Primitive *prim;
+	Primitive *prim, *lastprim;
 	uvlong t0, Δt;
 	int fd;
 	double time;
@@ -267,6 +272,7 @@ renderproc(void *)
 	threadsetname("renderproc");
 
 	fd = -1;
+	mtl = nil;
 	if(inception){
 		fd = open("/dev/screen", OREAD);
 		if(fd < 0)
@@ -278,7 +284,8 @@ renderproc(void *)
 		model->addmaterial(model, *mtl);
 		free(mtl);
 		mtl = &model->materials[model->nmaterials-1];
-		for(prim = model->prims; prim < model->prims+model->nprims; prim++)
+		lastprim = itemarrayget(model->prims, model->prims->nitems-1);
+		for(prim = model->prims->items; prim <= lastprim; prim++)
 			prim->mtl = mtl;
 	}
 
@@ -663,45 +670,40 @@ static void
 mkblendtestscene(void)
 {
 	static Color cols[] = {{1,0,0,0.5}, {0,1,0,0.5}, {0,0,1,0.5}};
+	static Point3 Yaxis = {0,1,0,0};
 	Entity *ent;
-	Model *mdl;
 	Primitive t[2];
-	Point3 p, v1, v2;
-	int i, j, k;
+	Vertex v;
+	Point3 p, n;
+	int i, j;
 
-	memset(t, 0, sizeof t);
-	t[0].type = t[1].type = PTriangle;
+	t[0] = t[1] = mkprim(PTriangle);
+	v = mkvert();
 
-	/* build the first face/quad, facing the positive z axis */
-	p = Vec3(-0.5,-0.5,0);
-	v1 = Vec3(1,0,0);
-	v2 = Vec3(0,1,0);
-	t[0].v[0].p = addpt3(center, p);
-	t[0].v[1].p = addpt3(center, addpt3(p, v1));
-	t[0].v[2].p = addpt3(center, addpt3(p, addpt3(v1, v2)));
-	t[0].v[0].n = t[0].v[1].n = t[0].v[2].n = Vec3(0,0,1);
-	t[1].v[0] = t[0].v[0];
-	t[1].v[1] = t[0].v[2];
-	t[1].v[2].p = addpt3(center, addpt3(p, v2));
-	t[1].v[2].n = Vec3(0,0,1);
+	model = newmodel();
+	ent = newentity(nil, model);
+	scene->addent(scene, ent);
 
+	p = Pt3(-0.5,-0.5,0,1);
+	n = Vec3(0,0,1);
 	for(i = 0; i < nelem(cols); i++){
-		for(j = 0; j < 2; j++)
-			for(k = 0; k < 3; k++){
-				if(i != 0){
-					t[j].v[k].p = qrotate(t[j].v[k].p, Vec3(0,1,0), PI/nelem(cols));
-					t[j].v[k].n = qrotate(t[j].v[k].n, Vec3(0,1,0), PI/nelem(cols));
-				}
-				t[j].v[k].c = cols[i];
-			}
+		v.c = model->addcolor(model, cols[i]);
+		v.n = model->addnormal(model, n);
+		for(j = 0; j < 4; j++){
+			v.p = model->addposition(model, p);
+			model->addvert(model, v);
+			p = qrotate(p, n, PI/2);
+		}
 
-		mdl = newmodel();
-		mdl->addprim(mdl, t[0]);
-		mdl->addprim(mdl, t[1]);
-		ent = newentity(nil, mdl);
-		scene->addent(scene, ent);
-		updatebbox(ent);
+		t[0].v[0] = v.p-3 + 0; t[0].v[1] = v.p-3 + 1; t[0].v[2] = v.p-3 + 2;
+		t[1].v[0] = v.p-3 + 0; t[1].v[1] = v.p-3 + 2; t[1].v[2] = v.p-3 + 3;
+		model->addprim(model, t[0]);
+		model->addprim(model, t[1]);
+
+		p = qrotate(p, Yaxis, PI/nelem(cols));
+		n = qrotate(n, Yaxis, PI/nelem(cols));
 	}
+	updatebbox(ent);
 }
 
 void
@@ -749,7 +751,7 @@ threadmain(int argc, char *argv[])
 	Channel *keyc;
 	Entity *subject;
 	Material *tmpmtl;
-	Primitive *prim;
+	Primitive *prim, *lastprim;
 	char *texpath, *mdlpath, *s;
 	int i, fd, fbw, fbh, scale;
 
@@ -799,7 +801,7 @@ threadmain(int argc, char *argv[])
 		scene->addent(scene, subject);
 		updatebbox(subject);
 
-fprint(2, "%s: %lud prims\n", mdlpath, model->nprims);
+fprint(2, "%s: %llud prims\n", mdlpath, model->prims->nitems);
 
 		if(argc == 0 && texpath != nil){
 			fd = open(texpath, OREAD);
@@ -813,7 +815,8 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->nprims);
 			model->addmaterial(model, *tmpmtl);
 			free(tmpmtl);
 			tmpmtl = &model->materials[model->nmaterials-1];
-			for(prim = model->prims; prim < model->prims+model->nprims; prim++)
+			lastprim = itemarrayget(model->prims, model->prims->nitems-1);
+			for(prim = model->prims->items; prim <= lastprim; prim++)
 				prim->mtl = tmpmtl;
 		}
 	}

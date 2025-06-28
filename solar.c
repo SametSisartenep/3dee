@@ -283,7 +283,9 @@ selectplanet(Planet *p)
 	Entity *e, *esel;
 	Model *msel;
 	Primitive l;
-	int i, j;
+	Vertex v;
+	Point3 *pt, *lastpt;
+	int i;
 
 	if(p == oldp)
 		return;
@@ -291,8 +293,10 @@ selectplanet(Planet *p)
 	qlock(&scenelk);
 	oldp = selplanet = p;
 	esel = scene->getent(scene, "selection");
-	if(esel != nil)
+	if(esel != nil){
 		scene->delent(scene, esel);
+		delentity(esel);
+	}
 	qunlock(&scenelk);
 
 	lockdisplay(display);
@@ -314,43 +318,47 @@ selectplanet(Planet *p)
 	unlockdisplay(display);
 
 	memset(&aabb, 0, sizeof aabb);
-	for(i = 0; i < e->mdl->nprims; i++)
-		for(j = 0; j < e->mdl->prims[i].type+1; j++){
-			aabb.min = minpt3(aabb.min, e->mdl->prims[i].v[j].p);
-			aabb.max = maxpt3(aabb.max, e->mdl->prims[i].v[j].p);
-		}
+	pt = e->mdl->positions->items;
+	for(lastpt = pt + e->mdl->positions->nitems; pt < lastpt; pt++){
+		aabb.min = minpt3(aabb.min, *pt);
+		aabb.max = maxpt3(aabb.max, *pt);
+	}
 	aabb.min = mulpt3(aabb.min, p->scale*0.8);
 	aabb.max = mulpt3(aabb.max, p->scale*0.8);
 	aabb.min.w = aabb.max.w = 1;
 
-	memset(&l, 0, sizeof l);
-	l.type = PLine;
-	l.v[0].c = l.v[1].c = Pt3(0.2666, 0.5333, 0.2666, 1);
+	l = mkprim(PLine);
+	v = mkvert();
+	v.c = msel->addcolor(msel, Pt3(0.2666, 0.5333, 0.2666, 1));
+
+	for(i = 0; i < 4; i++){
+		v.p = msel->addposition(msel, aabb.min);
+		msel->addvert(msel, v);
+		aabb.min = qrotate(aabb.min, Vec3(0,1,0), PI/2);
+	}
+	aabb.max = qrotate(aabb.max, Vec3(0,1,0), PI);
+	for(i = 0; i < 4; i++){
+		v.p = msel->addposition(msel, aabb.max);
+		msel->addvert(msel, v);
+		aabb.max = qrotate(aabb.max, Vec3(0,1,0), PI/2);
+	}
+
 	/* bottom */
-	l.v[0].p = aabb.min;
-	l.v[1].p = qrotate(aabb.min, Vec3(0,1,0), PI/2);
-	msel->addprim(msel, l);
-	for(i = 0; i < 3; i++){
-		l.v[0].p = l.v[1].p;
-		l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+	for(i = 1; i <= 4; i++){
+		l.v[0] = i-1;
+		l.v[1] = i%4;
 		msel->addprim(msel, l);
 	}
 	/* top */
-	l.v[0].p = aabb.max;
-	l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI/2);
-	msel->addprim(msel, l);
-	for(i = 0; i < 3; i++){
-		l.v[0].p = l.v[1].p;
-		l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+	for(i = 4+1; i <= 4+4; i++){
+		l.v[0] = i-1;
+		l.v[1] = i%4 + 4;
 		msel->addprim(msel, l);
 	}
 	/* struts */
-	l.v[0].p = aabb.min;
-	l.v[1].p = qrotate(aabb.max, Vec3(0,1,0), PI);
-	msel->addprim(msel, l);
-	for(i = 0; i < 3; i++){
-		l.v[0].p = qrotate(l.v[0].p, Vec3(0,1,0), PI/2);
-		l.v[1].p = qrotate(l.v[1].p, Vec3(0,1,0), PI/2);
+	for(i = 0; i < 4; i++){
+		l.v[0] = i;
+		l.v[1] = i+4;
 		msel->addprim(msel, l);
 	}
 
@@ -886,6 +894,7 @@ threadmain(int argc, char *argv[])
 	Channel *keyc;
 	Entity *subject;
 	Model *model;
+	Point3 *p, *lastp;
 	Point lblsiz;
 	int fd, i, j;
 
@@ -913,11 +922,11 @@ threadmain(int argc, char *argv[])
 	 * normalize the vertices so that we can scale
 	 * each planet based on its radius
 	 */
-	for(i = 0; i < model->nprims; i++)
-		for(j = 0; j < model->prims[i].type+1; j++){
-			model->prims[i].v[j].p = normvec3(model->prims[i].v[j].p);
-			model->prims[i].v[j].p.w = 1;
-		}
+	p = model->positions->items;
+	for(lastp = p + model->positions->nitems; p < lastp; p++){
+		*p = normvec3(*p);
+		p->w = 1;
+	}
 	scene = newscene(nil);
 	for(i = 0; i < nelem(planets); i++){
 		subject = newentity(planets[i].name, model);

@@ -10,39 +10,39 @@
 #include "libobj/obj.h"
 
 static OBJVertex
-GP2V(Point2 p)
+GP2V(Point2 *p)
 {
 	OBJVertex v;
 
-	v.x = p.x;
-	v.y = p.y;
-	v.z = p.w;
+	v.x = p->x;
+	v.y = p->y;
+	v.z = p->w;
 	v.w = 0;
 	return v;
 }
 
 static OBJVertex
-GP3V(Point3 p)
+GP3V(Point3 *p)
 {
 	OBJVertex v;
 
-	v.x = p.x;
-	v.y = p.y;
-	v.z = p.z;
-	v.w = p.w;
+	v.x = p->x;
+	v.y = p->y;
+	v.z = p->z;
+	v.w = p->w;
 	return v;
 }
 
 static int
 loadobjmodel(OBJ *obj, Model *m)
 {
-	Primitive *prim;
-	OBJVertex v;
+	Primitive *prim, *lastprim;
+	Vertex *v;
 	OBJElem *e;
 	OBJObject *o;
 	OBJMaterial *objmtl;
 	Material *mtl;
-	int i, idx;
+	int i;
 
 	if(m->nmaterials > 0)
 		obj->materials = objallocmtl("main.mtl");
@@ -85,9 +85,17 @@ loadobjmodel(OBJ *obj, Model *m)
 		objaddmtl(obj->materials, objmtl);
 	}
 
+	for(i = 0; i < m->positions->nitems; i++)
+		objaddvertex(obj, GP3V(itemarrayget(m->positions, i)), OBJVGeometric);
+	for(i = 0; i < m->normals->nitems; i++)
+		objaddvertex(obj, GP3V(itemarrayget(m->normals, i)), OBJVNormal);
+	for(i = 0; i < m->texcoords->nitems; i++)
+		objaddvertex(obj, GP3V(itemarrayget(m->texcoords, i)), OBJVTexture);
+
 	o = objallocobject("default");
 	objpushobject(obj, o);
-	for(prim = m->prims; prim < m->prims + m->nprims; prim++){
+	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
+	for(prim = m->prims->items; prim <= lastprim; prim++){
 		/*
 		 * XXX A Model doesn't have the indexed attribute
 		 * structure an OBJ has, so this conversion is very
@@ -108,21 +116,12 @@ loadobjmodel(OBJ *obj, Model *m)
 		}
 
 		for(i = 0; i < prim->type+1; i++){
-			v = GP3V(prim->v[i].p);
-			idx = objaddvertex(obj, v, OBJVGeometric);
-			objaddelemidx(e, OBJVGeometric, idx);
-
-			if(memcmp(&prim->v[i].n, &ZP3, sizeof(Point3)) != 0){
-				v = GP3V(prim->v[i].n);
-				idx = objaddvertex(obj, v, OBJVNormal);
-				objaddelemidx(e, OBJVNormal, idx);
-			}
-
-			if(memcmp(&prim->v[i].uv, &ZP2, sizeof(Point2)) != 0){
-				v = GP2V(prim->v[i].uv);
-				idx = objaddvertex(obj, v, OBJVTexture);
-				objaddelemidx(e, OBJVTexture, idx);
-			}
+			v = itemarrayget(m->verts, prim->v[i]);
+			objaddelemidx(e, OBJVGeometric, v->p);
+			if(v->n != NaI)
+				objaddelemidx(e, OBJVNormal, v->n);
+			if(v->uv != NaI)
+				objaddelemidx(e, OBJVTexture, v->uv);
 		}
 
 		if(prim->mtl != nil)
@@ -130,7 +129,7 @@ loadobjmodel(OBJ *obj, Model *m)
 		objaddelem(o, e);
 	}
 
-	return m->nprims;
+	return m->prims->nitems;
 }
 
 static void
