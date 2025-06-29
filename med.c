@@ -501,6 +501,10 @@ renderproc(void *)
 
 			nbsend(drawc, nil);
 			t0 = nanosec();
+		}else{
+			Δt = HZ2NS(60) - Δt;
+			if(Δt >= 1000000ULL)
+				sleep(Δt/1000000ULL);
 		}
 	}
 }

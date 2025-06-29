@@ -289,8 +289,9 @@ renderproc(void *)
 			prim->mtl = mtl;
 	}
 
-	time = t0 = nanosec();
+	t0 = nanosec();
 	for(;;){
+		time = nanosec();
 		setuniform(shader, "time", VANumber, &time);
 
 		qlock(&scenelk);
@@ -312,9 +313,12 @@ renderproc(void *)
 				if((mtl->diffusemap->image = readmemimage(fd)) == nil)
 					sysfatal("readmemimage: %r");
 			}
-			time = t0 = nanosec();
-		}else
-			time = t0 + Δt;
+			t0 = nanosec();
+		}else if(!doprof){
+			Δt = HZ2NS(60) - Δt;
+			if(Δt >= 1000000ULL)
+				sleep(Δt/1000000ULL);
+		}
 	}
 }
 
