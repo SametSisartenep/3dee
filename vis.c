@@ -316,8 +316,10 @@ renderproc(void *)
 			t0 = nanosec();
 		}else if(!doprof){
 			Δt = HZ2NS(60) - Δt;
-			if(Δt >= 1000000ULL)
+			if(Δt > 1000000ULL)
 				sleep(Δt/1000000ULL);
+			else
+				sleep(1);
 		}
 	}
 }

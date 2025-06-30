@@ -62,7 +62,7 @@ loadobjmodel(OBJ *obj, Model *m)
 			objmtl->map_Kd = emalloc(sizeof(OBJTexture));
 			objmtl->map_Kd->image = dupmemimage(mtl->diffusemap->image);
 			objmtl->map_Kd->filename = mtl->diffusemap->file != nil?
-				strdup(mtl->diffusemap->file):
+				estrdup(mtl->diffusemap->file):
 				smprint("%s_diffuse.png", mtl->name);
 		}
 
@@ -70,7 +70,7 @@ loadobjmodel(OBJ *obj, Model *m)
 			objmtl->map_Ks = emalloc(sizeof(OBJTexture));
 			objmtl->map_Ks->image = dupmemimage(mtl->specularmap->image);
 			objmtl->map_Ks->filename = mtl->specularmap->file != nil?
-				strdup(mtl->specularmap->file):
+				estrdup(mtl->specularmap->file):
 				smprint("%s_specular.png", mtl->name);
 		}
 
@@ -78,7 +78,7 @@ loadobjmodel(OBJ *obj, Model *m)
 			objmtl->norm = emalloc(sizeof(OBJTexture));
 			objmtl->norm->image = dupmemimage(mtl->normalmap->image);
 			objmtl->norm->filename = mtl->normalmap->file != nil?
-				strdup(mtl->normalmap->file):
+				estrdup(mtl->normalmap->file):
 				smprint("%s_normal.png", mtl->name);
 		}
 

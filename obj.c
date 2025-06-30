@@ -158,10 +158,7 @@ loadobjmodel(Model *m, OBJ *obj)
 			mtl = &m->materials[m->nmaterials-1];
 			memset(mtl, 0, sizeof *mtl);
 
-			mtl->name = strdup(objmtl->name);
-			if(mtl->name == nil)
-				sysfatal("strdup: %r");
-
+			mtl->name = estrdup(objmtl->name);
 			if(objmtl->Ka.a > 0)
 				mtl->ambient = objmtl->Ka;
 			if(objmtl->Kd.a > 0)

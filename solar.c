@@ -237,9 +237,7 @@ mkplanetinfobox(Planet *p, Rectangle r)
 			break;
 		case RADIUS: snprint(buf, sizeof buf, "radius (in km): %g", p->scale*↓scale); break;
 		}
-		items[i] = strdup(buf);
-		if(items[i] == nil)
-			sysfatal("strdup: %r");
+		items[i] = estrdup(buf);
 	}
 	items[i] = nil;
 
@@ -421,7 +419,7 @@ getplanetstate(int id, Tm *t)
 			lastline = line;
 		}
 		if(lastline != nil)
-			lastline = strdup(lastline);
+			lastline = estrdup(lastline);
 		Bterm(bin);
 		close(r.pfd[0]);
 	}
@@ -586,8 +584,10 @@ renderproc(void *)
 			t0 = nanosec();
 		}else{
 			Δt = HZ2NS(60) - Δt;
-			if(Δt >= 1000000ULL)
+			if(Δt > 1000000ULL)
 				sleep(Δt/1000000ULL);
+			else
+				sleep(1);
 		}
 	}
 }
