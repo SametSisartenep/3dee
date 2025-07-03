@@ -64,7 +64,7 @@ main(int argc, char *argv[])
 	dedup = 1;
 	infile = "/fd/0";
 	ARGBEGIN{
-	case 'd': dedup--; break;	/* TODO waiting for a Model compaction routine */
+	case 'd': dedup--; break;
 	default: usage();
 	}ARGEND;
 	if(argc == 1)
@@ -79,6 +79,9 @@ main(int argc, char *argv[])
 	m = readstlmodel(fd);
 	if(m == nil)
 		sysfatal("readstlmodel: %r");
+
+	if(dedup)
+		compactmodel(m);
 
 	if(writemodel(1, m) == 0)
 		sysfatal("writemodel: %r");

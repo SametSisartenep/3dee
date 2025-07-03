@@ -370,7 +370,7 @@ main(int argc, char *argv[])
 
 	dedup = 1;
 	ARGBEGIN{
-	case 'd': dedup--; break;	/* TODO waiting for a Model compaction routine */
+	case 'd': dedup--; break;
 	default: usage();
 	}ARGEND;
 	if(argc > 2)
@@ -382,6 +382,9 @@ main(int argc, char *argv[])
 	m = readobjmodel(infile);
 	if(m == nil)
 		sysfatal("readobjmodel: %r");
+
+	if(dedup)
+		compactmodel(m);
 
 	if(dstdir == nil){
 		if(writemodel(1, m) == 0)
