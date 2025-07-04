@@ -96,11 +96,6 @@ loadobjmodel(OBJ *obj, Model *m)
 	objpushobject(obj, o);
 	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
 	for(prim = m->prims->items; prim <= lastprim; prim++){
-		/*
-		 * XXX A Model doesn't have the indexed attribute
-		 * structure an OBJ has, so this conversion is very
-		 * inefficient without a good deduplication algorithm.
-		 */
 		switch(prim->type){
 		case PPoint:
 			e = objallocelem(OBJEPoint);
