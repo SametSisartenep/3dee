@@ -183,6 +183,7 @@ threadmain(int argc, char *argv[])
 	placecamera(cam, scn, Pt3(0,0,0,1), Vec3(0,0,-1), Vec3(0,1,0));
 
 	quad[0] = quad[1] = mkprim(PTriangle);
+	v = mkvert();
 	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.max.y, 1, 1))));
 	quad[0].v[0] = mdl->addvert(mdl, v);
 	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.min.y, 1, 1))));
