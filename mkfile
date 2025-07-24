@@ -12,6 +12,7 @@ TARG=\
 	stl\
 	tostl\
 	plot3\
+	raymarch\
 
 OFILES=\
 	alloc.$O\
