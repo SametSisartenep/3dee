@@ -319,22 +319,22 @@ ivshader(Shaderparams *sp)
 Color
 triangleshader(Shaderparams *sp)
 {
-	Triangle2 t;
 	Rectangle bbox;
+	Point2 t[3];
 	Point3 bc;
 
-	t.p0 = Pt2(240,200,1);
-	t.p1 = Pt2(400,40,1);
-	t.p2 = Pt2(240,40,1);
+	t[0] = Pt2(240,200,1);
+	t[1] = Pt2(400,40,1);
+	t[2] = Pt2(240,40,1);
 
 	bbox = Rect(
-		min(min(t.p0.x, t.p1.x), t.p2.x), min(min(t.p0.y, t.p1.y), t.p2.y),
-		max(max(t.p0.x, t.p1.x), t.p2.x), max(max(t.p0.y, t.p1.y), t.p2.y)
+		min(min(t[0].x, t[1].x), t[2].x), min(min(t[0].y, t[1].y), t[2].y),
+		max(max(t[0].x, t[1].x), t[2].x), max(max(t[0].y, t[1].y), t[2].y)
 	);
 	if(!ptinrect(sp->p, bbox))
 		return ZP3;
 
-	bc = barycoords(t, Pt2(sp->p.x,sp->p.y,1));
+	bc = barycoords(t[0], t[1], t[2], Pt2(sp->p.x,sp->p.y,1));
 	if(bc.x < 0 || bc.y < 0 || bc.z < 0)
 		return ZP3;
 
@@ -344,18 +344,18 @@ triangleshader(Shaderparams *sp)
 	double d01, d12, d20, d;
 	Point2 p, v, r;
 
-	p01 = subpt2(t.p1, t.p0);
-	p12 = subpt2(t.p2, t.p1);
-	p20 = subpt2(t.p0, t.p2);
+	p01 = subpt2(t[1], t[0]);
+	p12 = subpt2(t[2], t[1]);
+	p20 = subpt2(t[0], t[2]);
 
 	p = Pt2(sp->p.x, sp->p.y, 1);
-	r = subpt2(t.p0, p);
+	r = subpt2(t[0], p);
 	v = Vec2(p01.y, -p01.x);
 	d01 = fabs(dotvec2(v, r));
-	r = subpt2(t.p1, p);
+	r = subpt2(t[1], p);
 	v = Vec2(p12.y, -p12.x);
 	d12 = fabs(dotvec2(v, r));
-	r = subpt2(t.p2, p);
+	r = subpt2(t[2], p);
 	v = Vec2(p20.y, -p20.x);
 	d20 = fabs(dotvec2(v, r));
 
