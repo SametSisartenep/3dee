@@ -6,6 +6,7 @@ You will need:
 	• libgraphics
 and
 	• libobj
+	• libstl
 
 `mk pulldeps` should take care of everything.
 
@@ -15,8 +16,12 @@ TOOLS
 	- med: a model editor (WIP)
 	- solar: a solar system planetarium (WIP)
 	- obj: an OBJ to model(6) conversion tool
+	- toobj: a model(6) to OBJ conversion tool
 	- stl: an STL to model(6) conversion tool
 	- tostl: a model(6) to STL conversion tool
+	- procgen: procedural generation demo
+	- raymarch: ray marching demo
+	- plot3: 3d graph plotter (WIP)
 
 USAGE
 
@@ -109,6 +114,13 @@ USAGE
 	arguments are given, it reads the OBJ file from stdin.
 
 
+	toobj [mdlfile [dstdir]]
+
+	Converts a mdlfile model(6) into a Wavefront OBJ file and dumps it, along
+	with all of its assets, into dstdir if passed as an argument; otherwise it
+	will write the main file into stdout.
+
+
 	stl [-d] [file]
 
 	This tool converts an STL file into a model(6) and writes it to stdout.
@@ -125,6 +137,32 @@ USAGE
 
 	Use the t option to write an ASCII STL file, otherwise a
 	binary one will be written.
+
+
+	procgen [-s nframes] [dx [dy]]
+
+	Generates a nice sunset image(6) into stdout.  With the s option you can
+	choose how many frames to skip for the procedural landscape to advance from
+	left to right.  With dx and dy you can choose the size of the image.
+
+
+	raymarch
+
+	Run it and have fun with the mouse!
+
+
+	plot3
+
+	Shows an interactive 3d graph plot generated from a command language
+	inspired by plot(6).  The language is still very limited:
+
+		co name		- set current color
+		x y z		- add a point to the cloud
+
+	You can use tools/plotgen to automatically generate a plot for a given
+	function f(x, z).  For example:
+
+	% tools/plotgen 0 10 'sin(x)*cos(z)' | plot3
 
 CUBEMAPS
 
