@@ -64,7 +64,7 @@ PColor pal[] = {
 static Point3
 vs(Shaderparams *sp)
 {
-	return world2clip(sp->su->camera, model2world(sp->su->entity, sp->v->p));
+	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
 }
 
 static Color
@@ -277,20 +277,16 @@ void
 redrawb(void)
 {
 	shootcamera(cam, &shaders);
-	lockdisplay(display);
 	draw(screenb, screenb->r, display->white, nil, ZP);
 	cam->view->draw(cam->view, screenb, nil);
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
 void
 redraw(void)
 {
-	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
 	flushimage(display, 1);
-	unlockdisplay(display);
 }
 
 void
@@ -358,10 +354,8 @@ mouse(void)
 void
 resize(void)
 {
-	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -412,9 +406,6 @@ threadmain(int argc, char *argv[])
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 	cam = Cam(screenb->r, rctl, PERSPECTIVE, 90*DEG, 0.1, 1000);
 	placecamera(cam, theplot.scn, addpt3(theplot.bbox.c, mulpt3(normvec3(Vec3(1,1,1)), 1.5*theplot.bbox.r)), theplot.bbox.c, Vec3(0,1,0));
-
-	display->locking = 1;
-	unlockdisplay(display);
 
 	drawc = chancreate(sizeof(void*), 1);
 	proccreate(drawproc, nil, mainstacksize);

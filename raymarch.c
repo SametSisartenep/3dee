@@ -99,9 +99,9 @@ fs(Shaderparams *sp)
 	int i;
 
 	uv = Pt2(sp->p.x, sp->p.y, 1);
-	uv.x = 2*uv.x - Dx(sp->su->fb->r);
-	uv.y = Dy(sp->su->fb->r) - 2*uv.y;
-	uv = divpt2(uv, Dy(sp->su->fb->r));
+	uv.x = 2*uv.x - Dx(sp->fb->r);
+	uv.y = Dy(sp->fb->r) - 2*uv.y;
+	uv = divpt2(uv, Dy(sp->fb->r));
 
 	va = sp->getuniform(sp, "time");
 	time = va == nil? 0: va->n;
@@ -110,9 +110,9 @@ fs(Shaderparams *sp)
 	va = sp->getuniform(sp, "mouse");
 	mpt = va == nil? ZP3: va->p;
 	m = Pt2(mpt.x, mpt.y, 1);
-	m.x = 2*m.x - Dx(sp->su->fb->r);
-	m.y = Dy(sp->su->fb->r) - 2*m.y;
-	m = divpt2(m, Dy(sp->su->fb->r)/2);
+	m.x = 2*m.x - Dx(sp->fb->r);
+	m.y = Dy(sp->fb->r) - 2*m.y;
+	m = divpt2(m, Dy(sp->fb->r)/2);
 
 	ro = Pt3(0, 0, 3, 1);
 	rd = normvec3(Vec3(uv.x, uv.y, -1));
@@ -143,16 +143,14 @@ Shadertab shaders = {
 void
 redraw(void)
 {
-	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
 	flushimage(display, 1);
-	unlockdisplay(display);
 }
 
 void
-drawproc(void *)
+drawthread(void *)
 {
-	threadsetname("drawproc");
+	threadsetname("drawthread");
 
 	for(;;){
 		recv(drawc, nil);
@@ -179,10 +177,8 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			lockdisplay(display);
 			draw(screenb, screenb->r, display->black, nil, ZP);
 			cam->view->draw(cam->view, screenb, nil);
-			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 = nanosec();
 		}else{
@@ -204,10 +200,8 @@ mouse(void)
 void
 resize(void)
 {
-	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -299,11 +293,9 @@ threadmain(int argc, char *argv[])
 	scn->addent(scn, ent);
 
 	drawc = chancreate(sizeof(void*), 1);
-	display->locking = 1;
-	unlockdisplay(display);
 
 	proccreate(renderproc, nil, mainstacksize);
-	proccreate(drawproc, nil, mainstacksize);
+	threadcreate(drawthread, nil, mainstacksize);
 
 	enum {MOUSE, RESIZE, KEY};
 	Alt a[] = {

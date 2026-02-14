@@ -456,14 +456,12 @@ drawstats(void)
 void
 redraw(void)
 {
-	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
 	usrlog->draw(usrlog);
 	drawopmode();
 	if(showhud)
 		drawstats();
 	flushimage(display, 1);
-	unlockdisplay(display);
 }
 
 void
@@ -493,11 +491,9 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			lockdisplay(display);
 			draw(screenb, screenb->r, bg, nil, ZP);
 			cam->view->draw(cam->view, screenb, nil);
 			compass.cam->view->draw(compass.cam->view, screenb, nil);
-			unlockdisplay(display);
 
 			nbsend(drawc, nil);
 			t0 = nanosec();
@@ -609,7 +605,6 @@ mmb(void)
 	static char buf[256];
 	int fd;
 
-	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case ORBIT:
 		opmode = OMOrbit;
@@ -618,7 +613,7 @@ mmb(void)
 		opmode = OMSelect;
 		break;
 	case SAVE:
-		if(enter("path", buf, sizeof buf, mctl, kctl, nil) <= 0)
+		if(enter("path", buf, sizeof buf, mctl, kctl, _screen) <= 0)
 			break;
 		fd = create(buf, OWRITE, 0644);
 		if(fd < 0){
@@ -631,7 +626,6 @@ mmb(void)
 	case QUIT:
 		threadexitsall(nil);
 	}
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -659,7 +653,6 @@ rmb(void)
 	static Menu menu = { .gen = genrmbmenuitem };
 	int idx;
 
-	lockdisplay(display);
 	idx = menuhit(3, mctl, &menu, _screen);
 	if(idx < 0)
 		goto nohit;
@@ -674,7 +667,6 @@ rmb(void)
 		break;
 	}
 nohit:
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -774,10 +766,8 @@ handlekeys(void)
 void
 resize(void)
 {
-	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -869,8 +859,6 @@ threadmain(int argc, char *argv[])
 	kctl->c = chancreate(sizeof(Rune), 16);
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
-	display->locking = 1;
-	unlockdisplay(display);
 
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);

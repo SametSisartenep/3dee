@@ -112,8 +112,8 @@ fs(Shaderparams *sp)
 	double dt, shift, h, time;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
-	uv.x /= Dx(sp->su->fb->r);
-	uv.y /= Dy(sp->su->fb->r);
+	uv.x /= Dx(sp->fb->r);
+	uv.y /= Dy(sp->fb->r);
 	uv.y = 1 - uv.y;		/* make [0 0] the bottom-left corner */
 
 	va = sp->getuniform(sp, "time");

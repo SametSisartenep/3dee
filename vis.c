@@ -252,12 +252,10 @@ drawstats(void)
 void
 redraw(void)
 {
-	lockdisplay(display);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
 	flushimage(display, 1);
-	unlockdisplay(display);
 }
 
 void
@@ -300,10 +298,8 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			lockdisplay(display);
 			draw(screenb, screenb->r, clr, nil, ZP);
 			maincam->view->draw(maincam->view, screenb, curraster);
-			unlockdisplay(display);
 
 			nbsend(drawc, nil);
 
@@ -325,9 +321,9 @@ renderproc(void *)
 }
 
 void
-drawproc(void *)
+drawthread(void *)
 {
-	threadsetname("drawproc");
+	threadsetname("drawthread");
 
 	for(;;){
 		recv(drawc, nil);
@@ -448,26 +444,32 @@ mmb(void)
 	int nf;
 	ulong clrcol;
 
-	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case MOVELIGHT:
 		qlock(&scenelk);
 		snprint(buf, sizeof buf, "%g %g %g", lights[0]->p.x, lights[0]->p.y, lights[0]->p.z);
-		if(enter("light pos", buf, sizeof buf, mctl, kctl, nil) <= 0)
+		qunlock(&scenelk);
+		if(enter("light pos", buf, sizeof buf, mctl, kctl, _screen) <= 0){
 			break;
+		}
 		nf = tokenize(buf, f, 3);
 		if(nf != 3)
 			break;
+		qlock(&scenelk);
 		lights[0]->p.x = strtod(f[0], nil);
 		lights[0]->p.y = strtod(f[1], nil);
 		lights[0]->p.z = strtod(f[2], nil);
 		qunlock(&scenelk);
 		break;
 	case TSNEAREST:
+		qlock(&scenelk);
 		tsampler = neartexsampler;
+		qunlock(&scenelk);
 		break;
 	case TSBILINEAR:
+		qlock(&scenelk);
 		tsampler = bilitexsampler;
+		qunlock(&scenelk);
 		break;
 	case SHOWNORMALS:
 		curraster = curraster && strcmp(curraster, "normals") == 0? nil: "normals";
@@ -483,7 +485,7 @@ mmb(void)
 			break;
 		clrcol = clrcol<<8 | 0xFF;	/* xrgb2rgba */
 		snprint(buf, sizeof buf, "0x%08lux", clrcol);
-		if(enter("clear color", buf, sizeof buf, mctl, kctl, nil) <= 0)
+		if(enter("clear color", buf, sizeof buf, mctl, kctl, _screen) <= 0)
 			break;
 		nf = tokenize(buf, f, 1);
 		if(nf != 1)
@@ -514,7 +516,6 @@ mmb(void)
 		viewabuffer();
 		break;
 	}
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -532,7 +533,6 @@ rmb(void)
 	static Menu menu = { .gen = genrmbmenuitem };
 	int idx;
 
-	lockdisplay(display);
 	idx = menuhit(3, mctl, &menu, _screen);
 	if(idx >= 0){
 		shader = &shadertab[idx];
@@ -546,7 +546,6 @@ rmb(void)
 //		maincam->view->p.x += p.x;
 //		maincam->view->p.y += p.y;
 //	}
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -715,10 +714,8 @@ mkblendtestscene(void)
 void
 resize(void)
 {
-	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -879,13 +876,12 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 	kctl->c = chancreate(sizeof(Rune), 16);
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
-	display->locking = 1;
-	unlockdisplay(display);
 
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
 	proccreate(renderproc, nil, mainstacksize);
-	proccreate(drawproc, nil, mainstacksize);
+
+	threadcreate(drawthread, nil, mainstacksize);
 
 	enum {MOUSE, RESIZE, KEY};
 	Alt a[] = {

@@ -11,8 +11,8 @@ gouraudvshader(Shaderparams *sp)
 	LightSource *l;
 	Color ambient, diffuse, specular, lightc;
 
-	sp->v->n = model2world(sp->su->entity, sp->v->n);
-	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->entity, sp->v->n);
+	sp->v->p = model2world(sp->entity, sp->v->p);
 
 	if(sp->v->mtl != nil)
 		m = *sp->v->mtl;
@@ -23,10 +23,10 @@ gouraudvshader(Shaderparams *sp)
 		m.shininess = 1;
 	}
 
-	lightc = getscenecolor(sp->su->camera->scene, sp->v->p, sp->v->n);
+	lightc = getscenecolor(sp->scene, sp->v->p, sp->v->n);
 	sp->v->c = ZP3;
 
-	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+	for(l = sp->scene->lights.next; l != &sp->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, sp->v->p));
 
 		ambient = mulpt3(lightc, Ka);
@@ -36,7 +36,7 @@ gouraudvshader(Shaderparams *sp)
 		diffuse = mulpt3(lightc, Kd);
 		diffuse = modulapt3(diffuse, m.diffuse);
 
-		lookdir = normvec3(subpt3(sp->su->camera->p, sp->v->p));
+		lookdir = normvec3(subpt3(sp->camera->p, sp->v->p));
 		lightdir = qrotate(lightdir, sp->v->n, PI); /* reflect */
 		spec = pow(max(0, _Xdotvec3(lookdir, lightdir)), m.shininess);
 		specular = mulpt3(lightc, spec*Ks);
@@ -45,7 +45,7 @@ gouraudvshader(Shaderparams *sp)
 		sp->v->c = addpt3(sp->v->c, addpt3(ambient, addpt3(diffuse, specular)));
 	}
 	sp->v->c.a = m.diffuse.a;
-	return world2clip(sp->su->camera, sp->v->p);
+	return world2clip(sp->camera, sp->v->p);
 }
 
 Color
@@ -67,19 +67,19 @@ gouraudshader(Shaderparams *sp)
 Point3
 phongvshader(Shaderparams *sp)
 {
-	sp->v->n = model2world(sp->su->entity, sp->v->n);
-	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->entity, sp->v->n);
+	sp->v->p = model2world(sp->entity, sp->v->p);
 	sp->setattr(sp, "pos", VAPoint, &sp->v->p);
 	if(sp->v->mtl != nil){
 		if(sp->v->mtl->normalmap != nil && sp->v->uv.w != 0)
-			sp->v->tangent = model2world(sp->su->entity, sp->v->tangent);
+			sp->v->tangent = model2world(sp->entity, sp->v->tangent);
 
 		sp->setattr(sp, "ambient", VAPoint, &sp->v->mtl->ambient);
 		sp->setattr(sp, "diffuse", VAPoint, &sp->v->mtl->diffuse);
 		sp->setattr(sp, "specular", VAPoint, &sp->v->mtl->specular);
 		sp->setattr(sp, "shininess", VANumber, &sp->v->mtl->shininess);
 	}
-	return world2clip(sp->su->camera, sp->v->p);
+	return world2clip(sp->camera, sp->v->p);
 }
 
 Color
@@ -131,10 +131,10 @@ phongshader(Shaderparams *sp)
 			m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 	}
 
-	lightc = getscenecolor(sp->su->camera->scene, pos, n);
+	lightc = getscenecolor(sp->scene, pos, n);
 	sp->v->c = ZP3;
 
-	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+	for(l = sp->scene->lights.next; l != &sp->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, pos));
 
 		ambient = mulpt3(lightc, Ka);
@@ -144,7 +144,7 @@ phongshader(Shaderparams *sp)
 		diffuse = mulpt3(lightc, Kd);
 		diffuse = modulapt3(diffuse, m.diffuse);
 
-		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
+		lookdir = normvec3(subpt3(sp->camera->p, pos));
 		lightdir = qrotate(lightdir, n, PI); /* reflect */
 		spec = pow(max(0, _Xdotvec3(lookdir, lightdir)), m.shininess);
 		specular = mulpt3(lightc, spec*Ks);
@@ -212,10 +212,10 @@ blinnshader(Shaderparams *sp)
 			m.specular = sampletexture(sp->v->mtl->specularmap, sp->v->uv, tsampler);
 	}
 
-	lightc = getscenecolor(sp->su->camera->scene, pos, n);
+	lightc = getscenecolor(sp->scene, pos, n);
 	sp->v->c = ZP3;
 
-	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+	for(l = sp->scene->lights.next; l != &sp->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, pos));
 
 		ambient = mulpt3(lightc, Ka);
@@ -225,7 +225,7 @@ blinnshader(Shaderparams *sp)
 		diffuse = mulpt3(lightc, Kd);
 		diffuse = modulapt3(diffuse, m.diffuse);
 
-		lookdir = normvec3(subpt3(sp->su->camera->p, pos));
+		lookdir = normvec3(subpt3(sp->camera->p, pos));
 		lightdir = normvec3(addpt3(lookdir, lightdir)); /* half vector */
 		spec = pow(max(0, _Xdotvec3(lookdir, lightdir)), m.shininess);
 		specular = mulpt3(lightc, spec*Ks);
@@ -251,17 +251,17 @@ toonvshader(Shaderparams *sp)
 	LightSource *l;
 	double intens;
 
-	sp->v->n = model2world(sp->su->entity, sp->v->n);
-	sp->v->p = model2world(sp->su->entity, sp->v->p);
+	sp->v->n = model2world(sp->entity, sp->v->n);
+	sp->v->p = model2world(sp->entity, sp->v->p);
 	intens = 0;
-	for(l = sp->su->camera->scene->lights.next; l != &sp->su->camera->scene->lights; l = l->next){
+	for(l = sp->scene->lights.next; l != &sp->scene->lights; l = l->next){
 		lightdir = normvec3(subpt3(l->p, sp->v->p));
 		intens += max(0, _Xdotvec3(sp->v->n, lightdir));
 	}
 	sp->setattr(sp, "intensity", VANumber, &intens);
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(sp->su->camera, sp->v->p);
+	return world2clip(sp->camera, sp->v->p);
 }
 
 Color
@@ -289,7 +289,7 @@ identvshader(Shaderparams *sp)
 {
 	if(sp->v->mtl != nil)
 		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(sp->su->camera, model2world(sp->su->entity, sp->v->p));
+	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
 }
 
 Color
@@ -311,9 +311,9 @@ identshader(Shaderparams *sp)
 Point3
 ivshader(Shaderparams *sp)
 {
-	sp->v->n = model2world(sp->su->entity, sp->v->n);
-	sp->v->p = model2world(sp->su->entity, sp->v->p);
-	return world2clip(sp->su->camera, sp->v->p);
+	sp->v->n = model2world(sp->entity, sp->v->n);
+	sp->v->p = model2world(sp->entity, sp->v->p);
+	return world2clip(sp->camera, sp->v->p);
 }
 
 Color
@@ -374,8 +374,8 @@ circleshader(Shaderparams *sp)
 	double r, d, time;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
-	uv.x /= Dx(sp->su->fb->r);
-	uv.y /= Dy(sp->su->fb->r);
+	uv.x /= Dx(sp->fb->r);
+	uv.y /= Dy(sp->fb->r);
 
 	va = sp->getuniform(sp, "time");
 	time = va == nil? 0: va->n;
@@ -399,8 +399,8 @@ sfshader(Shaderparams *sp)
 	double y, pct, time;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
-	uv.x /= Dx(sp->su->fb->r);
-	uv.y /= Dy(sp->su->fb->r);
+	uv.x /= Dx(sp->fb->r);
+	uv.y /= Dy(sp->fb->r);
 	uv.y = 1 - uv.y;		/* make [0 0] the bottom-left corner */
 
 	va = sp->getuniform(sp, "time");
@@ -423,8 +423,8 @@ boxshader(Shaderparams *sp)
 	Point2 r;
 
 	uv = Pt2(sp->p.x,sp->p.y,1);
-	uv.x /= Dx(sp->su->fb->r);
-	uv.y /= Dy(sp->su->fb->r);
+	uv.x /= Dx(sp->fb->r);
+	uv.y /= Dy(sp->fb->r);
 	r = Vec2(0.2,0.4);
 
 	p = Pt2(fabs(uv.x - 0.5), fabs(uv.y - 0.5), 1);

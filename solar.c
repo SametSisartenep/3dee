@@ -297,10 +297,8 @@ selectplanet(Planet *p)
 	}
 	qunlock(&scenelk);
 
-	lockdisplay(display);
 	freeinfobox(infobox);
 	infobox = nil;
-	unlockdisplay(display);
 
 	/* if nil, we cleaned the selection and infobox, so now get out */
 	if(p == nil)
@@ -311,9 +309,7 @@ selectplanet(Planet *p)
 	esel = newentity("selection", msel);
 	esel->RFrame3 = e->RFrame3;
 
-	lockdisplay(display);
 	infobox = mkplanetinfobox(p, Rpt(subpt(viewr.max, Pt(500,250)), viewr.max));
-	unlockdisplay(display);
 
 	memset(&aabb, 0, sizeof aabb);
 	pt = e->mdl->positions->items;
@@ -478,7 +474,7 @@ identvshader(Shaderparams *sp)
 {
 	Planet *p;
 
-	p = getplanet(sp->su->entity->name);
+	p = getplanet(sp->entity->name);
 
 	if(p != nil){
 		Matrix3 S = {
@@ -492,7 +488,7 @@ identvshader(Shaderparams *sp)
 		sp->v->c = p->mtl->diffuse;
 	}
 
-	return world2clip(sp->su->camera, model2world(sp->su->entity, sp->v->p));
+	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
 }
 
 Color
@@ -544,7 +540,6 @@ redraw(void)
 {
 	int i;
 
-	lockdisplay(display);
 	draw(screen, rectaddpt(viewr, screen->r.min), screenb, nil, ZP);
 	draw(screen, rectaddpt(cmdbox.r, screen->r.min), display->white, nil, ZP);
 	drawinfobox(screen, infobox);
@@ -555,7 +550,6 @@ redraw(void)
 	if(showhud)
 		drawstats();
 	flushimage(display, 1);
-	unlockdisplay(display);
 }
 
 void
@@ -576,10 +570,8 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			lockdisplay(display);
 			draw(screenb, screenb->r, bg, nil, ZP);
 			camera->view->draw(camera->view, screenb, nil);
-			unlockdisplay(display);
 			nbsend(drawc, nil);
 			t0 = nanosec();
 		}else{
@@ -593,9 +585,9 @@ renderproc(void *)
 }
 
 void
-drawproc(void *)
+drawthread(void *)
 {
-	threadsetname("drawproc");
+	threadsetname("drawthread");
 
 	for(;;){
 		recv(drawc, nil);
@@ -618,13 +610,11 @@ lookat_cmd(Cmdbut *)
 	Planet *p;
 	int idx;
 
-	lockdisplay(display);
 	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx >= 0){
 		p = &planets[idx];
 		aimcamera(camera, p->body->p);
 	}
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -634,11 +624,9 @@ goto_cmd(Cmdbut *)
 	static Menu menu = { .gen = genplanetmenu };
 	int idx;
 
-	lockdisplay(display);
 	idx = menuhit(1, mctl, &menu, _screen);
 	if(idx >= 0)
 		gotoplanet(&planets[idx]);
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -652,8 +640,7 @@ date_cmd(Cmdbut *)
 		return;
 
 	memmove(buf, datestr, sizeof buf);
-	lockdisplay(display);
-	if(enter("new date", buf, sizeof buf, mctl, kctl, nil) <= 0)
+	if(enter("new date", buf, sizeof buf, mctl, kctl, _screen) <= 0)
 		goto nodate;
 	if(tmparse(&t, datefmt, buf, nil, nil) == nil)
 		goto nodate;
@@ -661,7 +648,6 @@ date_cmd(Cmdbut *)
 	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
 	updateplanets();
 nodate:
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -731,17 +717,15 @@ mmb(void)
 	if((om.buttons ^ mctl->buttons) == 0)
 		return;
 
-	lockdisplay(display);
 	switch(menuhit(2, mctl, &menu, _screen)){
 	case CHGSPEED:
 		snprint(buf, sizeof buf, "%g", speed);
-		if(enter("speed (km)", buf, sizeof buf, mctl, kctl, nil) > 0)
+		if(enter("speed (km)", buf, sizeof buf, mctl, kctl, _screen) > 0)
 			speed = fabs(strtod(buf, nil));
 		break;
 	case QUIT:
 		threadexitsall(nil);
 	}
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -861,10 +845,8 @@ handlekeys(void)
 void
 resize(void)
 {
-	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
-	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -987,13 +969,12 @@ threadmain(int argc, char *argv[])
 	kctl->c = chancreate(sizeof(Rune), 16);
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
-	display->locking = 1;
-	unlockdisplay(display);
 
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
 	proccreate(renderproc, nil, mainstacksize);
-	proccreate(drawproc, nil, mainstacksize);
+
+	threadcreate(drawthread, nil, mainstacksize);
 
 	enum {MOUSE, RESIZE, KEY};
 	Alt a[] = {
