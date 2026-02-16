@@ -245,6 +245,12 @@ drawstats(void)
 		maincam->rendopts & ROBlend? "on": "off",
 		maincam->rendopts & RODepth? "on": "off",
 		maincam->rendopts & ROAbuff? "on": "off");
+	snprint(stats[Sdps], sizeof(stats[Sdps]), "DPS %.0f/%.0f/%.0f/%.0f",
+		!maincam->view->stats.max? 0: 1e9/maincam->view->stats.max,
+		!maincam->view->stats.avg? 0: 1e9/maincam->view->stats.avg,
+		!maincam->view->stats.min? 0: 1e9/maincam->view->stats.min,
+		!maincam->view->stats.v? 0: 1e9/maincam->view->stats.v);
+	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", maincam->view->stats.nframes);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }

@@ -25,6 +25,8 @@ enum {
 	Scambx, Scamby, Scambz,
 	Sfps,
 	Sframes,
+	Sdps,
+	Sdframes,
 	Se
 };
 
@@ -447,6 +449,12 @@ drawstats(void)
 		!cam->stats.min? 0: 1e9/cam->stats.min,
 		!cam->stats.v? 0: 1e9/cam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", cam->stats.nframes);
+	snprint(stats[Sdps], sizeof(stats[Sdps]), "DPS %.0f/%.0f/%.0f/%.0f",
+		!cam->view->stats.max? 0: 1e9/cam->view->stats.max,
+		!cam->view->stats.avg? 0: 1e9/cam->view->stats.avg,
+		!cam->view->stats.min? 0: 1e9/cam->view->stats.min,
+		!cam->view->stats.v? 0: 1e9/cam->view->stats.v);
+	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", cam->view->stats.nframes);
 	for(i = 0; i < Se; i++){
 		p = addpt(screen->r.min, Pt(10,10 + i*font->height));
 		stringbg(screen, p, display->black, ZP, font, stats[i], display->white, ZP);

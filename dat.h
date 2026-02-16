@@ -32,5 +32,7 @@ enum {
 	Spixcol,
 	Snorcol,
 	Sextra,
+	Sdps,
+	Sdframes,
 	Se
 };
