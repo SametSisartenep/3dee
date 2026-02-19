@@ -190,6 +190,39 @@ viewabuffer(void)
 }
 
 void
+viewmemdrawtest(void)
+{
+	Memimage *i;
+	int pfd[2], cpid;
+	ulong c;
+
+	i = eallocmemimage(screen->r, screen->chan);
+	unloadimage(clr, UR, (uchar*)&c, 4);
+	memfillcolor(i, (c<<8)|0xFF);
+	maincam->view->memdraw(maincam->view, i, curraster);
+	if(pipe(pfd) < 0)
+		sysfatal("pipe: %r");
+	switch(cpid = fork()){
+	case -1:
+		sysfatal("fork: %r");
+	case 0:
+		close(pfd[1]);
+		dup(pfd[0], 0);
+		close(pfd[0]);
+		execl("/bin/page", "page", "-w", nil);
+		sysfatal("execl: %r");
+	default:
+		close(pfd[0]);
+		if(writememimage(pfd[1], i) < 0)
+			sysfatal("writememimage: %r");
+		close(pfd[1]);
+		freememimage(i);
+		if(waitpid() != cpid)
+			sysfatal("child ran away");
+	}
+}
+
+void
 updatebbox(Entity *e)
 {
 	static int inited;
@@ -421,6 +454,7 @@ mmb(void)
 		TGLABUFF,
 		SP5,
 		VIEWABUF,
+		MEMDRAW,
 	};
 	static char *items[] = {
 	 [MOVELIGHT]	"move light",
@@ -443,6 +477,7 @@ mmb(void)
 	 [TGLABUFF]	"toggle the a-buffer",
 			"",
 	 [VIEWABUF]	"view a-buffer",
+	 [MEMDRAW]	"memdraw test",
 		nil,
 	};
 	static Menu menu = { .item = items };
@@ -521,6 +556,9 @@ mmb(void)
 	case VIEWABUF:
 		viewabuffer();
 		break;
+	case MEMDRAW:
+		viewmemdrawtest();
+		break;
 	}
 	nbsend(drawc, nil);
 }
@@ -571,6 +609,29 @@ mouse(void)
 	om = mctl->Mouse;
 }
 
+static void
+dumpprofile(void)
+{
+	char buf[128];
+
+	if(!doprof)
+		return;
+
+	snprint(buf, sizeof(buf), "%d", getpid());
+	switch(fork()){
+	case -1:
+		abort();
+	case 0:
+		dup(2, 1);
+		print("tprof %s\n", buf);
+		execl("/bin/tprof", "tprof", buf, nil);
+		abort();
+	default:
+		free(wait());
+		break;
+	}
+}
+
 void
 kbdproc(void *)
 {
@@ -599,6 +660,7 @@ kbdproc(void *)
 			chartorune(&r, buf+1);
 			if(r == Kdel){
 				close(fd);
+				dumpprofile();
 				threadexitsall(nil);
 			}else
 				nbsend(kctl->c, &r);
