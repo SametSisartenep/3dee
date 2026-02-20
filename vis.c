@@ -129,14 +129,14 @@ Ptquat(Quaternion q, double w)
 void
 zoomin(void)
 {
-	maincam->fov = fclamp(maincam->fov - 1*DEG, 1*DEG, 180*DEG);
+	maincam->fov = fclamp(maincam->fov - 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(maincam);
 }
 
 void
 zoomout(void)
 {
-	maincam->fov = fclamp(maincam->fov + 1*DEG, 1*DEG, 180*DEG);
+	maincam->fov = fclamp(maincam->fov + 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(maincam);
 }
 

@@ -303,7 +303,7 @@ drawproc(void *)
 void
 zoomin(void)
 {
-	cam->fov = fclamp(cam->fov - 1*DEG, 1*DEG, 180*DEG);
+	cam->fov = fclamp(cam->fov - 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(cam);
 	redrawb();
 }
@@ -311,7 +311,7 @@ zoomin(void)
 void
 zoomout(void)
 {
-	cam->fov = fclamp(cam->fov + 1*DEG, 1*DEG, 180*DEG);
+	cam->fov = fclamp(cam->fov + 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(cam);
 	redrawb();
 }

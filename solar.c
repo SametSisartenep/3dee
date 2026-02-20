@@ -506,14 +506,14 @@ Shadertab shader = { "ident", identvshader, identshader };
 void
 zoomin(void)
 {
-	camera->fov = fclamp(camera->fov - 1*DEG, 1*DEG, 180*DEG);
+	camera->fov = fclamp(camera->fov - 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(camera);
 }
 
 void
 zoomout(void)
 {
-	camera->fov = fclamp(camera->fov + 1*DEG, 1*DEG, 180*DEG);
+	camera->fov = fclamp(camera->fov + 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(camera);
 }
 

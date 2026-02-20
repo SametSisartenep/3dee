@@ -407,14 +407,14 @@ setupcompass(Compass *c, Rectangle r, Renderer *rctl)
 void
 zoomin(void)
 {
-	cam->fov = fclamp(cam->fov - 1*DEG, 1*DEG, 180*DEG);
+	cam->fov = fclamp(cam->fov - 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(cam);
 }
 
 void
 zoomout(void)
 {
-	cam->fov = fclamp(cam->fov + 1*DEG, 1*DEG, 180*DEG);
+	cam->fov = fclamp(cam->fov + 1*DEG, 1*DEG, 179*DEG);
 	reloadcamera(cam);
 }
 
