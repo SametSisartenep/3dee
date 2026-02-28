@@ -310,6 +310,9 @@ selectplanet(Planet *p)
 	msel = newmodel();
 	esel = newentity("selection", msel);
 	esel->RFrame3 = e->RFrame3;
+	esel->bx = mulpt3(esel->bx, 0.8);
+	esel->by = mulpt3(esel->by, 0.8);
+	esel->bz = mulpt3(esel->bz, 0.8);
 
 	infobox = mkplanetinfobox(p, Rpt(subpt(viewr.max, Pt(500,250)), viewr.max));
 
@@ -319,8 +322,6 @@ selectplanet(Planet *p)
 		aabb.min = minpt3(aabb.min, *pt);
 		aabb.max = maxpt3(aabb.max, *pt);
 	}
-	aabb.min = mulpt3(aabb.min, p->scale*0.8);
-	aabb.max = mulpt3(aabb.max, p->scale*0.8);
 	aabb.min.w = aabb.max.w = 1;
 
 	l = mkprim(PLine);
@@ -477,19 +478,10 @@ identvshader(Shaderparams *sp)
 	Planet *p;
 
 	p = getplanet(sp->entity->name);
-
 	if(p != nil){
-		Matrix3 S = {
-			p->scale, 0, 0, 0,
-			0, p->scale, 0, 0,
-			0, 0, p->scale, 0,
-			0, 0, 0, 1,
-		};
-		sp->v->p = xform3(sp->v->p, S);
 		sp->v->mtl = p->mtl;
 		sp->v->c = p->mtl->diffuse;
 	}
-
 	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
 }
 
@@ -932,9 +924,11 @@ threadmain(int argc, char *argv[])
 				planets[i].mtl = &model->materials[j];
 		if(i == 0){
 			subject->p = Pt3(0,0,0,1);
-			continue;
 		}else if(museummode)
 			subject->p.x = planets[i-1].body->p.x + 1.5*planets[i-1].scale + planets[i].scale;
+		subject->bx = mulpt3(subject->bx, planets[i].scale);
+		subject->by = mulpt3(subject->by, planets[i].scale);
+		subject->bz = mulpt3(subject->bz, planets[i].scale);
 	}
 	tmnow(&date, nil);
 	snprint(datestr, sizeof datestr, "%τ", tmfmt(&date, datefmt));
