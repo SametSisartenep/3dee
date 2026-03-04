@@ -572,7 +572,7 @@ lmb(void)
 		cp0 = viewport2world(cam, Pt3(mctl->xy.x, mctl->xy.y, 1, 1));
 		cp1 = viewport2world(cam, Pt3(mctl->xy.x, mctl->xy.y, 0, 1));
 		cv = viewport2world(cam, Pt3(mctl->xy.x+10, mctl->xy.y, 1, 1));
-		cr = vec3len(subpt3(cv, cp0)) * cam->clip.f/cam->clip.n;
+		cr = vec3len(subpt3(cv, cp0)) * cam->zfar/cam->znear;
 
 		if(cidx < 0)
 			cidx = model->addcolor(model, Pt3(0.5,0.5,0,1));
