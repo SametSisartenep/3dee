@@ -409,8 +409,8 @@ lmb(void)
 			return;
 		qlock(v->fbctl);
 		fb = v->getfb(v);
-		cr = v->fetchraster(v, nil);
-		zr = v->fetchraster(v, "z-buffer");
+		cr = v->fetchraster(v, "color");
+		zr = v->fetchraster(v, "depth");
 		nr = v->fetchraster(v, "normals");
 		c = ul2col(cr->data[p.y*Dx(fb->r) + p.x]);
 		n = nr != nil? ul2col(nr->data[p.y*Dx(fb->r) + p.x]): ZP3;
@@ -519,7 +519,7 @@ mmb(void)
 		curraster = curraster && strcmp(curraster, "specular") == 0? nil: "specular";
 		break;
 	case SHOWZBUFFER:
-		curraster = curraster && strcmp(curraster, "z-buffer") == 0? nil: "z-buffer";
+		curraster = curraster && strcmp(curraster, "depth") == 0? nil: "depth";
 		break;
 	case SETCLRCOL:
 		if(unloadimage(clr, UR, (uchar*)&clrcol, 4) != 4)
