@@ -141,8 +141,9 @@ loadobjmodel(Model *m, OBJ *obj)
 	OBJIndexArray *idxtab;
 	OBJ2MtlMap mtlmap;
 	OBJMaterial *objmtl;
-	Material *mtl;
-	int i, idx, nt, maxnt, hastexcoords, neednormal, gottaclean;
+	Material mtl;
+	int i, idx, nt, maxnt;
+	int hastexcoords, neednormal, gottaclean;
 	int defcolidx, nidx;				/* default color and normal indices */
 
 	pverts = obj->vertdata[OBJVGeometric].verts;
@@ -154,36 +155,36 @@ loadobjmodel(Model *m, OBJ *obj)
 	mtlmap.head = nil;
 	for(i = 0; obj->materials != nil && i < nelem(obj->materials->mattab); i++)
 		for(objmtl = obj->materials->mattab[i]; objmtl != nil; objmtl = objmtl->next){
-			mtlmap.mtls = m->materials = erealloc(m->materials, ++m->nmaterials*sizeof(*m->materials));
-			mtl = &m->materials[m->nmaterials-1];
-			memset(mtl, 0, sizeof *mtl);
-
-			mtl->name = estrdup(objmtl->name);
+			memset(&mtl, 0, sizeof mtl);
+			mtl.name = estrdup(objmtl->name);
 			if(objmtl->Ka.a > 0)
-				mtl->ambient = objmtl->Ka;
+				mtl.ambient = objmtl->Ka;
 			if(objmtl->Kd.a > 0)
-				mtl->diffuse = objmtl->Kd;
+				mtl.diffuse = objmtl->Kd;
 			if(objmtl->Ks.a > 0)
-				mtl->specular = objmtl->Ks;
-			mtl->shininess = objmtl->Ns;
+				mtl.specular = objmtl->Ks;
+			mtl.shininess = objmtl->Ns;
 
 			if(objmtl->map_Kd != nil){
-				mtl->diffusemap = alloctexture(sRGBTexture, nil);
-				mtl->diffusemap->image = dupmemimage(objmtl->map_Kd->image);
+				mtl.diffusemap = alloctexture(sRGBTexture, nil);
+				mtl.diffusemap->image = dupmemimage(objmtl->map_Kd->image);
 			}
 
 			if(objmtl->map_Ks != nil){
-				mtl->specularmap = alloctexture(sRGBTexture, nil);
-				mtl->specularmap->image = dupmemimage(objmtl->map_Ks->image);
+				mtl.specularmap = alloctexture(sRGBTexture, nil);
+				mtl.specularmap->image = dupmemimage(objmtl->map_Ks->image);
 			}
 
 			if(objmtl->norm != nil){
-				mtl->normalmap = alloctexture(RAWTexture, nil);
-				mtl->normalmap->image = dupmemimage(objmtl->norm->image);
+				mtl.normalmap = alloctexture(RAWTexture, nil);
+				mtl.normalmap->image = dupmemimage(objmtl->norm->image);
 			}
 
-			addmtlmap(&mtlmap, objmtl, m->nmaterials-1);
+			idx = m->addmaterial(m, mtl);
+			addmtlmap(&mtlmap, objmtl, idx);
 		}
+	if(m->materials->nitems > 0)
+		mtlmap.mtls = m->materials->items;
 
 	for(i = 0; i < obj->vertdata[OBJVGeometric].nvert; i++)
 		m->addposition(m, VGP3(pverts[i]));

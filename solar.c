@@ -64,7 +64,6 @@ struct Planet
 	char *name;
 	double scale;
 	Entity *body;
-	Material *mtl;
 };
 
 struct Camcfg
@@ -475,13 +474,6 @@ gotoplanet(Planet *p)
 Point3
 identvshader(Shaderparams *sp)
 {
-	Planet *p;
-
-	p = getplanet(sp->entity->name);
-	if(p != nil){
-		sp->v->mtl = p->mtl;
-		sp->v->c = p->mtl->diffuse;
-	}
 	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
 }
 
@@ -879,10 +871,10 @@ threadmain(int argc, char *argv[])
 	Renderer *rctl;
 	Channel *keyc;
 	Entity *subject;
-	Model *model;
+	Model *model, *mdl;
 	Point3 *p, *lastp;
 	Point lblsiz;
-	int fd, i, j;
+	int fd, i;
 
 	tmfmtinstall();
 	GEOMfmtinstall();
@@ -915,16 +907,29 @@ threadmain(int argc, char *argv[])
 	}
 	scene = newscene(nil);
 	for(i = 0; i < nelem(planets); i++){
-		subject = newentity(planets[i].name, model);
+		Primitive *prim, *prime;
+		Material *mtl;
+
+		/* create instances of the model for each planet */
+		mdl = newmodel();
+		copymodel(model, mdl);
+		rmitemarray(mdl->prims);
+		mdl->prims = mkitemarray(0);
+		copyitemarray(model->prims, mdl->prims);
+
+		/* and attach the material corresponding to their planet */
+		mtl = mdl->getmaterial(mdl, planets[i].name);
+		prim = mdl->prims->items;
+		for(prime = prim + mdl->prims->nitems; prim < prime; prim++)
+			prim->mtl = mtl;
+
+		subject = newentity(planets[i].name, mdl);
 		scene->addent(scene, subject);
 		planets[i].body = subject;
 		planets[i].scale /= ↓scale;
-		for(j = 0; j < model->nmaterials; j++)
-			if(strcmp(planets[i].name, model->materials[j].name) == 0)
-				planets[i].mtl = &model->materials[j];
-		if(i == 0){
+		if(i == 0)
 			subject->p = Pt3(0,0,0,1);
-		}else if(museummode)
+		else if(museummode)
 			subject->p.x = planets[i-1].body->p.x + 1.5*planets[i-1].scale + planets[i].scale;
 		subject->bx = mulpt3(subject->bx, planets[i].scale);
 		subject->by = mulpt3(subject->by, planets[i].scale);

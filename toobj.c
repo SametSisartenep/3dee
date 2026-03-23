@@ -41,12 +41,13 @@ loadobjmodel(OBJ *obj, Model *m)
 	OBJElem *e;
 	OBJObject *o;
 	OBJMaterial *objmtl;
-	Material *mtl;
+	Material *mtl, *lastmtl;
 	int i;
 
-	if(m->nmaterials > 0)
+	if(m->materials->nitems > 0)
 		obj->materials = objallocmtl("main.mtl");
-	for(mtl = m->materials; mtl < m->materials + m->nmaterials; mtl++){
+	mtl = m->materials->items;
+	for(lastmtl = mtl + m->materials->nitems; mtl < lastmtl; mtl++){
 		objmtl = objallocmt(mtl->name);
 
 		if(mtl->ambient.a > 0)

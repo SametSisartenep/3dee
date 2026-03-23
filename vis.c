@@ -320,9 +320,9 @@ renderproc(void *)
 			sysfatal("readmemimage: %r");
 		model->addmaterial(model, *mtl);
 		free(mtl);
-		mtl = &model->materials[model->nmaterials-1];
+		mtl = itemarrayget(model->materials, model->materials->nitems-1);
 		lastprim = itemarrayget(model->prims, model->prims->nitems-1);
-		for(prim = model->prims->items; prim <= lastprim; prim++)
+		for(prim = model->prims->items; prim && prim <= lastprim; prim++)
 			prim->mtl = mtl;
 	}
 
@@ -883,9 +883,9 @@ fprint(2, "%s: %llud prims\n", mdlpath, model->prims->nitems);
 			if((tmpmtl->diffusemap->image = readmemimage(fd)) == nil)
 				sysfatal("readmemimage: %r");
 			close(fd);
-			model->addmaterial(model, *tmpmtl);
+			i = model->addmaterial(model, *tmpmtl);
 			free(tmpmtl);
-			tmpmtl = &model->materials[model->nmaterials-1];
+			tmpmtl = itemarrayget(model->materials, i);
 			lastprim = itemarrayget(model->prims, model->prims->nitems-1);
 			for(prim = model->prims->items; prim <= lastprim; prim++)
 				prim->mtl = tmpmtl;
