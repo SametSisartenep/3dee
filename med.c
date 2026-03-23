@@ -243,7 +243,7 @@ materializefrustum(void)
 	Primitive l;
 	Vertex v;
 	Point3 p[4];
-	usize vidx0;
+	ulong vidx0;
 	int i, j;
 
 	p[0] = Pt3(0,0,1,1);
@@ -303,7 +303,7 @@ addcube(void)
 	Primitive t;
 	Vertex v;
 	Point3 p;
-	usize pidx0, nidx0, vidx0;
+	ulong pidx0, nidx0, vidx0;
 	int i;
 
 	t = mkprim(PTriangle);

@@ -872,7 +872,7 @@ threadmain(int argc, char *argv[])
 		scene->addent(scene, subject);
 		updatebbox(subject);
 
-fprint(2, "%s: %llud prims\n", mdlpath, model->prims->nitems);
+fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 
 		if(argc == 0 && texpath != nil){
 			fd = open(texpath, OREAD);
