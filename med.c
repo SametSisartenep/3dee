@@ -51,7 +51,6 @@ struct Userlog
 	QLock;
 	Usermsg msgs;
 	ulong nmsgs;
-	ulong cap;
 
 	void (*send)(Userlog*, char*, ...);
 	void (*update)(Userlog*);

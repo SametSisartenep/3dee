@@ -405,7 +405,9 @@ threadmain(int argc, char *argv[])
 
 	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
 	cam = Cam(screenb->r, rctl, PERSPECTIVE, 90*DEG, 0.1, 1000);
-	placecamera(cam, theplot.scn, addpt3(theplot.bbox.c, mulpt3(normvec3(Vec3(1,1,1)), 1.5*theplot.bbox.r)), theplot.bbox.c, Vec3(0,1,0));
+	placecamera(cam, theplot.scn,
+		addpt3(theplot.bbox.c, mulpt3(normvec3(Vec3(1,1,1)), 1.5*theplot.bbox.r)),
+		theplot.bbox.c, Vec3(0,1,0));
 
 	drawc = chancreate(sizeof(void*), 1);
 	proccreate(drawproc, nil, mainstacksize);

@@ -233,8 +233,8 @@ updatebbox(Entity *e)
 	int i;
 
 	m = e->mdl;
-	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
-	for(prim = m->prims->items; prim <= lastprim; prim++)
+	prim = m->prims->items;
+	for(lastprim = prim + m->prims->nitems; prim < lastprim; prim++)
 	for(i = 0; i < prim->type+1; i++){
 		v = itemarrayget(m->verts, prim->v[i]);
 		p = itemarrayget(m->positions, v->p);
@@ -321,8 +321,8 @@ renderproc(void *)
 		model->addmaterial(model, *mtl);
 		free(mtl);
 		mtl = itemarrayget(model->materials, model->materials->nitems-1);
-		lastprim = itemarrayget(model->prims, model->prims->nitems-1);
-		for(prim = model->prims->items; prim && prim <= lastprim; prim++)
+		prim = model->prims->items;
+		for(lastprim = prim + model->prims->nitems; prim < lastprim; prim++)
 			prim->mtl = mtl;
 	}
 
@@ -886,8 +886,8 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 			i = model->addmaterial(model, *tmpmtl);
 			free(tmpmtl);
 			tmpmtl = itemarrayget(model->materials, i);
-			lastprim = itemarrayget(model->prims, model->prims->nitems-1);
-			for(prim = model->prims->items; prim <= lastprim; prim++)
+			prim = model->prims->items;
+			for(lastprim = prim + model->prims->nitems; prim < lastprim; prim++)
 				prim->mtl = tmpmtl;
 		}
 	}
