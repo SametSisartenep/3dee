@@ -10,9 +10,17 @@
 #include "libgraphics/graphics.h"
 #include "fns.h"
 
+enum {
+	CMpoint,
+	CMline,
+	CMpoly,
+	CMfillpoly,
+	CMLEN
+};
+
 typedef struct AABB AABB;
 typedef struct PColor PColor;
-typedef struct Plotpt Plotpt;
+typedef struct Plotprim Plotprim;
 typedef struct Plot Plot;
 
 struct AABB
@@ -31,16 +39,17 @@ struct PColor
 	Color c;
 };
 
-struct Plotpt
+struct Plotprim
 {
-	Point3 p;
+	Point3 p[4];
+	ulong n;
 	PColor *c;
 };
 
 struct Plot
 {
-	Plotpt *pts;
-	ulong npts;
+	Plotprim *prims;
+	ulong nprims;
 	AABB bbox;
 	Scene *scn;
 };
@@ -101,73 +110,112 @@ soakbrush(char *ck)
 }
 
 void
-updatebboxfromtheplot(void)
+updateplotbbox(void)
 {
 	static int inited;
-	Point3 *lastpt;
-
-	lastpt = &theplot.pts[theplot.npts-1].p;
+	Plotprim *lastprim;
+	int i;
 
 	if(!inited){
-		theplot.bbox.min = theplot.bbox.max = *lastpt;
+		theplot.bbox.min = Pt3( 1e9,  1e9,  1e9, 1);
+		theplot.bbox.max = Pt3(-1e9, -1e9, -1e9, 1);
 		inited++;
 		return;
 	}
 
-	theplot.bbox.min = minpt3(theplot.bbox.min, *lastpt);
-	theplot.bbox.max = maxpt3(theplot.bbox.max, *lastpt);
+	lastprim = &theplot.prims[theplot.nprims-1];
+	for(i = 0; i < lastprim->n; i++){
+		theplot.bbox.min = minpt3(theplot.bbox.min, lastprim->p[i]);
+		theplot.bbox.max = maxpt3(theplot.bbox.max, lastprim->p[i]);
+	}
 	theplot.bbox.c = divpt3(addpt3(theplot.bbox.max, theplot.bbox.min), 2);
 	theplot.bbox.r = max(vec3len(theplot.bbox.min), vec3len(theplot.bbox.max));
 }
 
 void
-addpttotheplot(Point3 p)
+addplotprim(Plotprim p)
 {
-	if(theplot.npts % 16 == 0)
-		theplot.pts = erealloc(theplot.pts, (theplot.npts + 16)*sizeof(Plotpt));
-	theplot.pts[theplot.npts++] = (Plotpt){p, brush};
-	updatebboxfromtheplot();
+	if(theplot.nprims % 16 == 0)
+		theplot.prims = erealloc(theplot.prims, (theplot.nprims + 16)*sizeof(Plotprim));
+	theplot.prims[theplot.nprims++] = p;
+	updateplotbbox();
 }
 
 void
 readtheplot(int fd)
 {
 	Biobuf *bin;
-	Point3 p;
-	char *line, *f[3];
+	Plotprim p;
+	char *line, *f[1+50*3];
 	ulong lineno;
-	int nf;
+	int i, nf;
 
 	bin = Bfdopen(fd, OREAD);
 	if(bin == nil)
 		sysfatal("Bfdopen: %r");
 
+	for(i = 0; i < nelem(p.p); i++)
+		p.p[i].w = 1;
+	p.c = brush;
+
 	lineno = 0;
-	p.w = 1;
 	while((line = Brdstr(bin, '\n', 1)) != nil){
 		lineno++;
 		nf = tokenize(line, f, nelem(f));
 		if(nf == 2 && strncmp(f[0], "co", 2) == 0){
 			soakbrush(f[1]);
-			free(line);
-			continue;
+			p.c = brush;
+		}else if(nf == 1+1*3 && strncmp(f[0], "poi", 3) == 0){
+			p.n = 1;
+			p.p[0].x = strtod(f[1], nil);
+			p.p[0].y = strtod(f[2], nil);
+			p.p[0].z = strtod(f[3], nil);
+			addplotprim(p);
+		}else if(nf == 1+2*3 && strncmp(f[0], "li", 2) == 0){
+			p.n = 2;
+			for(i = 0; i < p.n; i++){
+				p.p[i].x = strtod(f[3*i+1], nil);
+				p.p[i].y = strtod(f[3*i+2], nil);
+				p.p[i].z = strtod(f[3*i+3], nil);
+			}
+			addplotprim(p);
+		}else if(nf > 1+2*3 && (nf-1)%3 == 0 && strncmp(f[0], "pol", 3) == 0){
+			p.n = 2;
+			nf = (nf-1)/3 - 1;
+			for(i = 0; i < nf; i++){
+				p.p[0].x = strtod(f[3*i+1], nil);
+				p.p[0].y = strtod(f[3*i+2], nil);
+				p.p[0].z = strtod(f[3*i+3], nil);
+				p.p[1].x = strtod(f[3*(i+1)+1], nil);
+				p.p[1].y = strtod(f[3*(i+1)+2], nil);
+				p.p[1].z = strtod(f[3*(i+1)+3], nil);
+				addplotprim(p);
+			}
+		}else if((nf == 1+3*3 || nf == 1+4*3) && strncmp(f[0], "fi", 2) == 0){
+			p.n = (nf-1)/3;
+			for(i = 0; i < p.n; i++){
+				p.p[i].x = strtod(f[3*i+1], nil);
+				p.p[i].y = strtod(f[3*i+2], nil);
+				p.p[i].z = strtod(f[3*i+3], nil);
+			}
+			addplotprim(p);
+		}else{
+//			switch(lastcmd){
+//			case CMpoint:
+//			case CMline:
+//			case CMpoly:
+//			}
+			fprint(2, "%lud: syntax error\n", lineno);
+			for(i = 0; i < nf; i++)
+				fprint(2, "[%d] %s\n", i, f[i]);
 		}
-		if(nf != 3){
-			fprint(2, "not enough coordinates. ignoring line %uld\n", lineno);
-			free(line);
-			continue;
-		}
-		p.x = strtod(f[0], nil);
-		p.y = strtod(f[1], nil);
-		p.z = strtod(f[2], nil);
-		addpttotheplot(p);
 		free(line);
 	}
 	Bterm(bin);
 }
 
-#define smallestbbox(coord)	(min(theplot.bbox.min.coord, theplot.bbox.max.coord))
-#define biggestbbox(coord)	(max(theplot.bbox.min.coord, theplot.bbox.max.coord))
+#define smallestcoord(coord)	(min(theplot.bbox.min.coord, theplot.bbox.max.coord))
+#define biggestcoord(coord)	(max(theplot.bbox.min.coord, theplot.bbox.max.coord))
 void
 frametheplot(void)
 {
@@ -188,9 +236,9 @@ frametheplot(void)
 	mark = line;
 
 	/* x scale */
-	v.p = mdl->addposition(mdl, Pt3(smallestbbox(x), smallestbbox(y), smallestbbox(z), 1));
+	v.p = mdl->addposition(mdl, Pt3(smallestcoord(x), smallestcoord(y), smallestcoord(z), 1));
 	line.v[0] = mdl->addvert(mdl, v);
-	v.p = mdl->addposition(mdl, Pt3(biggestbbox(x), smallestbbox(y), smallestbbox(z), 1));
+	v.p = mdl->addposition(mdl, Pt3(biggestcoord(x), smallestcoord(y), smallestcoord(z), 1));
 	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
 	p0 = *(Point3*)itemarrayget(mdl->positions, v.p - 1);
@@ -207,7 +255,7 @@ frametheplot(void)
 	}
 
 	/* y scale */
-	v.p = mdl->addposition(mdl, Pt3(smallestbbox(x), biggestbbox(y), smallestbbox(z), 1));
+	v.p = mdl->addposition(mdl, Pt3(smallestcoord(x), biggestcoord(y), smallestcoord(z), 1));
 	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
 	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
@@ -223,7 +271,7 @@ frametheplot(void)
 	}
 
 	/* z scale */
-	v.p = mdl->addposition(mdl, Pt3(smallestbbox(x), smallestbbox(y), biggestbbox(z), 1));
+	v.p = mdl->addposition(mdl, Pt3(smallestcoord(x), smallestcoord(y), biggestcoord(z), 1));
 	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
 	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
@@ -247,8 +295,9 @@ understandtheplot(void)
 	Scene *scn;
 	Primitive prim;
 	Vertex v;
-	static Color prevcol;
-	Plotpt *p;
+	PColor *prevcol;
+	Plotprim *p;
+	int i;
 
 	mdl = newmodel();
 	ent = newentity(nil, mdl);
@@ -256,20 +305,25 @@ understandtheplot(void)
 	scn->addent(scn, ent);
 	theplot.scn = scn;
 
-	prim = mkprim(PPoint);
 	v = mkvert();
-	for(p = theplot.pts; p < theplot.pts + theplot.npts; p++){
-		v.p = mdl->addposition(mdl, p->p);
-		if(!eqpt3(prevcol, p->c->c)){
-			v.c = mdl->addcolor(mdl, p->c->c);
-			prevcol = p->c->c;
+	prevcol = nil;
+	for(p = theplot.prims; p < theplot.prims + theplot.nprims; p++){
+		if(p->n > 3)
+			continue;	/* TODO triangulate */
+		prim = mkprim(p->n-1);
+		for(i = 0; i < p->n; i++){
+			v.p = mdl->addposition(mdl, p->p[i]);
+			if(p->c != prevcol){
+				v.c = mdl->addcolor(mdl, p->c->c);
+				prevcol = p->c;
+			}
+			prim.v[i] = mdl->addvert(mdl, v);
 		}
-		prim.v[0] = mdl->addvert(mdl, v);
 		mdl->addprim(mdl, prim);
 	}
-	free(theplot.pts);
-	theplot.pts = nil;
-	theplot.npts = 0;
+	free(theplot.prims);
+	theplot.prims = nil;
+	theplot.nprims = 0;
 	frametheplot();
 }
 
@@ -339,11 +393,35 @@ lmb(void)
 	redrawb();
 }
 
+static int
+sgn(double n)
+{
+	return n > 0? 1: (n < 0? -1: 0);
+}
+
+void
+mmb(void)
+{
+	if((om.buttons^mctl->buttons) != 0)
+		return;
+
+	switch(sgn(mctl->xy.y - om.xy.y)){
+	case -1:
+		zoomin();
+		break;
+	case 1:
+		zoomout();
+		break;
+	}
+}
+
 void
 mouse(void)
 {
 	if(mctl->buttons & 1)
 		lmb();
+	if(mctl->buttons & 2)
+		mmb();
 	if(mctl->buttons & 8)
 		zoomin();
 	if(mctl->buttons & 16)
