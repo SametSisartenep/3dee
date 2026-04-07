@@ -43,6 +43,7 @@ for(z = lo; z < hi; z += step){
 #	if(y >= 0.1 && y < 0.5) print "co green\n"
 #	if(y >= 0.5 && y < 0.75) print "co blue\n"
 #	if(y >= 0.75) print "co black\n"
+	print "poi "
 	print x
 	print " "
 	print y
