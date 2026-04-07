@@ -120,7 +120,6 @@ updateplotbbox(void)
 		theplot.bbox.min = Pt3( 1e9,  1e9,  1e9, 1);
 		theplot.bbox.max = Pt3(-1e9, -1e9, -1e9, 1);
 		inited++;
-		return;
 	}
 
 	lastprim = &theplot.prims[theplot.nprims-1];
