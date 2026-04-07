@@ -61,6 +61,7 @@ Channel *drawc;
 Image *screenb;
 Plot theplot;
 Camera *cam;
+ulong counters[CMLEN];
 PColor pal[] = {
 	{ .k = "black",		.v = DBlack },
 	{ .k = "white",		.v = DWhite },
@@ -147,7 +148,7 @@ readtheplot(int fd)
 	Plotprim p;
 	char *line, *f[1+50*3];
 	ulong lineno;
-	int i, nf;
+	int i, nf, nverts;
 
 	bin = Bfdopen(fd, OREAD);
 	if(bin == nil)
@@ -170,6 +171,7 @@ readtheplot(int fd)
 			p.p[0].y = strtod(f[2], nil);
 			p.p[0].z = strtod(f[3], nil);
 			addplotprim(p);
+			counters[CMpoint]++;
 		}else if(nf == 1+2*3 && strncmp(f[0], "li", 2) == 0){
 			p.n = 2;
 			for(i = 0; i < p.n; i++){
@@ -178,10 +180,11 @@ readtheplot(int fd)
 				p.p[i].z = strtod(f[3*i+3], nil);
 			}
 			addplotprim(p);
+			counters[CMline]++;
 		}else if(nf > 1+2*3 && (nf-1)%3 == 0 && strncmp(f[0], "pol", 3) == 0){
 			p.n = 2;
-			nf = (nf-1)/3 - 1;
-			for(i = 0; i < nf; i++){
+			nverts = (nf-1)/3;
+			for(i = 0; i < nverts - 1; i++){
 				p.p[0].x = strtod(f[3*i+1], nil);
 				p.p[0].y = strtod(f[3*i+2], nil);
 				p.p[0].z = strtod(f[3*i+3], nil);
@@ -190,14 +193,23 @@ readtheplot(int fd)
 				p.p[1].z = strtod(f[3*(i+1)+3], nil);
 				addplotprim(p);
 			}
-		}else if((nf == 1+3*3 || nf == 1+4*3) && strncmp(f[0], "fi", 2) == 0){
-			p.n = (nf-1)/3;
-			for(i = 0; i < p.n; i++){
-				p.p[i].x = strtod(f[3*i+1], nil);
-				p.p[i].y = strtod(f[3*i+2], nil);
-				p.p[i].z = strtod(f[3*i+3], nil);
+			counters[CMpoly]++;
+		}else if(nf > 1+2*3 && (nf-1)%3 == 0 && strncmp(f[0], "fi", 2) == 0){
+			p.n = 3;
+			nverts = (nf-1)/3;
+			for(i = 0; i < nverts - 2; i++){
+				p.p[0].x = strtod(f[3*0+1], nil);
+				p.p[0].y = strtod(f[3*0+2], nil);
+				p.p[0].z = strtod(f[3*0+3], nil);
+				p.p[1].x = strtod(f[3*(i+1)+1], nil);
+				p.p[1].y = strtod(f[3*(i+1)+2], nil);
+				p.p[1].z = strtod(f[3*(i+1)+3], nil);
+				p.p[2].x = strtod(f[3*(i+2)+1], nil);
+				p.p[2].y = strtod(f[3*(i+2)+2], nil);
+				p.p[2].z = strtod(f[3*(i+2)+3], nil);
+				addplotprim(p);
 			}
-			addplotprim(p);
+			counters[CMfillpoly]++;
 		}else{
 //			switch(lastcmd){
 //			case CMpoint:
@@ -212,6 +224,9 @@ readtheplot(int fd)
 	}
 	Bterm(bin);
 }
+
+//void
+//addtext(
 
 #define smallestcoord(coord)	(min(theplot.bbox.min.coord, theplot.bbox.max.coord))
 #define biggestcoord(coord)	(max(theplot.bbox.min.coord, theplot.bbox.max.coord))
@@ -280,7 +295,7 @@ frametheplot(void)
 		mp0 = addpt3(p0, mulpt3(stepv, i));
 		v.p = mdl->addposition(mdl, mp0);
 		mark.v[0] = mdl->addvert(mdl, v);
-		v.p = mdl->addposition(mdl, addpt3(mp0, qrotate(stepv, Vec3(0,1,0), -90*DEG)));
+		v.p = mdl->addposition(mdl, addpt3(mp0, qrotate(stepv, Vec3(0,-1,0), 90*DEG)));
 		mark.v[1] = mdl->addvert(mdl, v);
 		mdl->addprim(mdl, mark);
 	}
@@ -324,6 +339,22 @@ understandtheplot(void)
 	theplot.prims = nil;
 	theplot.nprims = 0;
 	frametheplot();
+}
+
+void
+fprintcounters(int fd)
+{
+	static char *cntnames[CMLEN] = {
+	 [CMpoint]	"point",
+	 [CMline]	"line",
+	 [CMpoly]	"polygon",
+	 [CMfillpoly]	"filled polygon",
+	};
+	int i;
+
+	for(i = 0; i < CMLEN; i++)
+		if(counters[i] > 0)
+			fprint(fd, "%lud %s%s\n", counters[i], cntnames[i], counters[i] > 1? "s": "");
 }
 
 void
@@ -468,6 +499,7 @@ threadmain(int argc, char *argv[])
 	initpalette();
 	readtheplot(0);
 	understandtheplot();
+	fprintcounters(2);
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");
