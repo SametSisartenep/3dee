@@ -322,8 +322,6 @@ understandtheplot(void)
 	v = mkvert();
 	prevcol = nil;
 	for(p = theplot.prims; p < theplot.prims + theplot.nprims; p++){
-		if(p->n > 3)
-			continue;	/* TODO triangulate */
 		prim = mkprim(p->n-1);
 		for(i = 0; i < p->n; i++){
 			v.p = mdl->addposition(mdl, p->p[i]);
