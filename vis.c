@@ -291,6 +291,7 @@ drawstats(void)
 void
 redraw(void)
 {
+	draw(screen, screen->r, clr, nil, ZP);
 	draw(screen, screen->r, screenb, nil, ZP);
 	if(showhud)
 		drawstats();
@@ -337,7 +338,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			draw(screenb, screenb->r, clr, nil, ZP);
 			maincam->view->draw(maincam->view, screenb, curraster);
 
 			nbsend(drawc, nil);
@@ -505,11 +505,13 @@ mmb(void)
 	case TSNEAREST:
 		qlock(&scenelk);
 		tsampler = neartexsampler;
+//		maincam->view->setfilter(maincam->view, VFNearest);
 		qunlock(&scenelk);
 		break;
 	case TSBILINEAR:
 		qlock(&scenelk);
 		tsampler = bilitexsampler;
+//		maincam->view->setfilter(maincam->view, VFBilinear);
 		qunlock(&scenelk);
 		break;
 	case SHOWNORMALS:
@@ -906,7 +908,7 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 	rctl->doprof = doprof;
 
 	clr = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
 fprint(2, "screen %R\n", screenb->r);
 
 	v = mkviewport(fbw == 0 || fbh == 0? screenb->r: Rect(0,0,fbw,fbh));
@@ -915,10 +917,6 @@ fprint(2, "screen %R\n", screenb->r);
 	v->createraster(v, "specular", COLOR32);
 	v->p.x = (Dx(screenb->r) - v->getwidth(v))/2;
 	v->p.y = (Dy(screenb->r) - v->getheight(v))/2;
-	if(scale == 2)
-		v->setscalefilter(v, UFScale2x);
-	else if(scale == 3)
-		v->setscalefilter(v, UFScale3x);
 fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 
 	for(i = 0; i < nelem(cams); i++){
