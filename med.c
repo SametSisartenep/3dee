@@ -396,7 +396,7 @@ setupcompass(Compass *c, Rectangle r, Renderer *rctl)
 
 	c->cam = Cam(rectsubpt(r, r.min), rctl, PERSPECTIVE, 30*DEG, 0.1, 10);
 	c->cam->view->p = Pt2(r.min.x,r.min.y,1);
-	c->cam->view->setscale(c->cam->view, scale, scale);
+	c->cam->view->scale(c->cam->view, Vec2(scale, scale));
 
 	c->scn = newscene(nil);
 	addbasis(c->scn);
