@@ -534,8 +534,8 @@ mmb(void)
 		if(nf != 1)
 			break;
 		clrcol = strtoul(buf, nil, 0);
-		freeimage(clr);
-		clr = eallocimage(display, UR, XRGB32, 1, clrcol);
+		clrcol >>= 8;			/* rgba2xrgb */
+		loadimage(clr, UR, (uchar*)&clrcol, 4);
 		break;
 	case CULLFRONT:
 		maincam->cullmode = CullFront;

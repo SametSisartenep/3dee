@@ -547,12 +547,9 @@ redraw(void)
 void
 renderproc(void *)
 {
-	static Image *bg;
 	uvlong t0, Δt;
 
 	threadsetname("renderproc");
-
-	bg = eallocimage(display, UR, XRGB32, 1, DBlack);
 
 	t0 = nanosec();
 	for(;;){
@@ -562,7 +559,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			draw(screenb, screenb->r, bg, nil, ZP);
 			camera->view->draw(camera->view, screenb, nil);
 			nbsend(drawc, nil);
 			t0 = nanosec();

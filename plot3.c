@@ -359,7 +359,6 @@ void
 redrawb(void)
 {
 	shootcamera(cam, &shaders);
-	draw(screenb, screenb->r, display->white, nil, ZP);
 	cam->view->draw(cam->view, screenb, nil);
 	nbsend(drawc, nil);
 }
@@ -367,6 +366,7 @@ redrawb(void)
 void
 redraw(void)
 {
+	draw(screen, screen->r, display->white, nil, ZP);
 	draw(screen, screen->r, screenb, nil, ZP);
 	flushimage(display, 1);
 }
@@ -510,7 +510,7 @@ threadmain(int argc, char *argv[])
 	if((kctl = initkeyboard(nil)) == nil)
 		sysfatal("initkeyboard: %r");
 
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
 	cam = Cam(screenb->r, rctl, PERSPECTIVE, 90*DEG, 0.1, 1000);
 	placecamera(cam, theplot.scn,
 		addpt3(theplot.bbox.c, mulpt3(normvec3(Vec3(1,1,1)), 1.5*theplot.bbox.r)),
