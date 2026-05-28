@@ -81,6 +81,7 @@ Rune keys[Ke] = {
 };
 char stats[Se][256];
 Image *screenb;
+Image *clr;
 Mousectl *mctl;
 Keyboardctl *kctl;
 Channel *drawc;
@@ -395,12 +396,28 @@ setupcompass(Compass *c, Rectangle r, Renderer *rctl)
 	r.max.y = r.min.y + Dy(r)/scale;
 
 	c->cam = Cam(rectsubpt(r, r.min), rctl, PERSPECTIVE, 30*DEG, 0.1, 10);
-	c->cam->view->p = Pt2(r.min.x,r.min.y,1);
+	c->cam->view->p = Pt2(r.min.x, r.min.y, 1);
 	c->cam->view->scale(c->cam->view, Vec2(scale, scale));
 
 	c->scn = newscene(nil);
 	addbasis(c->scn);
 	placecamera(c->cam, c->scn, camcfg.p, center, Vec3(0,1,0));
+}
+
+static Image *
+mkcheckersboard(void)
+{
+	Image *bg, *mist;
+
+	bg = eallocimage(display, Rect(0,0,32,32), XRGB32, 1, DNofill);
+	mist = eallocimage(display, UR, RGBA32, 1, 0xDF);
+	draw(bg, Rect( 0, 0,16,16), display->white, nil, ZP);
+	draw(bg, Rect(16, 0,32,16), display->black, nil, ZP);
+	draw(bg, Rect( 0,16,16,32), display->black, nil, ZP);
+	draw(bg, Rect(16,16,32,32), display->white, nil, ZP);
+	draw(bg, bg->r, mist, nil, ZP);
+	freeimage(mist);
+	return bg;
 }
 
 void
@@ -463,6 +480,7 @@ drawstats(void)
 void
 redraw(void)
 {
+	draw(screen, screen->r, clr, nil, ZP);
 	draw(screen, screen->r, screenb, nil, ZP);
 	usrlog->draw(usrlog);
 	drawopmode();
@@ -474,19 +492,9 @@ redraw(void)
 void
 renderproc(void *)
 {
-	static Image *bg, *mist;
 	uvlong t0, Δt;
 
 	threadsetname("renderproc");
-
-	bg = eallocimage(display, Rect(0,0,32,32), XRGB32, 1, DNofill);
-	mist = eallocimage(display, UR, RGBA32, 1, 0xDF);
-	draw(bg, Rect( 0, 0,16,16), display->white, nil, ZP);
-	draw(bg, Rect(16, 0,32,16), display->black, nil, ZP);
-	draw(bg, Rect( 0,16,16,32), display->black, nil, ZP);
-	draw(bg, Rect(16,16,32,32), display->white, nil, ZP);
-	draw(bg, bg->r, mist, nil, ZP);
-	freeimage(mist);
 
 	t0 = nanosec();
 	for(;;){
@@ -498,7 +506,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			draw(screenb, screenb->r, bg, nil, ZP);
 			cam->view->draw(cam->view, screenb, nil);
 			compass.cam->view->draw(compass.cam->view, screenb, nil);
 
@@ -851,7 +858,8 @@ threadmain(int argc, char *argv[])
 
 	rctl->doprof = doprof;
 
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
+	clr = mkcheckersboard();
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
 	cam = Cam(screenb->r, rctl, camcfg.ptype, camcfg.fov, camcfg.clipn, camcfg.clipf);
 	placecamera(cam, scene, camcfg.p, camcfg.lookat, camcfg.up);
 	light = newpointlight(Pt3(0,100,100,1), Pt3(1,1,1,1));
