@@ -14,6 +14,7 @@
 #include <keyboard.h>
 #include <geometry.h>
 #include "libgraphics/graphics.h"
+#include "dat.h"
 #include "fns.h"
 
 Renderer *rctl;

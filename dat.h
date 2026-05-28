@@ -1,38 +1,19 @@
-enum {
-	K↑,
-	K↓,
-	K←,
-	K→,
-	Krise,
-	Kfall,
-	KR↑,
-	KR↓,
-	KR←,
-	KR→,
-	KR↺,
-	KR↻,
-	Kzoomin,
-	Kzoomout,
-	Kcam0,
-	Kcam1,
-	Kcam2,
-	Kcam3,
-	Khud,
-	Ke
+typedef struct	Camcfg Camcfg;
+typedef struct	Stats Stats;
+
+struct Camcfg
+{
+	Point3	p;
+	Point3	lookat;
+	Point3	up;
+	double	fov;
+	double	clipn;
+	double	clipf;
+	int	ptype;
 };
 
-enum {
-	Scamno,
-	Sfov,
-	Scampos,
-	Scambx, Scamby, Scambz,
-	Sfps,
-	Sframes,
-	Sorient,
-	Spixcol,
-	Snorcol,
-	Sextra,
-	Sdps,
-	Sdframes,
-	Se
+struct Stats
+{
+	uvlong	min, avg, max, acc, n, v;
+	uvlong	nframes;
 };

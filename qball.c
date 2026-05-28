@@ -13,6 +13,7 @@
 #include <geometry.h>
 #include "libobj/obj.h"
 #include "libgraphics/graphics.h"
+#include "dat.h"
 #include "fns.h"
 
 #define MIN(a, b)	((a)<(b)?(a):(b))

@@ -8,6 +8,7 @@
 #include <keyboard.h>
 #include <geometry.h>
 #include "libgraphics/graphics.h"
+#include "dat.h"
 #include "fns.h"
 
 enum {
@@ -52,7 +53,6 @@ enum {
 };
 
 typedef struct Planet Planet;
-typedef struct Camcfg Camcfg;
 typedef struct HReq HReq;
 typedef struct Cmdbut Cmdbut;
 typedef struct Cmdbox Cmdbox;
@@ -64,13 +64,6 @@ struct Planet
 	char *name;
 	double scale;
 	Entity *body;
-};
-
-struct Camcfg
-{
-	Point3 p, lookat, up;
-	double fov, clipn, clipf;
-	int ptype;
 };
 
 struct HReq
@@ -140,6 +133,7 @@ Planet planets[] = {
 	{ .id = 9,	.name = "Pluto",	.scale = 1188.3 },
 };
 Planet *selplanet;
+Stats dstats;
 char stats[Se][256];
 char datefmt[] = "YYYY-MM-DD";
 Rectangle viewr, cmdr;
@@ -518,11 +512,11 @@ drawstats(void)
 		!camera->stats.v? 0: 1e9/camera->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", camera->stats.nframes);
 	snprint(stats[Sdps], sizeof(stats[Sdps]), "DPS %.0f/%.0f/%.0f/%.0f",
-		!camera->view->stats.max? 0: 1e9/camera->view->stats.max,
-		!camera->view->stats.avg? 0: 1e9/camera->view->stats.avg,
-		!camera->view->stats.min? 0: 1e9/camera->view->stats.min,
-		!camera->view->stats.v? 0: 1e9/camera->view->stats.v);
-	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", camera->view->stats.nframes);
+		!dstats.max? 0: 1e9/dstats.max,
+		!dstats.avg? 0: 1e9/dstats.avg,
+		!dstats.min? 0: 1e9/dstats.min,
+		!dstats.v? 0: 1e9/dstats.v);
+	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", dstats.nframes);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -575,11 +569,14 @@ renderproc(void *)
 void
 drawthread(void *)
 {
+	uvlong t0;
 	threadsetname("drawthread");
 
 	for(;;){
 		recv(drawc, nil);
+		t0 = nanosec();
 		redraw();
+		updatestats(&dstats, nanosec() - t0);
 	}
 }
 

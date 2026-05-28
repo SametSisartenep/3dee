@@ -7,6 +7,7 @@
 #include <keyboard.h>
 #include <geometry.h>
 #include "libgraphics/graphics.h"
+#include "dat.h"
 #include "fns.h"
 
 #define SEC	(1000000000ULL)
@@ -37,6 +38,7 @@ enum {
 
 typedef struct Usermsg Usermsg;
 typedef struct Userlog Userlog;
+typedef struct Compass Compass;
 
 struct Usermsg
 {
@@ -58,15 +60,6 @@ struct Userlog
 	void (*delmsg)(Userlog*, Usermsg*);
 };
 
-typedef struct Camcfg Camcfg;
-struct Camcfg
-{
-	Point3 p, lookat, up;
-	double fov, clipn, clipf;
-	int ptype;
-};
-
-typedef struct Compass Compass;
 struct Compass
 {
 	Camera	*cam;
@@ -79,6 +72,7 @@ Rune keys[Ke] = {
  [Khud]		= 'h',
  [Kfrustum]	= ' ',
 };
+Stats dstats;
 char stats[Se][256];
 Image *screenb;
 Image *clr;
@@ -395,8 +389,8 @@ setupcompass(Compass *c, Rectangle r, Renderer *rctl)
 	r.max.x = r.min.x + Dx(r)/scale;
 	r.max.y = r.min.y + Dy(r)/scale;
 
-	c->cam = Cam(rectsubpt(r, r.min), rctl, PERSPECTIVE, 30*DEG, 0.1, 10);
-	c->cam->view->p = Pt2(r.min.x, r.min.y, 1);
+	c->cam = Cam(r, rctl, PERSPECTIVE, 30*DEG, 0.1, 10);
+	c->cam->view->move(c->cam->view, Pt2(r.min.x, r.min.y, 1));
 	c->cam->view->scale(c->cam->view, Vec2(scale, scale));
 
 	c->scn = newscene(nil);
@@ -466,11 +460,11 @@ drawstats(void)
 		!cam->stats.v? 0: 1e9/cam->stats.v);
 	snprint(stats[Sframes], sizeof(stats[Sframes]), "frame %llud", cam->stats.nframes);
 	snprint(stats[Sdps], sizeof(stats[Sdps]), "DPS %.0f/%.0f/%.0f/%.0f",
-		!cam->view->stats.max? 0: 1e9/cam->view->stats.max,
-		!cam->view->stats.avg? 0: 1e9/cam->view->stats.avg,
-		!cam->view->stats.min? 0: 1e9/cam->view->stats.min,
-		!cam->view->stats.v? 0: 1e9/cam->view->stats.v);
-	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", cam->view->stats.nframes);
+		!dstats.max? 0: 1e9/dstats.max,
+		!dstats.avg? 0: 1e9/dstats.avg,
+		!dstats.min? 0: 1e9/dstats.min,
+		!dstats.v? 0: 1e9/dstats.v);
+	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", dstats.nframes);
 	for(i = 0; i < Se; i++){
 		p = addpt(screen->r.min, Pt(10,10 + i*font->height));
 		stringbg(screen, p, display->black, ZP, font, stats[i], display->white, ZP);
@@ -524,11 +518,14 @@ renderproc(void *)
 void
 drawproc(void *)
 {
+	uvlong t0;
 	threadsetname("drawproc");
 
 	for(;;){
 		recv(drawc, nil);
+		t0 = nanosec();
 		redraw();
+		updatestats(&dstats, nanosec() - t0);
 
 		usrlog->update(usrlog);
 	}

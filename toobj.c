@@ -6,6 +6,7 @@
 #include <geometry.h>
 #include <pool.h>
 #include "libgraphics/graphics.h"
+#include "dat.h"
 #include "fns.h"
 #include "libobj/obj.h"
 

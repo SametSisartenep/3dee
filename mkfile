@@ -17,6 +17,7 @@ TARG=\
 OFILES=\
 	alloc.$O\
 	qball.$O\
+	stats.$O\
 
 HFILES=dat.h fns.h
 

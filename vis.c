@@ -12,25 +12,54 @@
 
 #define isdigit(c) ((c) >= '0' && (c) <= '9')
 
-typedef struct AABB AABB;
-struct AABB
-{
-	Point3 min;
-	Point3 max;
-	/* with its homologous bounding sphere */
-	Point3 c;
-	double r;
+enum {
+	K↑,
+	K↓,
+	K←,
+	K→,
+	Krise,
+	Kfall,
+	KR↑,
+	KR↓,
+	KR←,
+	KR→,
+	KR↺,
+	KR↻,
+	Kzoomin,
+	Kzoomout,
+	Kcam0,
+	Kcam1,
+	Kcam2,
+	Kcam3,
+	Khud,
+	Ke
 };
 
-typedef struct Camcfg Camcfg;
-struct Camcfg
+enum {
+	Scamno,
+	Sfov,
+	Scampos,
+	Scambx, Scamby, Scambz,
+	Sfps,
+	Sframes,
+	Sorient,
+	Spixcol,
+	Snorcol,
+	Sextra,
+	Sdps,
+	Sdframes,
+	Se
+};
+
+typedef struct AABB AABB;
+
+struct AABB
 {
-	Point3 p;
-	Point3 lookat;
-	Point3 up;
-	double fov;
-	double clipn, clipf;
-	int ptype;
+	Point3	min;
+	Point3	max;
+	/* with its homologous bounding sphere */
+	Point3	c;
+	double	r;
 };
 
 Rune keys[Ke] = {
@@ -62,6 +91,7 @@ char *skyboxpaths[] = {
 	"cubemap/skybox/front.pic",
 	"cubemap/skybox/back.pic",
 };
+Stats dstats;
 char stats[Se][256];
 Image *screenb;
 Image *clr;
@@ -279,11 +309,11 @@ drawstats(void)
 		maincam->rendopts & RODepth? "on": "off",
 		maincam->rendopts & ROAbuff? "on": "off");
 	snprint(stats[Sdps], sizeof(stats[Sdps]), "DPS %.0f/%.0f/%.0f/%.0f",
-		!maincam->view->stats.max? 0: 1e9/maincam->view->stats.max,
-		!maincam->view->stats.avg? 0: 1e9/maincam->view->stats.avg,
-		!maincam->view->stats.min? 0: 1e9/maincam->view->stats.min,
-		!maincam->view->stats.v? 0: 1e9/maincam->view->stats.v);
-	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", maincam->view->stats.nframes);
+		!dstats.max? 0: 1e9/dstats.max,
+		!dstats.avg? 0: 1e9/dstats.avg,
+		!dstats.min? 0: 1e9/dstats.min,
+		!dstats.v? 0: 1e9/dstats.v);
+	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", dstats.nframes);
 	for(i = 0; i < Se; i++)
 		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
@@ -362,11 +392,14 @@ renderproc(void *)
 void
 drawthread(void *)
 {
+	uvlong t0;
 	threadsetname("drawthread");
 
 	for(;;){
 		recv(drawc, nil);
+		t0 = nanosec();
 		redraw();
+		updatestats(&dstats, nanosec() - t0);
 	}
 }
 
