@@ -907,7 +907,7 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 	rctl->doprof = doprof;
 
 	clr = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
+	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DTransparent);
 fprint(2, "screen %R\n", screenb->r);
 
 	v = mkviewport(fbw == 0 || fbh == 0? screenb->r: Rect(0,0,fbw,fbh));
