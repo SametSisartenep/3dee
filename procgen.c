@@ -201,7 +201,7 @@ threadmain(int argc, char *argv[])
 
 	do{
 		time = nanosec();
-		setuniform(&shaders, "time", VANumber, &time);
+		setuniform(cam, "time", VANumber, &time);
 		shootcamera(cam, &shaders);
 	}while(skip--);
 	cam->view->memdraw(cam->view, out, nil);

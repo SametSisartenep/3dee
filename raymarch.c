@@ -171,14 +171,13 @@ renderproc(void *)
 	t0 = nanosec();
 	for(;;){
 		time = nanosec();
-		setuniform(&shaders, "time", VANumber, &time);
+		setuniform(cam, "time", VANumber, &time);
 		mpt = Vec3(mctl->xy.x, mctl->xy.y, 0);
-		setuniform(&shaders, "mouse", VAPoint, &mpt);
+		setuniform(cam, "mouse", VAPoint, &mpt);
 		shootcamera(cam, &shaders);
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			draw(screenb, screenb->r, display->black, nil, ZP);
 			cam->view->draw(cam->view, screenb, nil);
 			nbsend(drawc, nil);
 			t0 = nanosec();

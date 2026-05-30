@@ -360,7 +360,7 @@ renderproc(void *)
 	t0 = nanosec();
 	for(;;){
 		time = nanosec();
-		setuniform(shader, "time", VANumber, &time);
+		setuniform(maincam, "time", VANumber, &time);
 
 		qlock(&scenelk);
 		shootcamera(maincam, shader);
