@@ -359,7 +359,7 @@ fprintcounters(int fd)
 void
 redrawb(void)
 {
-	shootcamera(cam, &shaders);
+	shootcamera(cam);
 	cam->view->draw(cam->view, screenb, nil);
 	nbsend(drawc, nil);
 }

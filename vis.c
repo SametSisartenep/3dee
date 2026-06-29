@@ -253,6 +253,19 @@ viewmemdrawtest(void)
 }
 
 void
+setglobalshader(Shadertab *st)
+{
+	Entity *e;
+	Material *m, *me;
+
+	for(e = scene->ents.next; e != &scene->ents; e = e->next){
+		m = e->mdl->materials->items;
+		for(me = m + e->mdl->materials->nitems; m < me; m++)
+			m->shaders = st;
+	}
+}
+
+void
 updatebbox(Entity *e)
 {
 	static int inited;
@@ -334,6 +347,7 @@ renderproc(void *)
 	Material *mtl;
 	Primitive *prim, *lastprim;
 	uvlong t0, Δt;
+	ulong idx;
 	int fd;
 	double time;
 
@@ -349,12 +363,12 @@ renderproc(void *)
 		mtl->diffusemap = alloctexture(sRGBTexture, nil);
 		if((mtl->diffusemap->image = readmemimage(fd)) == nil)
 			sysfatal("readmemimage: %r");
-		model->addmaterial(model, *mtl);
+		idx = model->addmaterial(model, *mtl);
 		free(mtl);
-		mtl = itemarrayget(model->materials, model->materials->nitems-1);
+		mtl = itemarrayget(model->materials, idx);
 		prim = model->prims->items;
 		for(lastprim = prim + model->prims->nitems; prim < lastprim; prim++)
-			prim->mtl = mtl;
+			prim->mtl = idx;
 	}
 
 	t0 = nanosec();
@@ -363,13 +377,12 @@ renderproc(void *)
 		setuniform(maincam, "time", VANumber, &time);
 
 		qlock(&scenelk);
-		shootcamera(maincam, shader);
+		shootcamera(maincam);
 		qunlock(&scenelk);
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
 			maincam->view->draw(maincam->view, screenb, curraster);
-
 			nbsend(drawc, nil);
 
 			if(inception){
@@ -614,7 +627,12 @@ rmb(void)
 
 	idx = menuhit(3, mctl, &menu, _screen);
 	if(idx >= 0){
-		shader = &shadertab[idx];
+		if(shader != &shadertab[idx]){
+			shader = &shadertab[idx];
+			qlock(&scenelk);
+			setglobalshader(shader);
+			qunlock(&scenelk);
+		}
 		for(idx = 0; idx < nelem(cams); idx++)
 			memset(&cams[idx]->stats, 0, sizeof(cams[idx]->stats));
 	}
@@ -885,9 +903,6 @@ threadmain(int argc, char *argv[])
 
 	confproc();
 
-	if((shader = getshader("gouraud")) == nil)
-		sysfatal("couldn't find gouraud shader");
-
 	scene = newscene(nil);
 	if(argc < 1)
 		mkblendtestscene();
@@ -919,14 +934,17 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 			close(fd);
 			i = model->addmaterial(model, *tmpmtl);
 			free(tmpmtl);
-			tmpmtl = itemarrayget(model->materials, i);
 			prim = model->prims->items;
 			for(lastprim = prim + model->prims->nitems; prim < lastprim; prim++)
-				prim->mtl = tmpmtl;
+				prim->mtl = i;
 		}
 	}
 	if(showskybox)
 		scene->skybox = readcubemap(skyboxpaths);
+
+	if((shader = getshader("gouraud")) == nil)
+		sysfatal("couldn't find gouraud shader");
+	setglobalshader(shader);
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");

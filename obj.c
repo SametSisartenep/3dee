@@ -84,7 +84,6 @@ struct OBJ2MtlEntry
 struct OBJ2MtlMap
 {
 	OBJ2MtlEntry *head;
-	Material *mtls;
 };
 
 static void
@@ -109,15 +108,15 @@ addmtlmap(OBJ2MtlMap *map, OBJMaterial *om, ulong idx)
 	map->head = e;
 }
 
-static Material *
+static ulong
 getmtlmap(OBJ2MtlMap *map, OBJMaterial *om)
 {
 	OBJ2MtlEntry *e;
 
 	for(e = map->head; e != nil; e = e->next)
 		if(e->objmtl == om)
-			return &map->mtls[e->idx];
-	return nil;
+			return e->idx;
+	return NaI;
 }
 
 static void
@@ -184,8 +183,6 @@ loadobjmodel(Model *m, OBJ *obj)
 			idx = m->addmaterial(m, mtl);
 			addmtlmap(&mtlmap, objmtl, idx);
 		}
-	if(m->materials->nitems > 0)
-		mtlmap.mtls = m->materials->items;
 
 	for(i = 0; i < obj->vertdata[OBJVGeometric].nvert; i++)
 		m->addposition(m, VGP3(pverts[i]));

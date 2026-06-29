@@ -74,6 +74,7 @@ phongvshader(Shaderparams *sp)
 		if(sp->v->mtl->normalmap != nil && sp->v->uv.w != 0)
 			sp->v->tangent = model2world(sp->entity, sp->v->tangent);
 
+		/* TODO don't do this */
 		sp->setattr(sp, "ambient", VAPoint, &sp->v->mtl->ambient);
 		sp->setattr(sp, "diffuse", VAPoint, &sp->v->mtl->diffuse);
 		sp->setattr(sp, "specular", VAPoint, &sp->v->mtl->specular);
@@ -287,9 +288,9 @@ toonshader(Shaderparams *sp)
 Point3
 identvshader(Shaderparams *sp)
 {
-	if(sp->v->mtl != nil)
-		sp->v->c = sp->v->mtl->diffuse;
-	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
+	sp->v->n = model2world(sp->entity, sp->v->n);
+	sp->v->p = model2world(sp->entity, sp->v->p);
+	return world2clip(sp->camera, sp->v->p);
 }
 
 Color
@@ -306,14 +307,6 @@ identshader(Shaderparams *sp)
 	sp->toraster(sp, "normals", &sp->v->n);
 
 	return modulapt3(sp->v->c, tc);
-}
-
-Point3
-ivshader(Shaderparams *sp)
-{
-	sp->v->n = model2world(sp->entity, sp->v->n);
-	sp->v->p = model2world(sp->entity, sp->v->p);
-	return world2clip(sp->camera, sp->v->p);
 }
 
 Color
@@ -439,12 +432,12 @@ boxshader(Shaderparams *sp)
 }
 
 Shadertab shadertab[] = {
-	{ "triangle", ivshader, triangleshader },
-	{ "circle", ivshader, circleshader },
-	{ "box", ivshader, boxshader },
-	{ "sf", ivshader, sfshader },
-	{ "toon", toonvshader, toonshader },
+	{ "triangle", identvshader, triangleshader },
+	{ "circle", identvshader, circleshader },
+	{ "box", identvshader, boxshader },
+	{ "sf", identvshader, sfshader },
 	{ "ident", identvshader, identshader },
+	{ "toon", toonvshader, toonshader },
 	{ "gouraud", gouraudvshader, gouraudshader },
 	{ "phong", phongvshader, phongshader },
 	{ "blinn", phongvshader, blinnshader },

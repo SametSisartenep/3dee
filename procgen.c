@@ -147,6 +147,7 @@ void
 threadmain(int argc, char *argv[])
 {
 	Memimage *out;
+	Material *mtl;
 	Point dim;
 	Vertex v;
 	int skip;
@@ -183,6 +184,9 @@ threadmain(int argc, char *argv[])
 	cam = Cam(out->r, rctl, ORTHOGRAPHIC, 40*DEG, 1, 10);
 	placecamera(cam, scn, Pt3(0,0,0,1), Vec3(0,0,-1), Vec3(0,1,0));
 
+	mtl = newmaterial("canvas");
+	mtl->shaders = &shaders;
+
 	quad[0] = quad[1] = mkprim(PTriangle);
 	v = mkvert();
 	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.min.x, out->r.max.y, 1, 1))));
@@ -195,6 +199,7 @@ threadmain(int argc, char *argv[])
 	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(out->r.max.x, out->r.max.y, 1, 1))));
 	quad[1].v[1] = mdl->addvert(mdl, v);
 	quad[1].v[2] = quad[0].v[1];
+	quad[0].mtl = quad[1].mtl = mdl->addmaterial(mdl, *mtl);
 	mdl->addprim(mdl, quad[0]);
 	mdl->addprim(mdl, quad[1]);
 	scn->addent(scn, ent);
@@ -202,7 +207,7 @@ threadmain(int argc, char *argv[])
 	do{
 		time = nanosec();
 		setuniform(cam, "time", VANumber, &time);
-		shootcamera(cam, &shaders);
+		shootcamera(cam);
 	}while(skip--);
 	cam->view->memdraw(cam->view, out, nil);
 	writememimage(1, out);

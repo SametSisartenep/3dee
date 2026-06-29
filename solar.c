@@ -165,6 +165,22 @@ static int showskybox;
 static int doprof;
 static int showhud;
 
+Point3
+solarvs(Shaderparams *sp)
+{
+	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
+}
+
+Color
+solarfs(Shaderparams *sp)
+{
+	if(sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
+		return sampletexture(sp->v->mtl->diffusemap, sp->v->uv, neartexsampler);
+	return sp->v->c;
+}
+
+Shadertab solarshader = { "solar", solarvs, solarfs };
+
 static void
 refreshinfobox(Infobox *info)
 {
@@ -272,6 +288,7 @@ static void
 selectplanet(Planet *p)
 {
 	static Planet *oldp;
+	static Material *mtl;	/* TODO fix leak when freeing Model.materials, you lazy bum */
 	struct { Point3 min, max; } aabb;
 	Entity *e, *esel;
 	Model *msel;
@@ -320,6 +337,12 @@ selectplanet(Planet *p)
 	l = mkprim(PLine);
 	v = mkvert();
 	v.c = msel->addcolor(msel, Pt3(0.2666, 0.5333, 0.2666, 1));
+
+	if(mtl == nil){
+		mtl = newmaterial("__msel");
+		mtl->shaders = &solarshader;
+	}
+	l.mtl = msel->addmaterial(msel, *mtl);
 
 	for(i = 0; i < 4; i++){
 		v.p = msel->addposition(msel, aabb.min);
@@ -465,22 +488,6 @@ gotoplanet(Planet *p)
 	aimcamera(camera, p->body->p);
 }
 
-Point3
-identvshader(Shaderparams *sp)
-{
-	return world2clip(sp->camera, model2world(sp->entity, sp->v->p));
-}
-
-Color
-identshader(Shaderparams *sp)
-{
-	if(sp->v->mtl != nil && sp->v->mtl->diffusemap != nil && sp->v->uv.w != 0)
-		return sampletexture(sp->v->mtl->diffusemap, sp->v->uv, neartexsampler);
-	return sp->v->c;
-}
-
-Shadertab shader = { "ident", identvshader, identshader };
-
 void
 zoomin(void)
 {
@@ -548,7 +555,7 @@ renderproc(void *)
 	t0 = nanosec();
 	for(;;){
 		qlock(&scenelk);
-		shootcamera(camera, &shader);
+		shootcamera(camera);
 		qunlock(&scenelk);
 
 		Δt = nanosec() - t0;
@@ -902,6 +909,7 @@ threadmain(int argc, char *argv[])
 	for(i = 0; i < nelem(planets); i++){
 		Primitive *prim, *prime;
 		Material *mtl;
+		ulong idx;
 
 		/* create instances of the model for each planet */
 		mdl = newmodel();
@@ -911,10 +919,14 @@ threadmain(int argc, char *argv[])
 		copyitemarray(model->prims, mdl->prims);
 
 		/* and attach the material corresponding to their planet */
-		mtl = mdl->getmaterial(mdl, planets[i].name);
+		idx = mdl->findmaterial(mdl, planets[i].name);
+		mtl = itemarrayget(mdl->materials, idx);
+		if(mtl == nil)
+			sysfatal("material '%s' not found", planets[i].name);
+		mtl->shaders = &solarshader;
 		prim = mdl->prims->items;
 		for(prime = prim + mdl->prims->nitems; prim < prime; prim++)
-			prim->mtl = mtl;
+			prim->mtl = idx;
 
 		subject = newentity(planets[i].name, mdl);
 		scene->addent(scene, subject);

@@ -96,8 +96,8 @@ loadobjmodel(OBJ *obj, Model *m)
 
 	o = objallocobject("default");
 	objpushobject(obj, o);
-	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
-	for(prim = m->prims->items; prim <= lastprim; prim++){
+	prim = m->prims->items;
+	for(lastprim = prim + m->prims->nitems; prim < lastprim; prim++){
 		switch(prim->type){
 		case PPoint:
 			e = objallocelem(OBJEPoint);
@@ -121,8 +121,11 @@ loadobjmodel(OBJ *obj, Model *m)
 				objaddelemidx(e, OBJVTexture, v->uv);
 		}
 
-		if(prim->mtl != nil)
-			e->mtl = objgetmtl(obj->materials, prim->mtl->name);
+		if(prim->mtl != NaI){
+			mtl = itemarrayget(m->materials, prim->mtl);
+			if(mtl != nil)
+				e->mtl = objgetmtl(obj->materials, mtl->name);
+		}
 		objaddelem(o, e);
 	}
 

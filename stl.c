@@ -13,6 +13,7 @@ static int
 loadstlmodel(Model *m, Stl *stl)
 {
 	Primitive prim;
+	Material *mtl;
 	Vertex v;
 	Stltri **tri;
 	int i;
@@ -20,6 +21,10 @@ loadstlmodel(Model *m, Stl *stl)
 	prim = mkprim(PTriangle);
 	v = mkvert();
 	v.c = m->addcolor(m, Pt3(1,1,1,1));
+
+	mtl = newmaterial("flat");
+	prim.mtl = m->addmaterial(m, *mtl);
+	free(mtl);
 
 	for(tri = stl->tris; tri < stl->tris+stl->ntris; tri++){
 		v.n = m->addnormal(m, Vec3((*tri)->n[0], (*tri)->n[1], (*tri)->n[2]));

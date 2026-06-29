@@ -126,6 +126,19 @@ randptfromrect(Rectangle *r)
 	return addpt(r->min, Pt(ntruerand(Dx(*r)), ntruerand(Dy(*r))));
 }
 
+void
+setglobalshader(Shadertab *st)
+{
+	Entity *e;
+	Material *m, *me;
+
+	for(e = scene->ents.next; e != &scene->ents; e = e->next){
+		m = e->mdl->materials->items;
+		for(me = m + e->mdl->materials->nitems; m < me; m++)
+			m->shaders = st;
+	}
+}
+
 static void
 userlog_send(Userlog *l, char *msg, ...)
 {
@@ -332,6 +345,16 @@ addcube(void)
 		model->addvert(model, v);
 	}
 
+	t.mtl = model->findmaterial(model, "cubism");
+	if(t.mtl == NaI){
+		Material *mtl;
+
+		mtl = newmaterial("cubism");
+		mtl->shaders = shader;
+		t.mtl = model->addmaterial(model, *mtl);
+		free(mtl);
+	}
+
 	/* triangulate vertices */
 	for(i = 0; i < 6; i++){
 		t.v[0] = vidx0 + 4*i + 0;
@@ -350,6 +373,7 @@ addbasis(Scene *s)
 {
 	Entity *e;
 	Model *m;
+	Material *mtl;
 	Vertex v;
 	Primitive l;
 	int i;
@@ -372,6 +396,10 @@ addbasis(Scene *s)
 	m->addvert(m, v);
 
 	l = mkprim(PLine);
+	mtl = newmaterial("basis");
+	mtl->shaders = getshader("ident");
+	l.mtl = m->addmaterial(m, *mtl);
+	free(mtl);
 	l.v[0] = 0;
 	for(i = 0; i < 3; i++){
 		l.v[1] = i+1;
@@ -493,10 +521,10 @@ renderproc(void *)
 	t0 = nanosec();
 	for(;;){
 		qlock(&scenelk);
-		shootcamera(cam, shader);
+		shootcamera(cam);
 		qunlock(&scenelk);
 
-		shootcamera(compass.cam, getshader("ident"));
+		shootcamera(compass.cam);
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
@@ -668,7 +696,12 @@ rmb(void)
 	if(idx < 0)
 		goto nohit;
 	if(idx < nelem(shadertab)){
-		shader = &shadertab[idx];
+		if(shader != &shadertab[idx]){
+			shader = &shadertab[idx];
+			qlock(&scenelk);
+			setglobalshader(shader);
+			qunlock(&scenelk);
+		}
 		memset(&cam->stats, 0, sizeof(cam->stats));
 	}
 	idx -= nelem(shadertab);
@@ -827,9 +860,6 @@ threadmain(int argc, char *argv[])
 
 	confproc();
 
-	if((shader = getshader("gouraud")) == nil)
-		sysfatal("couldn't find main shader");
-
 	scene = newscene(nil);
 	if(mdlpath != nil){
 		fd = open(mdlpath, OREAD);
@@ -843,6 +873,10 @@ threadmain(int argc, char *argv[])
 		model = newmodel();
 	subject = newentity("main", model);
 	scene->addent(scene, subject);
+
+	if((shader = getshader("gouraud")) == nil)
+		sysfatal("couldn't find main shader");
+	setglobalshader(shader);
 
 	if(memimageinit() != 0)
 		sysfatal("memimageinit: %r");

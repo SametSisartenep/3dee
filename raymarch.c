@@ -174,7 +174,7 @@ renderproc(void *)
 		setuniform(cam, "time", VANumber, &time);
 		mpt = Vec3(mctl->xy.x, mctl->xy.y, 0);
 		setuniform(cam, "mouse", VAPoint, &mpt);
-		shootcamera(cam, &shaders);
+		shootcamera(cam);
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
@@ -242,6 +242,7 @@ void
 threadmain(int argc, char *argv[])
 {
 	Renderer *rctl;
+	Material *mtl;
 	Primitive quad[2];
 	Vertex v;
 	Rune r;
@@ -276,6 +277,9 @@ threadmain(int argc, char *argv[])
 	cam = Cam(screenb->r, rctl, ORTHOGRAPHIC, 40*DEG, 1, 10);
 	placecamera(cam, scn, Pt3(0,0,0,1), Vec3(0,0,-1), Vec3(0,1,0));
 
+	mtl = newmaterial("canvas");
+	mtl->shaders = &shaders;
+
 	quad[0] = quad[1] = mkprim(PTriangle);
 	v = mkvert();
 	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(screenb->r.min.x, screenb->r.max.y, 1, 1))));
@@ -288,6 +292,7 @@ threadmain(int argc, char *argv[])
 	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(screenb->r.max.x, screenb->r.max.y, 1, 1))));
 	quad[1].v[1] = mdl->addvert(mdl, v);
 	quad[1].v[2] = quad[0].v[1];
+	quad[0].mtl = quad[1].mtl = mdl->addmaterial(mdl, *mtl);
 	mdl->addprim(mdl, quad[0]);
 	mdl->addprim(mdl, quad[1]);
 	scn->addent(scn, ent);
