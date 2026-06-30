@@ -279,8 +279,8 @@ updatebbox(Entity *e)
 	prim = m->prims->items;
 	for(lastprim = prim + m->prims->nitems; prim < lastprim; prim++)
 	for(i = 0; i < prim->type+1; i++){
-		v = itemarrayget(m->verts, prim->v[i]);
-		p = itemarrayget(m->positions, v->p);
+		v = bunchget(m->verts, prim->v[i]);
+		p = bunchget(m->positions, v->p);
 		if(!inited){
 			scenebbox.min = scenebbox.max = addpt3(e->p, *p);
 			inited++;
@@ -365,7 +365,7 @@ renderproc(void *)
 			sysfatal("readmemimage: %r");
 		idx = model->addmaterial(model, *mtl);
 		free(mtl);
-		mtl = itemarrayget(model->materials, idx);
+		mtl = bunchget(model->materials, idx);
 		prim = model->prims->items;
 		for(lastprim = prim + model->prims->nitems; prim < lastprim; prim++)
 			prim->mtl = idx;

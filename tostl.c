@@ -31,23 +31,23 @@ loadstlmodel(Stl *stl, Model *m)
 		*tri = &t[tri - stl->tris];
 
 	tri = stl->tris;
-	lastprim = itemarrayget(m->prims, m->prims->nitems-1);
+	lastprim = bunchget(m->prims, m->prims->nitems-1);
 	for(prim = m->prims->items; prim <= lastprim; prim++){
 		if(prim->type != PTriangle){
 			stl->ntris--;
 			continue;
 		}
 
-		v = itemarrayget(m->verts, prim->v[0]);
-		p = itemarrayget(m->normals, v->n);
+		v = bunchget(m->verts, prim->v[0]);
+		p = bunchget(m->normals, v->n);
 
 		(*tri)->n[0] = p->x;
 		(*tri)->n[1] = p->y;
 		(*tri)->n[2] = p->z;
 
 		for(i = 0; i < 3; i++){
-			v = itemarrayget(m->verts, prim->v[i]);
-			p = itemarrayget(m->positions, v->p);
+			v = bunchget(m->verts, prim->v[i]);
+			p = bunchget(m->positions, v->p);
 			(*tri)->v[i][0] = p->x;
 			(*tri)->v[i][1] = p->y;
 			(*tri)->v[i][2] = p->z;

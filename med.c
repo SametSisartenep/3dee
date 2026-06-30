@@ -608,11 +608,11 @@ lmb(void)
 		if(cidx < 0)
 			cidx = model->addcolor(model, Pt3(0.5,0.5,0,1));
 
-		lastprim = itemarrayget(model->prims, model->prims->nitems-1);
+		lastprim = bunchget(model->prims, model->prims->nitems-1);
 		for(prim = model->prims->items; prim <= lastprim; prim++)
 			for(i = 0; i < prim->type+1; i++){
-				v = itemarrayget(model->verts, prim->v[i]);
-				p = *(Point3*)itemarrayget(model->positions, v->p);
+				v = bunchget(model->verts, prim->v[i]);
+				p = *(Point3*)bunchget(model->positions, v->p);
 				if(ptincone(p, cam->p, cp1, cr))
 					v->c = cidx;
 			}

@@ -88,11 +88,11 @@ loadobjmodel(OBJ *obj, Model *m)
 	}
 
 	for(i = 0; i < m->positions->nitems; i++)
-		objaddvertex(obj, GP3V(itemarrayget(m->positions, i)), OBJVGeometric);
+		objaddvertex(obj, GP3V(bunchget(m->positions, i)), OBJVGeometric);
 	for(i = 0; i < m->normals->nitems; i++)
-		objaddvertex(obj, GP3V(itemarrayget(m->normals, i)), OBJVNormal);
+		objaddvertex(obj, GP3V(bunchget(m->normals, i)), OBJVNormal);
 	for(i = 0; i < m->texcoords->nitems; i++)
-		objaddvertex(obj, GP3V(itemarrayget(m->texcoords, i)), OBJVTexture);
+		objaddvertex(obj, GP3V(bunchget(m->texcoords, i)), OBJVTexture);
 
 	o = objallocobject("default");
 	objpushobject(obj, o);
@@ -113,7 +113,7 @@ loadobjmodel(OBJ *obj, Model *m)
 		}
 
 		for(i = 0; i < prim->type+1; i++){
-			v = itemarrayget(m->verts, prim->v[i]);
+			v = bunchget(m->verts, prim->v[i]);
 			objaddelemidx(e, OBJVGeometric, v->p);
 			if(v->n != NaI)
 				objaddelemidx(e, OBJVNormal, v->n);
@@ -122,7 +122,7 @@ loadobjmodel(OBJ *obj, Model *m)
 		}
 
 		if(prim->mtl != NaI){
-			mtl = itemarrayget(m->materials, prim->mtl);
+			mtl = bunchget(m->materials, prim->mtl);
 			if(mtl != nil)
 				e->mtl = objgetmtl(obj->materials, mtl->name);
 		}

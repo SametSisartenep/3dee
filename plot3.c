@@ -256,8 +256,8 @@ frametheplot(void)
 	v.p = mdl->addposition(mdl, Pt3(biggestcoord(x), smallestcoord(y), smallestcoord(z), 1));
 	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
-	p0 = *(Point3*)itemarrayget(mdl->positions, v.p - 1);
-	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
+	p0 = *(Point3*)bunchget(mdl->positions, v.p - 1);
+	p1 = *(Point3*)bunchget(mdl->positions, v.p);
 	stepv = subpt3(p1, p0);
 	stepv = divpt3(stepv, 10);
 	for(i = 1; i <= 10; i++){
@@ -273,7 +273,7 @@ frametheplot(void)
 	v.p = mdl->addposition(mdl, Pt3(smallestcoord(x), biggestcoord(y), smallestcoord(z), 1));
 	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
-	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
+	p1 = *(Point3*)bunchget(mdl->positions, v.p);
 	stepv = subpt3(p1, p0);
 	stepv = divpt3(stepv, 10);
 	for(i = 1; i <= 10; i++){
@@ -289,7 +289,7 @@ frametheplot(void)
 	v.p = mdl->addposition(mdl, Pt3(smallestcoord(x), smallestcoord(y), biggestcoord(z), 1));
 	line.v[1] = mdl->addvert(mdl, v);
 	mdl->addprim(mdl, line);
-	p1 = *(Point3*)itemarrayget(mdl->positions, v.p);
+	p1 = *(Point3*)bunchget(mdl->positions, v.p);
 	stepv = subpt3(p1, p0);
 	stepv = divpt3(stepv, 10);
 	for(i = 1; i <= 10; i++){

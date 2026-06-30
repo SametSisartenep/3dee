@@ -282,9 +282,9 @@ loadobjmodel(Model *m, OBJ *obj)
 							double det;
 
 							for(idx = 0; idx < 3; idx++){
-								vp = itemarrayget(m->verts, prim.v[idx]);
-								p[idx] = itemarrayget(m->positions, vp->p);
-								uv[idx] = itemarrayget(m->texcoords, vp->uv);
+								vp = bunchget(m->verts, prim.v[idx]);
+								p[idx] = bunchget(m->positions, vp->p);
+								uv[idx] = bunchget(m->texcoords, vp->uv);
 							}
 
 							e0 = subpt3(*p[1], *p[0]);
@@ -308,14 +308,14 @@ loadobjmodel(Model *m, OBJ *obj)
 							Point3 *p[3], n;
 
 							for(idx = 0; idx < 3; idx++){
-								vp = itemarrayget(m->verts, prim.v[idx]);
-								p[idx] = itemarrayget(m->positions, vp->p);
+								vp = bunchget(m->verts, prim.v[idx]);
+								p[idx] = bunchget(m->positions, vp->p);
 							}
 
 							n = normvec3(crossvec3(subpt3(*p[1], *p[0]), subpt3(*p[2], *p[0])));
 							nidx = m->addnormal(m, n);
 							for(idx = 0; idx < 3; idx++){
-								vp = itemarrayget(m->verts, prim.v[idx]);
+								vp = bunchget(m->verts, prim.v[idx]);
 								vp->n = nidx;
 							}
 						}

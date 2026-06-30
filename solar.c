@@ -912,15 +912,13 @@ threadmain(int argc, char *argv[])
 		ulong idx;
 
 		/* create instances of the model for each planet */
-		mdl = newmodel();
-		copymodel(model, mdl);
-		rmitemarray(mdl->prims);
-		mdl->prims = mkitemarray(0);
-		copyitemarray(model->prims, mdl->prims);
+		mdl = dupmodel(model);
+		freebunch(mdl->prims);
+		mdl->prims = dupbunch(model->prims);
 
 		/* and attach the material corresponding to their planet */
 		idx = mdl->findmaterial(mdl, planets[i].name);
-		mtl = itemarrayget(mdl->materials, idx);
+		mtl = bunchget(mdl->materials, idx);
 		if(mtl == nil)
 			sysfatal("material '%s' not found", planets[i].name);
 		mtl->shaders = &solarshader;
