@@ -213,8 +213,8 @@ viewabuffer(void)
 			sysfatal("writememimage: %r");
 		close(pfd[1]);
 		freememimage(ri);
-		if(waitpid() != cpid)
-			sysfatal("child ran away");
+		while(waitpid() != cpid)
+			;
 	}
 	qunlock(v->fbctl);
 }
@@ -222,14 +222,17 @@ viewabuffer(void)
 void
 viewmemdrawtest(void)
 {
-	Memimage *i;
+	Memimage *i, *scr;
 	int pfd[2], cpid;
 	ulong c;
 
 	i = eallocmemimage(screen->r, screen->chan);
 	unloadimage(clr, UR, (uchar*)&c, 4);
 	memfillcolor(i, (c<<8)|0xFF);
-	maincam->view->memdraw(maincam->view, i, curraster);
+	scr = eallocmemimage(screenb->r, screenb->chan);
+	maincam->view->memdraw(maincam->view, scr, curraster);
+	memimagedraw(i, i->r, scr, scr->r.min, nil, ZP, SoverD);
+	freememimage(scr);
 	if(pipe(pfd) < 0)
 		sysfatal("pipe: %r");
 	switch(cpid = fork()){
@@ -247,8 +250,8 @@ viewmemdrawtest(void)
 			sysfatal("writememimage: %r");
 		close(pfd[1]);
 		freememimage(i);
-		if(waitpid() != cpid)
-			sysfatal("child ran away");
+		while(waitpid() != cpid)
+			;
 	}
 }
 
@@ -346,26 +349,32 @@ renderproc(void *)
 {
 	Material *mtl;
 	Primitive *prim, *lastprim;
+	Memimage *ii;
+	uchar *iidata;
 	uvlong t0, Δt;
-	ulong idx;
+	ulong idx, iisize;
 	int fd;
 	double time;
 
 	threadsetname("renderproc");
 
 	fd = -1;
-	mtl = nil;
+	iidata = nil;
+	iisize = 0;
 	if(inception){
 		fd = open("/dev/screen", OREAD);
 		if(fd < 0)
 			sysfatal("open: %r");
+
 		mtl = newmaterial("ιnception");
-		mtl->diffusemap = alloctexture(sRGBTexture, nil);
-		if((mtl->diffusemap->image = readmemimage(fd)) == nil)
-			sysfatal("readmemimage: %r");
+		mtl->diffusemap = readtexture(fd, sRGBTexture);
+		mtl->shaders = shader;
+		ii = mtl->diffusemap->image;
+		iidata = ii->data->bdata + ii->zero;
+		iisize = ii->width*sizeof(ulong)*Dy(ii->r);
 		idx = model->addmaterial(model, *mtl);
 		free(mtl);
-		mtl = bunchget(model->materials, idx);
+
 		prim = model->prims->items;
 		for(lastprim = prim + model->prims->nitems; prim < lastprim; prim++)
 			prim->mtl = idx;
@@ -386,10 +395,9 @@ renderproc(void *)
 			nbsend(drawc, nil);
 
 			if(inception){
-				freememimage(mtl->diffusemap->image);
 				seek(fd, 0, 0);
-				if((mtl->diffusemap->image = readmemimage(fd)) == nil)
-					sysfatal("readmemimage: %r");
+				if(readn(fd, iidata, iisize) != iisize)
+					sysfatal("readn: %r");
 			}
 			t0 = nanosec();
 		}else if(!doprof){
@@ -927,11 +935,12 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 			fd = open(texpath, OREAD);
 			if(fd < 0)
 				sysfatal("open: %r");
+
 			tmpmtl = newmaterial("__tmp");
-			tmpmtl->diffusemap = alloctexture(sRGBTexture, nil);
-			if((tmpmtl->diffusemap->image = readmemimage(fd)) == nil)
-				sysfatal("readmemimage: %r");
+			tmpmtl->diffusemap = readtexture(fd, sRGBTexture);
+
 			close(fd);
+
 			i = model->addmaterial(model, *tmpmtl);
 			free(tmpmtl);
 			prim = model->prims->items;
@@ -979,12 +988,12 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 	maincam = cams[3];
 	lights[0] = newpointlight(Pt3(0,100,100,1), Pt3(1,1,1,1));
 	lights[0]->cutoff = 3000;
-	lights[1] = newpointlight(Pt3(0,100,-100,1), Pt3(1,1,1,1));
-	lights[1]->cutoff = 3000;
+//	lights[1] = newpointlight(Pt3(0,100,-100,1), Pt3(1,1,1,1));
+//	lights[1]->cutoff = 3000;
 	/* to test spotlights */
 //	lights[0] = newspotlight(Pt3(0,100,100,1), Vec3(0,-1,0), Pt3(1,1,1,1), 30*DEG, 5*DEG);
 	scene->addlight(scene, lights[0]);
-	scene->addlight(scene, lights[1]);
+//	scene->addlight(scene, lights[1]);
 	tsampler = neartexsampler;
 
 	kctl = emalloc(sizeof *kctl);
