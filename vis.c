@@ -972,7 +972,7 @@ fprint(2, "screen %R\n", screenb->r);
 
 	v = mkviewport(fbw == 0 || fbh == 0? screenb->r: Rect(0,0,fbw,fbh));
 	v->scale(v, Vec2(scale, scale));
-	v->move(v, Vec2((Dx(screenb->r) - v->getwidth(v))/2, (Dy(screenb->r) - v->getheight(v))/2));
+	v->move(v, Vec2((Dx(screenb->r) - Dx(v->r))/2, (Dy(screenb->r) - Dy(v->r))/2));
 	v->createraster(v, "normals", COLOR32);
 	v->createraster(v, "specular", COLOR32);
 fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
