@@ -222,17 +222,14 @@ viewabuffer(void)
 void
 viewmemdrawtest(void)
 {
-	Memimage *i, *scr;
+	Memimage *i;
 	int pfd[2], cpid;
 	ulong c;
 
 	i = eallocmemimage(screen->r, screen->chan);
 	unloadimage(clr, UR, (uchar*)&c, 4);
 	memfillcolor(i, (c<<8)|0xFF);
-	scr = eallocmemimage(screenb->r, screenb->chan);
-	maincam->view->memdraw(maincam->view, scr, curraster);
-	memimagedraw(i, i->r, scr, scr->r.min, nil, ZP, SoverD);
-	freememimage(scr);
+	maincam->view->memdraw(maincam->view, i, curraster);
 	if(pipe(pfd) < 0)
 		sysfatal("pipe: %r");
 	switch(cpid = fork()){
@@ -331,16 +328,17 @@ drawstats(void)
 		!dstats.v? 0: 1e9/dstats.v);
 	snprint(stats[Sdframes], sizeof(stats[Sdframes]), "Dframe %llud", dstats.nframes);
 	for(i = 0; i < Se; i++)
-		stringbg(screen, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
+		stringbg(screenb, addpt(screen->r.min, Pt(10,10 + i*font->height)), display->black, ZP, font, stats[i], display->white, ZP);
 }
 
 void
 redraw(void)
 {
-	draw(screen, screen->r, clr, nil, ZP);
-	draw(screen, screen->r, screenb, nil, ZP);
+	draw(screenb, screenb->r, clr, nil, ZP);
+	maincam->view->draw(maincam->view, screenb, curraster);
 	if(showhud)
 		drawstats();
+	draw(screen, screen->r, screenb, nil, screen->r.min);
 	flushimage(display, 1);
 }
 
@@ -391,7 +389,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			maincam->view->draw(maincam->view, screenb, curraster);
 			nbsend(drawc, nil);
 
 			if(inception){
@@ -411,15 +408,17 @@ renderproc(void *)
 }
 
 void
-drawthread(void *)
+drawproc(void *)
 {
 	uvlong t0;
-	threadsetname("drawthread");
+	threadsetname("drawproc");
 
 	for(;;){
 		recv(drawc, nil);
 		t0 = nanosec();
+		rlockdisplay(display);
 		redraw();
+		runlockdisplay(display);
 		updatestats(&dstats, nanosec() - t0);
 	}
 }
@@ -842,8 +841,12 @@ mkblendtestscene(void)
 void
 resize(void)
 {
+	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
+	freeimage(screenb);
+	screenb = eallocimage(display, screen->r, screen->chan, 0, DNofill);
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -967,12 +970,12 @@ fprint(2, "%s: %lud prims\n", mdlpath, model->prims->nitems);
 	rctl->doprof = doprof;
 
 	clr = eallocimage(display, UR, XRGB32, 1, 0x888888FF);
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DTransparent);
-fprint(2, "screen %R\n", screenb->r);
+	screenb = eallocimage(display, screen->r, screen->chan, 0, DNofill);
+fprint(2, "screen %R\n", rectsubpt(screen->r, screen->r.min));
 
-	v = mkviewport(fbw == 0 || fbh == 0? screenb->r: Rect(0,0,fbw,fbh));
+	v = mkviewport(fbw == 0 || fbh == 0? screen->r: Rect(0,0,fbw,fbh));
 	v->scale(v, Vec2(scale, scale));
-	v->move(v, Vec2((Dx(screenb->r) - Dx(v->r))/2, (Dy(screenb->r) - Dy(v->r))/2));
+	v->move(v, Vec2((Dx(screen->r) - Dx(v->r))/2, (Dy(screen->r) - Dy(v->r))/2));
 	v->createraster(v, "normals", COLOR32);
 	v->createraster(v, "specular", COLOR32);
 fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
@@ -1001,11 +1004,11 @@ fprint(2, "view off %v scalex %g scaley %g\n", v->p, v->bx.x, v->by.y);
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
 
+	unlockdisplay(display);
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
 	proccreate(renderproc, nil, mainstacksize);
-
-	threadcreate(drawthread, nil, mainstacksize);
+	proccreate(drawproc, nil, mainstacksize);
 
 	enum {MOUSE, RESIZE, KEY};
 	Alt a[] = {

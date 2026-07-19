@@ -502,8 +502,10 @@ drawstats(void)
 void
 redraw(void)
 {
-	draw(screen, screen->r, clr, nil, ZP);
-	draw(screen, screen->r, screenb, nil, ZP);
+	draw(screenb, screenb->r, clr, nil, ZP);
+	cam->view->draw(cam->view, screenb, nil);
+	compass.cam->view->draw(compass.cam->view, screenb, nil);
+	draw(screen, screen->r, screenb, nil, screenb->r.min);
 	usrlog->draw(usrlog);
 	drawopmode();
 	if(showhud)
@@ -528,9 +530,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			cam->view->draw(cam->view, screenb, nil);
-			compass.cam->view->draw(compass.cam->view, screenb, nil);
-
 			nbsend(drawc, nil);
 			t0 = nanosec();
 		}else{
@@ -552,7 +551,9 @@ drawproc(void *)
 	for(;;){
 		recv(drawc, nil);
 		t0 = nanosec();
+		rlockdisplay(display);
 		redraw();
+		runlockdisplay(display);
 		updatestats(&dstats, nanosec() - t0);
 
 		usrlog->update(usrlog);
@@ -810,8 +811,12 @@ handlekeys(void)
 void
 resize(void)
 {
+	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
+	freeimage(screenb);
+	screenb = eallocimage(display, screen->r, screen->chan, 0, DNofill);
+	lockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -890,15 +895,15 @@ threadmain(int argc, char *argv[])
 	rctl->doprof = doprof;
 
 	clr = mkcheckersboard();
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), RGBA32, 0, DNofill);
-	cam = Cam(screenb->r, rctl, camcfg.ptype, camcfg.fov, camcfg.clipn, camcfg.clipf);
+	screenb = eallocimage(display, screen->r, screen->chan, 0, DNofill);
+	cam = Cam(screen->r, rctl, camcfg.ptype, camcfg.fov, camcfg.clipn, camcfg.clipf);
 	placecamera(cam, scene, camcfg.p, camcfg.lookat, camcfg.up);
 	light = newpointlight(Pt3(0,100,100,1), Pt3(1,1,1,1));
 	light->cutoff = 10000;
 	scene->addlight(scene, light);
 	tsampler = neartexsampler;
 
-	setupcompass(&compass, rectaddpt(Rect(0,0,100,100), subpt(screenb->r.max, Pt(100,100))), rctl);
+	setupcompass(&compass, Rect(Dx(screen->r)-100, Dy(screen->r)-100, Dx(screen->r), Dy(screen->r)), rctl);
 	usrlog = mkuserlog();
 
 	kctl = emalloc(sizeof *kctl);
@@ -906,6 +911,7 @@ threadmain(int argc, char *argv[])
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
 
+	unlockdisplay(display);
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
 	proccreate(renderproc, nil, mainstacksize);

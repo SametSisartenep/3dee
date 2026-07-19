@@ -144,7 +144,8 @@ Shadertab shaders = {
 void
 redraw(void)
 {
-	draw(screen, screen->r, screenb, nil, ZP);
+	cam->view->draw(cam->view, screenb, nil);
+	draw(screen, screen->r, screenb, nil, screen->r.min);
 	flushimage(display, 1);
 }
 
@@ -178,7 +179,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			cam->view->draw(cam->view, screenb, nil);
 			nbsend(drawc, nil);
 			t0 = nanosec();
 		}else{
@@ -202,6 +202,8 @@ resize(void)
 {
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
+	freeimage(screenb);
+	screenb = eallocimage(display, screen->r, screen->chan, 0, DNofill);
 	nbsend(drawc, nil);
 }
 
@@ -273,8 +275,8 @@ threadmain(int argc, char *argv[])
 	mdl = newmodel();
 	ent = newentity(nil, mdl);
 
-	screenb = eallocimage(display, rectsubpt(screen->r, screen->r.min), XRGB32, 0, DNofill);
-	cam = Cam(screenb->r, rctl, ORTHOGRAPHIC, 40*DEG, 1, 10);
+	screenb = eallocimage(display, screen->r, screen->chan, 0, DNofill);
+	cam = Cam(screen->r, rctl, ORTHOGRAPHIC, 40*DEG, 1, 10);
 	placecamera(cam, scn, Pt3(0,0,0,1), Vec3(0,0,-1), Vec3(0,1,0));
 
 	mtl = newmaterial("canvas");
@@ -282,14 +284,14 @@ threadmain(int argc, char *argv[])
 
 	quad[0] = quad[1] = mkprim(PTriangle);
 	v = mkvert();
-	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(screenb->r.min.x, screenb->r.max.y, 1, 1))));
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(0, Dy(screen->r), 1, 1))));
 	quad[0].v[0] = mdl->addvert(mdl, v);
-	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(screenb->r.max.x, screenb->r.min.y, 1, 1))));
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(Dx(screen->r), 0, 1, 1))));
 	quad[0].v[1] = mdl->addvert(mdl, v);
-	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(screenb->r.min.x, screenb->r.min.y, 1, 1))));
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(0, 0, 1, 1))));
 	quad[0].v[2] = mdl->addvert(mdl, v);
 	quad[1].v[0] = quad[0].v[0];
-	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(screenb->r.max.x, screenb->r.max.y, 1, 1))));
+	v.p = mdl->addposition(mdl, vcs2clip(cam, viewport2vcs(cam, Pt3(Dx(screen->r), Dy(screen->r), 1, 1))));
 	quad[1].v[1] = mdl->addvert(mdl, v);
 	quad[1].v[2] = quad[0].v[1];
 	quad[0].mtl = quad[1].mtl = mdl->addmaterial(mdl, *mtl);

@@ -533,6 +533,8 @@ redraw(void)
 {
 	int i;
 
+	draw(screenb, screenb->r, display->black, nil, ZP);
+	camera->view->draw(camera->view, screenb, nil);
 	draw(screen, rectaddpt(viewr, screen->r.min), screenb, nil, ZP);
 	draw(screen, rectaddpt(cmdbox.r, screen->r.min), display->white, nil, ZP);
 	drawinfobox(screen, infobox);
@@ -560,7 +562,6 @@ renderproc(void *)
 
 		Δt = nanosec() - t0;
 		if(Δt > HZ2NS(60)){
-			camera->view->draw(camera->view, screenb, nil);
 			nbsend(drawc, nil);
 			t0 = nanosec();
 		}else{
@@ -574,15 +575,17 @@ renderproc(void *)
 }
 
 void
-drawthread(void *)
+drawproc(void *)
 {
 	uvlong t0;
-	threadsetname("drawthread");
+	threadsetname("drawproc");
 
 	for(;;){
 		recv(drawc, nil);
 		t0 = nanosec();
+		rlockdisplay(display);
 		redraw();
+		runlockdisplay(display);
 		updatestats(&dstats, nanosec() - t0);
 	}
 }
@@ -837,8 +840,10 @@ handlekeys(void)
 void
 resize(void)
 {
+	lockdisplay(display);
 	if(getwindow(display, Refnone) < 0)
 		fprint(2, "can't reattach to window\n");
+	unlockdisplay(display);
 	nbsend(drawc, nil);
 }
 
@@ -980,11 +985,11 @@ threadmain(int argc, char *argv[])
 	keyc = chancreate(sizeof(void*), 1);
 	drawc = chancreate(sizeof(void*), 1);
 
+	unlockdisplay(display);
 	proccreate(kbdproc, nil, mainstacksize);
 	proccreate(keyproc, keyc, mainstacksize);
 	proccreate(renderproc, nil, mainstacksize);
-
-	threadcreate(drawthread, nil, mainstacksize);
+	proccreate(drawproc, nil, mainstacksize);
 
 	enum {MOUSE, RESIZE, KEY};
 	Alt a[] = {
